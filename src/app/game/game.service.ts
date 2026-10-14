@@ -104,6 +104,9 @@ export class GameService {
       vendorSpend: {},
       jobMarket: {},
       staffEvents: [],
+      cityConditions: {},
+      newspaper: null,
+      charts: {},
     });
     this.mutate((st) => CITIES.forEach((c) => jobMarket(st, c.id)));
     this.selectedLotId.set(null);

@@ -144,10 +144,12 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 16 – City life
 
-- [ ] Daily newspaper, with events that start ingredient trends
-- [ ] Mayor awards and favour, pizza charts, annual pizza competition with judges
+- [x] Daily newspaper, with events that start ingredient trends
+- [x] Pizza charts
+- [ ] Mayor awards and favour, annual pizza competition with judges
 - [ ] Social status ranks and awards
-- [ ] Economic trend per city, loan schedules, insurance
+- [x] Economic trend per city
+- [ ] Loan schedules and insurance
 
 ### Phase 17 – Polish
 

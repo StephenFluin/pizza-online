@@ -1,9 +1,9 @@
 import { firstName } from './characters';
 import { INTEREST_RATE, adBonus, cookingBonus, ingredientPriceFactor, ownerStats, startReputation, statsOf, supervisable } from './owner-stats';
-import { INGREDIENTS, cityDef, ingredient } from './data';
+import { cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
-import { invalidatePizzaStats } from './pizza-stats';
+import { demandFactor, morningNews } from './newspaper';
 import { effectiveSkill, isAvailable, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
@@ -91,7 +91,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
   }
 
   for (const district of city.districts) {
-    const hungry = Math.round(district.population * rate);
+    const hungry = Math.round(district.population * rate * demandFactor(state, city.id));
     if (hungry <= 0) continue;
 
     // Score each restaurant for this district: best menu item, reputation, decor, distance.
@@ -277,6 +277,7 @@ export function startDay(state: GameState): void {
   // Managers do the shopping even without a standing order.
   for (const r of state.restaurants) if (r.autoRestock || r.staff.some((s) => s.role === 'manager' && isAvailable(s))) restock(state, r);
   staffMorning(state);
+  morningNews(state);
 }
 
 /** Adds units to a restaurant's stock, blending their quality into what is already there. */
@@ -383,18 +384,6 @@ export function endDay(state: GameState): void {
 }
 
 function endMonth(state: GameState): void {
-  // Food fashions: each city warms to one ingredient and cools on another.
-  for (const city of state.cities) {
-    const up = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
-    const down = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
-    if (up.id === down.id) continue;
-    for (const d of city.districts) {
-      d.tastes[up.id] = Math.min(1, d.tastes[up.id] + 0.12);
-      d.tastes[down.id] = Math.max(-1, d.tastes[down.id] - 0.08);
-    }
-    invalidatePizzaStats();
-    if (city.id === state.currentCityId) addMessage(state, `Food trend in ${city.name}: ${up.name} is in fashion, ${down.name} is falling out of favour.`);
-  }
   for (const player of state.players) {
     const own = state.restaurants.filter((r) => r.ownerId === player.id);
     for (const r of own) {

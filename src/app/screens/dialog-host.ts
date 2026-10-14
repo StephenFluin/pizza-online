@@ -27,7 +27,7 @@ const TITLES: Record<string, string> = {
   saves: 'Disk',
   restaurants: 'Your restaurants',
   finances: 'Finances',
-  news: 'News',
+  news: 'Newspaper',
   phone: 'Telephone',
   report: 'End of day',
   stock: 'Stock',

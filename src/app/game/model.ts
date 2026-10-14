@@ -1,3 +1,4 @@
+import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
 
 export type TileKind = 'grass' | 'road' | 'water' | 'park' | 'building' | 'lot';
@@ -315,6 +316,12 @@ export interface GameState {
   jobMarket: Record<string, Staff[]>;
   /** Staff incidents waiting for the player. */
   staffEvents: StaffEvent[];
+  /** City id -> economy, special occasions and running ingredient trends. */
+  cityConditions: Record<string, CityConditions>;
+  /** Today's paper for the player's city. */
+  newspaper: Edition | null;
+  /** City id -> weekly top pizzas. */
+  charts: Record<string, ChartEntry[]>;
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */

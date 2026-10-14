@@ -155,7 +155,7 @@ export class InteriorViewComponent {
     afterNextRender(() => {
       this.init().catch((err) => console.error('Failed to start restaurant view', err));
     });
-    destroyRef.onDestroy(() => this.app?.destroy(true, { children: true }));
+    destroyRef.onDestroy(() => this.app?.destroy({ removeView: true }, { children: true }));
     effect(() => {
       const r = this.restaurant();
       this.cursor();

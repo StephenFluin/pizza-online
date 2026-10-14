@@ -129,7 +129,7 @@ export class PizzaDesignerComponent {
       this.init().catch((err) => console.error('Failed to start pizza designer', err));
     });
     destroyRef.onDestroy(() => {
-      this.app?.destroy(true, { children: true });
+      this.app?.destroy({ removeView: true }, { children: true });
       this.app = null;
     });
   }

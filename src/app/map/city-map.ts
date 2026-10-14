@@ -82,7 +82,7 @@ export class CityMapComponent {
       this.init().catch((err) => console.error('Failed to start PixiJS', err));
     });
     destroyRef.onDestroy(() => {
-      this.app?.destroy(true, { children: true });
+      this.app?.destroy({ removeView: true }, { children: true });
       this.app = null;
     });
 

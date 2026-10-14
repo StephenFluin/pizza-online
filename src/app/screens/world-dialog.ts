@@ -92,7 +92,7 @@ export class WorldDialogComponent {
     afterNextRender(() => {
       this.init().catch((err) => console.error('Failed to draw world map', err));
     });
-    destroyRef.onDestroy(() => this.app?.destroy(true, { children: true }));
+    destroyRef.onDestroy(() => this.app?.destroy({ removeView: true }, { children: true }));
     effect(() => this.draw(this.rows()));
   }
 

@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
-import { CLOSE_MINUTE, GameState, OPEN_MINUTE, Player, Restaurant, Staff, StaffRole } from './model';
+import { CLOSE_MINUTE, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
 import { addLedger, addMessage, buyStock, emptyStats, endDay, restock, simulateHour, startDay } from './simulation';
 
 export type GameSpeed = 0 | 1 | 2 | 4;
@@ -254,6 +254,28 @@ export class GameService {
       if (owner.cash < cost) return;
       addLedger(owner, st.day, 'Furniture', -cost);
       r.decor++;
+    });
+  }
+
+  /** Stores a player-made recipe, adding it when new or replacing the one with the same id. */
+  saveRecipe(recipe: Recipe): Recipe {
+    let saved = recipe;
+    this.mutate((st) => {
+      const idx = st.recipes.findIndex((r) => r.id === recipe.id && r.ownerId === recipe.ownerId);
+      if (idx >= 0) {
+        st.recipes[idx] = structuredClone(recipe);
+      } else {
+        saved = { ...structuredClone(recipe), id: `r${st.nextId++}`, ownerId: this.human()?.id ?? 0 };
+        st.recipes.push(saved);
+      }
+    });
+    return saved;
+  }
+
+  deleteRecipe(recipeId: string): void {
+    this.mutate((st) => {
+      st.recipes = st.recipes.filter((r) => r.id !== recipeId || r.ownerId === null);
+      for (const r of st.restaurants) r.menu = r.menu.filter((m) => m.recipeId !== recipeId);
     });
   }
 }

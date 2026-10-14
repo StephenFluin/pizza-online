@@ -2,12 +2,13 @@ import { Component, DestroyRef, afterNextRender, inject } from '@angular/core';
 import { GameService } from '../game/game.service';
 import { CityMapComponent } from '../map/city-map';
 import { HudComponent } from './hud';
+import { DialogHostComponent } from './dialog-host';
 import { FinancePanelComponent } from './finance-panel';
 import { LotPanelComponent } from './lot-panel';
 
 @Component({
   selector: 'app-game-screen',
-  imports: [HudComponent, CityMapComponent, LotPanelComponent, FinancePanelComponent],
+  imports: [HudComponent, CityMapComponent, LotPanelComponent, FinancePanelComponent, DialogHostComponent],
   template: `
     <app-hud />
     <div class="body">
@@ -23,6 +24,7 @@ import { LotPanelComponent } from './lot-panel';
         </section>
       </aside>
     </div>
+    <app-dialog-host />
   `,
   styles: `
     :host { display: grid; grid-template-rows: auto 1fr; height: 100dvh; }

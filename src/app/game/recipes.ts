@@ -1,4 +1,4 @@
-import { BASE_COST, ingredient } from './data';
+import { BASE_COST, INGREDIENTS, ingredient } from './data';
 import { District, Recipe } from './model';
 
 /** Portions of an ingredient used by one placed topping piece. */
@@ -87,3 +87,37 @@ export function itemAppeal(recipe: Recipe, price: number, district: District, co
 export function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
+
+/** Population-weighted taste of a recipe across a city's districts, -1..1. */
+export function cityTaste(recipe: Recipe, districts: District[]): number {
+  let total = 0;
+  let pop = 0;
+  for (const d of districts) {
+    total += recipeTaste(recipe, d) * d.population;
+    pop += d.population;
+  }
+  return pop === 0 ? 0 : total / pop;
+}
+
+export function tasteLabel(taste: number): string {
+  return taste > 0.35 ? 'Loved' : taste > 0.1 ? 'Liked' : taste > -0.1 ? 'Mixed' : 'Disliked';
+}
+
+/** Validates an imported recipe file; returns null when it is not a usable recipe. */
+export function parseRecipe(data: unknown): Omit<Recipe, 'id' | 'ownerId'> | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const d = data as Record<string, unknown>;
+  if (typeof d['name'] !== 'string' || !Array.isArray(d['toppings'])) return null;
+  const toppings = [];
+  for (const t of d['toppings'].slice(0, MAX_TOPPINGS)) {
+    if (typeof t !== 'object' || t === null) return null;
+    const { ingredient: ing, x, y, rotation } = t as Record<string, unknown>;
+    if (typeof ing !== 'string' || !INGREDIENT_IDS.has(ing)) return null;
+    if (typeof x !== 'number' || typeof y !== 'number' || Math.hypot(x, y) > 1) return null;
+    toppings.push({ ingredient: ing, x, y, rotation: typeof rotation === 'number' ? rotation : 0 });
+  }
+  return { name: d['name'].slice(0, 32), sauce: d['sauce'] !== false, cheese: d['cheese'] !== false, toppings };
+}
+
+export const MAX_TOPPINGS = 40;
+const INGREDIENT_IDS = new Set(INGREDIENTS.map((i) => i.id));

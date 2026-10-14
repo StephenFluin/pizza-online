@@ -30,11 +30,11 @@ work can stop after any phase and pick up again at the next unchecked item.
 
 ## Phase 3 – Pizza designer and recipes
 
-- [ ] Pizza designer: place toppings on a dough base with the mouse/keyboard
-- [ ] Recipe quality scoring (ingredient balance, coverage, freshness)
-- [ ] Cook book with standard recipes
-- [ ] Recipe import/export as JSON files
-- [ ] District taste preferences react to recipes
+- [x] Pizza designer: place toppings on a dough base with the mouse/keyboard
+- [x] Recipe quality scoring (amount, even spread, variety, sauce and cheese)
+- [x] Cook book with standard recipes (copy, edit, delete)
+- [x] Recipe import/export as JSON files
+- [x] Monthly food trends shift district tastes
 
 ## Phase 4 – Rivals, world, saving and winning
 

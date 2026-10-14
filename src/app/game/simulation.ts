@@ -1,4 +1,4 @@
-import { cityDef, ingredient } from './data';
+import { INGREDIENTS, cityDef, ingredient } from './data';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, Player, Restaurant } from './model';
 import { clamp01, itemAppeal, recipeUsage } from './recipes';
 
@@ -188,6 +188,17 @@ export function endDay(state: GameState): void {
 }
 
 function endMonth(state: GameState): void {
+  // Food fashions: each city warms to one ingredient and cools on another.
+  for (const city of state.cities) {
+    const up = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
+    const down = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
+    if (up.id === down.id) continue;
+    for (const d of city.districts) {
+      d.tastes[up.id] = Math.min(1, d.tastes[up.id] + 0.12);
+      d.tastes[down.id] = Math.max(-1, d.tastes[down.id] - 0.08);
+    }
+    if (city.id === state.currentCityId) addMessage(state, `Food trend in ${city.name}: ${up.name} is in fashion, ${down.name} is falling out of favour.`);
+  }
   for (const player of state.players) {
     const own = state.restaurants.filter((r) => r.ownerId === player.id);
     for (const r of own) {

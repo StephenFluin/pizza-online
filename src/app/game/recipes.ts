@@ -1,56 +1,38 @@
 import { BASE_COST, INGREDIENTS, ingredient } from './data';
-import { District, Recipe } from './model';
+import { Cut, District, Recipe, Topping } from './model';
+import { pizzaStats, toppingWeights } from './pizza-stats';
 
-/** Portions of an ingredient used by one placed topping piece. */
-export const PORTION_PER_PIECE = 0.25;
+/** Stock is counted in units of 100 g. */
+export const GRAMS_PER_UNIT = 100;
+/** Sauce and cheese per pizza, in stock units of tomato and mozzarella. */
+const SAUCE_UNITS = 0.8;
+const CHEESE_UNITS = 1;
 
-/** Ingredient id -> portions one pizza uses (sauce uses tomato, cheese uses mozzarella). */
+/** Ingredient id -> stock units one pizza uses: each piece by its weight at its cut, plus sauce (tomato) and cheese (mozzarella). */
 export function recipeUsage(recipe: Recipe): Record<string, number> {
   const usage: Record<string, number> = {};
-  for (const t of recipe.toppings) usage[t.ingredient] = (usage[t.ingredient] ?? 0) + PORTION_PER_PIECE;
-  if (recipe.sauce) usage['tomato'] = (usage['tomato'] ?? 0) + 1;
-  if (recipe.cheese) usage['mozzarella'] = (usage['mozzarella'] ?? 0) + 1;
+  for (const [id, grams] of Object.entries(toppingWeights(recipe))) usage[id] = grams / GRAMS_PER_UNIT;
+  if (recipe.sauce) usage['tomato'] = (usage['tomato'] ?? 0) + SAUCE_UNITS;
+  if (recipe.cheese) usage['mozzarella'] = (usage['mozzarella'] ?? 0) + CHEESE_UNITS;
   return usage;
 }
 
 /** Ingredient cost of one pizza. */
 export function recipeCost(recipe: Recipe): number {
   let cost = BASE_COST.dough;
-  for (const [id, portions] of Object.entries(recipeUsage(recipe))) cost += ingredient(id).cost * portions;
+  for (const [id, units] of Object.entries(recipeUsage(recipe))) cost += ingredient(id).cost * units;
   return cost;
 }
 
 /**
- * Craft quality 0..1, independent of who eats it: enough toppings, spread evenly
- * across the base, a sensible number of different ingredients, sauce and cheese.
+ * Craft quality 0..1, independent of who eats it: how the toppings look, how
+ * finely they're cut and whether it's a sensible pizza, plus sauce and cheese.
  */
 export function recipeQuality(recipe: Recipe): number {
-  const n = recipe.toppings.length;
-  const amount = n === 0 ? 0 : n < 8 ? n / 8 : n <= 24 ? 1 : Math.max(0.3, 1 - (n - 24) / 24);
-
-  // Evenness: compare piece counts across the four quadrants and the centre/edge rings.
-  let spread = 0;
-  if (n > 0) {
-    const quads = [0, 0, 0, 0];
-    let inner = 0;
-    let offBase = 0;
-    for (const t of recipe.toppings) {
-      const r = Math.hypot(t.x, t.y);
-      if (r > 0.92) offBase++;
-      if (r < 0.5) inner++;
-      quads[(t.x >= 0 ? 1 : 0) + (t.y >= 0 ? 2 : 0)]++;
-    }
-    const mean = n / 4;
-    const dev = quads.reduce((s, q) => s + Math.abs(q - mean), 0) / (2 * n);
-    const ringBalance = 1 - Math.abs(inner / n - 0.35) * 1.5;
-    spread = Math.max(0, (1 - dev) * 0.6 + ringBalance * 0.4 - (offBase / n) * 1.2);
-  }
-
-  const kinds = new Set(recipe.toppings.map((t) => t.ingredient)).size;
-  const variety = kinds === 0 ? 0 : kinds <= 4 ? 0.6 + kinds * 0.1 : Math.max(0.4, 1 - (kinds - 4) * 0.12);
-  const base = (recipe.sauce ? 0.5 : 0) + (recipe.cheese ? 0.5 : 0);
-
-  return clamp01(amount * 0.3 + spread * 0.3 + variety * 0.2 + base * 0.2);
+  const s = pizzaStats(recipe);
+  const craft = (s.appearance * 0.45 + s.refinement * 0.15 + s.normality * 0.4) / 100;
+  const base = 0.8 + (recipe.sauce ? 0.1 : 0) + (recipe.cheese ? 0.1 : 0);
+  return clamp01(craft * base);
 }
 
 /** How much a district likes the ingredients, -1..1, weighted by quantity. */
@@ -108,13 +90,15 @@ export function parseRecipe(data: unknown): Omit<Recipe, 'id' | 'ownerId'> | nul
   if (typeof data !== 'object' || data === null) return null;
   const d = data as Record<string, unknown>;
   if (typeof d['name'] !== 'string' || !Array.isArray(d['toppings'])) return null;
-  const toppings = [];
+  const toppings: Topping[] = [];
   for (const t of d['toppings'].slice(0, MAX_TOPPINGS)) {
     if (typeof t !== 'object' || t === null) return null;
-    const { ingredient: ing, x, y, rotation } = t as Record<string, unknown>;
+    const { ingredient: ing, x, y, rotation, cut } = t as Record<string, unknown>;
     if (typeof ing !== 'string' || !INGREDIENT_IDS.has(ing)) return null;
     if (typeof x !== 'number' || typeof y !== 'number' || Math.hypot(x, y) > 1) return null;
-    toppings.push({ ingredient: ing, x, y, rotation: typeof rotation === 'number' ? rotation : 0 });
+    const topping: Topping = { ingredient: ing, x, y, rotation: typeof rotation === 'number' ? rotation : 0 };
+    if (cut === 1 || cut === 2) topping.cut = cut as Cut;
+    toppings.push(topping);
   }
   return { name: d['name'].slice(0, 32), sauce: d['sauce'] !== false, cheese: d['cheese'] !== false, toppings };
 }

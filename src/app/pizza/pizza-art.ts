@@ -30,7 +30,28 @@ export function drawPizza(g: Graphics, recipe: Pick<Recipe, 'sauce' | 'cheese' |
   for (const t of recipe.toppings) drawTopping(g, t, cx + t.x * radius, cy + t.y * radius, radius * 0.09);
 }
 
+/**
+ * Draws a placed topping at its cut: whole pieces as one shape, chopped ones as
+ * a few smaller fragments, minced ones as a scatter of specks.
+ */
 export function drawTopping(g: Graphics, t: Topping, x: number, y: number, s: number): void {
+  const cut = t.cut ?? 0;
+  if (cut === 0) {
+    drawPiece(g, t, x, y, s);
+    return;
+  }
+  const count = cut === 1 ? 3 : 7;
+  const scale = cut === 1 ? 0.55 : 0.28;
+  const spread = cut === 1 ? 0.65 : 0.95;
+  for (let i = 0; i < count; i++) {
+    // Deterministic offsets from the piece's rotation so redraws don't jitter.
+    const a = t.rotation + (i / count) * Math.PI * 2 + (i % 2) * 0.4;
+    const r = s * spread * (0.55 + ((i * 37) % 10) / 22);
+    drawPiece(g, { ...t, rotation: t.rotation + i * 1.3 }, x + Math.cos(a) * r, y + Math.sin(a) * r, s * scale);
+  }
+}
+
+function drawPiece(g: Graphics, t: Topping, x: number, y: number, s: number): void {
   const ing = ingredient(t.ingredient);
   const c = ing.color;
   const cos = Math.cos(t.rotation);

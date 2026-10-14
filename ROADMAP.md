@@ -109,11 +109,11 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 11 – Pizza depth
 
-- [ ] Ingredient attributes: weights per cut, calories, intensity, fat/sweet/salty/hot
-- [ ] Chop (whole → chopped → minced) and rotate toppings in the designer
-- [ ] Recipe stats: calories, flavour mix, appearance, refinement, normality, imitation, herbs, trend
-- [ ] Six customer groups with taste profiles; per-group popularity of each recipe
-- [ ] Designer screen in the classic layout (category trays, info panel, tool grid)
+- [x] Ingredient attributes: weights per cut, calories, intensity, fat/sweet/salty/hot
+- [x] Chop (whole → chopped → minced) and rotate toppings in the designer
+- [x] Recipe stats: calories, flavour mix, appearance, refinement, normality, imitation, herbs, trend
+- [x] Six customer groups with taste profiles; per-group popularity of each recipe
+- [x] Designer screen in the classic layout (category trays, info panel, tool grid)
 
 ### Phase 12 – Demand and popularity model
 

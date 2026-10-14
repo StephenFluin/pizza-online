@@ -142,8 +142,13 @@ export interface PizzaSales {
   cost: number;
 }
 
+/** How finely a topping piece is cut: whole, chopped or minced. */
+export type Cut = 0 | 1 | 2;
+
 export interface Topping {
   ingredient: string;
+  /** Cut of this piece; older recipes without it are whole. */
+  cut?: Cut;
   /** Position relative to the pizza centre, in units of the radius (-1..1). */
   x: number;
   y: number;
@@ -172,6 +177,18 @@ export interface Ingredient {
   shelfLife: number;
   color: number;
   shape: 'circle' | 'slice' | 'leaf' | 'strip' | 'cube' | 'ring';
+  /** Grams per piece when whole, chopped and minced; 0 means it can't be cut that finely. */
+  grams: [number, number, number];
+  /** Calories per 100 g. */
+  calories: number;
+  /** How strongly it flavours a pizza, 1–10. */
+  intensity: number;
+  /** Flavour profile, each 0–10. */
+  fat: number;
+  sweet: number;
+  salty: number;
+  hot: number;
+  herb?: boolean;
 }
 
 export interface LedgerEntry {

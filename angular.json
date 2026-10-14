@@ -63,7 +63,10 @@
             },
             "ssr": {
               "entry": "src/server.ts"
-            }
+            },
+            "allowedCommonJsDependencies": [
+              "@xmldom/xmldom"
+            ]
           },
           "configurations": {
             "production": {

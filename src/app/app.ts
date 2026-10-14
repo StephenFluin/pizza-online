@@ -1,16 +1,19 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { GameService } from './game/game.service';
+import { GameScreenComponent } from './screens/game-screen';
+import { NewGameComponent } from './screens/new-game';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [NewGameComponent, GameScreenComponent],
   selector: 'app-root',
-  styles: [],
   template: `
-    <h1>Hello, {{ title() }}</h1>
-
-    <router-outlet />
+    @if (game.state()) {
+      <app-game-screen />
+    } @else {
+      <app-new-game />
+    }
   `,
 })
 export class App {
-  protected readonly title = signal('pizza-online');
+  protected readonly game = inject(GameService);
 }

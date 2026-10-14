@@ -1,0 +1,180 @@
+/** Core game data model. All state is plain JSON so it can be saved and loaded. */
+
+export type TileKind = 'grass' | 'road' | 'water' | 'park' | 'building' | 'lot';
+
+export interface Tile {
+  kind: TileKind;
+  /** District index for non-road tiles, -1 otherwise. */
+  district: number;
+  /** Visual height/variant for buildings, 0..3. */
+  variant: number;
+}
+
+export interface District {
+  id: number;
+  name: string;
+  /** Residents living in the district. */
+  population: number;
+  /** 0 (poor) .. 1 (rich). Rich districts pay more and expect better food. */
+  wealth: number;
+  /** Ingredient id -> preference from -1 (hates) to 1 (loves). */
+  tastes: Record<string, number>;
+  /** Centre tile used for distance calculations. */
+  cx: number;
+  cy: number;
+}
+
+export interface Lot {
+  id: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  district: number;
+  /** Number of seats a restaurant here can hold. */
+  seats: number;
+  rentPerMonth: number;
+  purchasePrice: number;
+  /** Restaurant id when occupied. */
+  restaurantId: number | null;
+}
+
+export interface CityMap {
+  id: string;
+  name: string;
+  seed: number;
+  width: number;
+  height: number;
+  tiles: Tile[];
+  districts: District[];
+  lots: Lot[];
+}
+
+export type StaffRole = 'cook' | 'waiter';
+
+export interface Staff {
+  id: number;
+  name: string;
+  role: StaffRole;
+  /** 0..1 */
+  skill: number;
+  wagePerMonth: number;
+}
+
+export interface MenuItem {
+  recipeId: string;
+  price: number;
+}
+
+export interface Restaurant {
+  id: number;
+  ownerId: number;
+  cityId: string;
+  lotId: number;
+  name: string;
+  owned: boolean;
+  /** 0..3 – furniture and decoration level. */
+  decor: number;
+  staff: Staff[];
+  menu: MenuItem[];
+  /** Ingredient id -> portions in stock. */
+  stock: Record<string, number>;
+  /** 0..1 reputation, rises with satisfied customers. */
+  reputation: number;
+  lastDay: DayStats;
+}
+
+export interface DayStats {
+  customers: number;
+  turnedAway: number;
+  revenue: number;
+  satisfaction: number;
+}
+
+export interface Topping {
+  ingredient: string;
+  /** Position relative to the pizza centre, in units of the radius (-1..1). */
+  x: number;
+  y: number;
+  rotation: number;
+}
+
+export interface Recipe {
+  id: string;
+  name: string;
+  ownerId: number | null;
+  sauce: boolean;
+  cheese: boolean;
+  toppings: Topping[];
+}
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  /** Cost of one portion at the market. */
+  cost: number;
+  /** Shelf life in days. */
+  shelfLife: number;
+  color: number;
+  shape: 'circle' | 'slice' | 'leaf' | 'strip' | 'cube' | 'ring';
+}
+
+export interface LedgerEntry {
+  day: number;
+  label: string;
+  amount: number;
+}
+
+export interface Player {
+  id: number;
+  name: string;
+  color: number;
+  isHuman: boolean;
+  cash: number;
+  loan: number;
+  ledger: LedgerEntry[];
+}
+
+export interface GameState {
+  version: 1;
+  seed: number;
+  /** Days since the game started. */
+  day: number;
+  /** Minutes since midnight of the current day. */
+  minute: number;
+  currentCityId: string;
+  cities: CityMap[];
+  players: Player[];
+  restaurants: Restaurant[];
+  recipes: Recipe[];
+  nextId: number;
+  messages: GameMessage[];
+}
+
+export interface GameMessage {
+  day: number;
+  text: string;
+}
+
+export const START_YEAR = 1994;
+export const DAYS_PER_MONTH = 30;
+export const OPEN_MINUTE = 11 * 60;
+export const CLOSE_MINUTE = 23 * 60;
+
+export function formatDate(day: number): string {
+  const month = Math.floor(day / DAYS_PER_MONTH);
+  const year = START_YEAR + Math.floor(month / 12);
+  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${(day % DAYS_PER_MONTH) + 1} ${names[month % 12]} ${year}`;
+}
+
+export function formatTime(minute: number): string {
+  const h = Math.floor(minute / 60);
+  const m = minute % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export function formatMoney(amount: number): string {
+  const sign = amount < 0 ? '-' : '';
+  return `${sign}$${Math.round(Math.abs(amount)).toLocaleString('en-US')}`;
+}

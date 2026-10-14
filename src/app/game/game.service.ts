@@ -11,6 +11,9 @@ import { addLedger, addMessage, buyStock, endDay, openRestaurantAt, simulateHour
 
 export type GameSpeed = 0 | 1 | 2 | 4;
 
+/** Real time between automatic saves to browser storage. */
+const AUTOSAVE_INTERVAL_MS = 90_000;
+
 /** Game minutes that pass per real second at 1x speed. */
 const MINUTES_PER_SECOND = 20;
 
@@ -61,6 +64,12 @@ export class GameService {
 
   private minuteAccumulator = 0;
   private loopHandle: ReturnType<typeof setInterval> | null = null;
+  private lastAutosave = 0;
+  private autosaveFailed = false;
+  private readonly saveWhenHidden = () => {
+    if (document.visibilityState === 'hidden') this.autosaveNow();
+  };
+  private readonly saveOnExit = () => this.autosaveNow();
   /** Job applicants per restaurant id, refreshed weekly. Plain cache: read inside computeds. */
   private readonly applicantCache = new Map<number, Staff[]>();
 
@@ -110,17 +119,33 @@ export class GameService {
   startLoop(): () => void {
     this.stopLoop();
     let last = performance.now();
+    this.lastAutosave = last;
     this.loopHandle = setInterval(() => {
       const now = performance.now();
       this.tick(Math.min(5, (now - last) / 1000));
       last = now;
+      if (now - this.lastAutosave >= AUTOSAVE_INTERVAL_MS) this.autosaveNow();
     }, 100);
+    // Also save when the tab is hidden or closed so little progress is ever lost.
+    document.addEventListener('visibilitychange', this.saveWhenHidden);
+    window.addEventListener('pagehide', this.saveOnExit);
     return () => this.stopLoop();
   }
 
   stopLoop(): void {
     if (this.loopHandle !== null) clearInterval(this.loopHandle);
     this.loopHandle = null;
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.saveWhenHidden);
+      window.removeEventListener('pagehide', this.saveOnExit);
+    }
+  }
+
+  /** Writes the current game to the autosave slot in browser storage. */
+  autosaveNow(): void {
+    this.lastAutosave = performance.now();
+    const st = this.state();
+    if (st) this.autosave(st);
   }
 
   /** Advances the clock by real elapsed seconds. */
@@ -384,8 +409,11 @@ export class GameService {
   private autosave(st: GameState): void {
     try {
       saveToSlot('auto', st);
+      this.autosaveFailed = false;
     } catch {
-      addMessage(st, 'Autosave failed: browser storage is full or unavailable.');
+      // Report the first failure only, not every 90 seconds.
+      if (!this.autosaveFailed) addMessage(st, 'Autosave failed: browser storage is full or unavailable.');
+      this.autosaveFailed = true;
     }
   }
 }

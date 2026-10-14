@@ -5,7 +5,7 @@ import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, star
 import { CityMap, CustomerGroup, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { cityLifeMorning, cityPrestige } from './awards';
 import { mayorMorning } from './inspections';
-import { inJail, rivalMischief, troublePoints, underworldMorning } from './underworld';
+import { inJail, jobsMorning, rivalMischief, troublePoints, underworldMorning } from './underworld';
 import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
 import { CUSTOMER_GROUPS } from './pizza-stats';
@@ -371,6 +371,7 @@ export function startDay(state: GameState): void {
   cityLifeMorning(state);
   mayorMorning(state);
   underworldMorning(state);
+  jobsMorning(state);
   rivalMischief(state, (p) => ownerStats(state, p.id));
 }
 

@@ -2,7 +2,7 @@ import type { Award, Boost, Contest } from './awards';
 import type { IncomingCall } from './inspections';
 import type { Shipment, Warehouse } from './warehouse';
 import type { InsuranceType, Loan } from './insurance';
-import type { SabotageKind, SharkLoan } from './underworld';
+import type { ActiveJob, JobOffer, SabotageKind, SharkLoan } from './underworld';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
 
@@ -319,6 +319,8 @@ export interface Player {
   record?: number;
   /** Sabotage goods bought from the fixer. */
   blackMarket?: Partial<Record<SabotageKind, number>>;
+  /** A job for the local boss in progress. */
+  job?: ActiveJob;
   /** City id -> the player's warehouse there. */
   warehouses?: Record<string, Warehouse>;
   /** Loans with repayment schedules; `loan` holds their total. */
@@ -384,6 +386,8 @@ export interface GameState {
   protection?: Record<string, boolean>;
   /** Cities where the boss has already offered protection. */
   protectionOffered?: Record<string, boolean>;
+  /** City id -> the boss's current job offers. */
+  jobOffers?: Record<string, JobOffer[]>;
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */

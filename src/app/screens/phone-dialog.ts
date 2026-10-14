@@ -2,6 +2,7 @@ import { Component, ElementRef, computed, effect, inject, viewChild } from '@ang
 import { PortraitComponent } from '../characters/portrait';
 import { Contact, ContactKind } from '../game/contacts';
 import { PhoneService } from '../game/phone.service';
+import { UiService } from '../game/ui.service';
 
 const GROUPS: { kind: ContactKind; label: string }[] = [
   { kind: 'realtor', label: 'Realtors' },
@@ -22,6 +23,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   template: `
     <div class="phone">
       <nav class="book" aria-label="Phone book">
+        <button type="button" class="streets" (click)="ui.open({ kind: 'underworld' })">Back-street dealings…</button>
         @for (g of groups(); track g.kind) {
           @if (g.label) {<h3>{{ g.label }}</h3>}
           <ul>
@@ -78,6 +80,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   styles: `
     .phone { display: grid; grid-template-columns: 220px minmax(320px, 460px); gap: 16px; }
     .book { max-height: 65dvh; overflow: auto; border-right: 1px solid var(--line); padding-right: 8px; }
+    .streets { width: 100%; margin-bottom: 6px; background: #2b2d42; border-color: #2b2d42; font-size: 0.85rem; }
     .book h3 { margin: 8px 0 4px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; }
     .book ul { list-style: none; margin: 0; padding: 0; }
     .book button[aria-current='true'] { background: var(--cream); }
@@ -100,6 +103,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
 })
 export class PhoneDialogComponent {
   protected readonly phone = inject(PhoneService);
+  protected readonly ui = inject(UiService);
   private readonly transcript = viewChild<ElementRef<HTMLOListElement>>('transcript');
 
   protected readonly groups = computed(() => {

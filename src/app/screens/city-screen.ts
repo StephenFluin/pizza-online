@@ -76,7 +76,7 @@ export class CityScreenComponent {
   protected readonly markers = MARKERS;
   protected readonly tabs = TABS;
 
-  protected readonly latest = computed(() => this.game.state()?.messages.at(-1)?.text ?? '');
+  protected readonly latest = computed(() => this.game.lastJobMessage() ?? this.game.state()?.messages.at(-1)?.text ?? '');
 
   private readonly lines = computed<LcdLine[]>(() => {
     const st = this.game.state();

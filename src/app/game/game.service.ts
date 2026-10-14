@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { JobOffer, SabotageKind, acceptJob, attemptSabotage, hireFee, inJail, visitJobTile } from './underworld';
 import { Contest, donate, judgeContest } from './awards';
 import { InsuranceType, repayLoan, takeLoan } from './insurance';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
@@ -197,6 +198,7 @@ export class GameService {
   }
 
   private rollOver(st: GameState): void {
+    this.lastJobMessage.set(null);
     st.day++;
     st.minute = OPEN_MINUTE - 60;
     if (st.day % 7 === 0) rotateJobMarkets(st);
@@ -705,4 +707,62 @@ export class GameService {
     });
     return error;
   }
+
+  /** Sabotages a rival restaurant with goods from the fixer, yourself or by hiring the family. */
+  sabotage(targetId: number, kind: SabotageKind, hire: boolean): string {
+    let result = 'Nothing happened.';
+    this.mutate((st) => {
+      const me = st.players.find((p) => p.isHuman);
+      const target = st.restaurants.find((r) => r.id === targetId);
+      if (!me || !target || target.ownerId === me.id) return;
+      if (inJail(st, me)) {
+        result = 'Not from a jail cell, you don’t.';
+        return;
+      }
+      if (hire) {
+        const fee = hireFee(target.cityId, kind, st.day);
+        if (me.cash < fee) {
+          result = 'The family wants cash up front.';
+          return;
+        }
+        me.cash -= fee;
+        me.ledger.push({ day: st.day, label: 'Cash purchases', amount: -fee });
+      } else {
+        if ((me.blackMarket?.[kind] ?? 0) <= 0) {
+          result = 'You don’t have that. Ask the fixer.';
+          return;
+        }
+        me.blackMarket![kind] = (me.blackMarket![kind] ?? 0) - 1;
+      }
+      const stats = statsOf(me);
+      const r = attemptSabotage(st, me, target, kind, stats.dexterity, stats.courage, hire);
+      result = r.success
+        ? r.caught ? 'It worked, but the police saw everything.' : 'It worked, and nobody saw a thing.'
+        : r.caught ? 'It went wrong and the police caught you in the act.' : 'It didn’t work out, but at least you got away.';
+    });
+    return result;
+  }
+
+  acceptJob(offer: JobOffer): string | null {
+    let error: string | null = null;
+    this.mutate((st) => {
+      const me = st.players.find((p) => p.isHuman);
+      if (me) error = acceptJob(st, me, offer);
+    });
+    return error;
+  }
+
+  /** A click on the city map: progresses a delivery job when it's on one of its stops. */
+  visitTile(x: number, y: number): string | null {
+    let result: string | null = null;
+    this.mutate((st) => {
+      const me = st.players.find((p) => p.isHuman);
+      if (me) result = visitJobTile(st, me, st.currentCityId, x, y);
+    });
+    if (result) this.lastJobMessage.set(result);
+    return result;
+  }
+
+  /** The last thing that happened on a delivery job, for the map. */
+  readonly lastJobMessage = signal<string | null>(null);
 }

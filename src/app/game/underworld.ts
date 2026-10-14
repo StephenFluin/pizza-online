@@ -240,3 +240,137 @@ export function rivalMischief(st: GameState, rivalStats: (p: Player) => { courag
     if (Math.random() < 0.35) arrest(st, rival, target.cityId, kind);
   }
 }
+
+// ---- The local boss's jobs ----------------------------------------------------------
+
+export type JobType = 'delivery' | 'books' | 'investment';
+
+export interface JobOffer {
+  id: number;
+  cityId: string;
+  type: JobType;
+  /** Chance (0–1) that the police are waiting. */
+  risk: number;
+  reward: number;
+  /** Cash the player puts in (investments and book-keeping). */
+  stake?: number;
+  /** Delivery pickup and drop-off tiles. */
+  pickup?: { x: number; y: number };
+  dropoff?: { x: number; y: number };
+  expiresDay: number;
+}
+
+export interface ActiveJob extends JobOffer {
+  stage: 'pickup' | 'dropoff' | 'waiting';
+  /** Pre-rolled: whether this one ends with the police. */
+  busted: boolean;
+  /** Deliveries must be done the day they're taken; other jobs pay out on this day. */
+  dueDay: number;
+}
+
+export const JOB_TEXT: Record<JobType, { title: string; describe: (o: JobOffer) => string }> = {
+  delivery: {
+    title: 'A delivery',
+    describe: (o) => `Collect a package from the marked building and drop it at the other marked building before closing time today. Pays $${o.reward.toLocaleString('en-US')}.`,
+  },
+  books: {
+    title: 'Some creative book-keeping',
+    describe: (o) => `Run $${(o.stake ?? 0).toLocaleString('en-US')} of the family's cash through your restaurants' tills. In a week you keep $${o.reward.toLocaleString('en-US')} for your trouble.`,
+  },
+  investment: {
+    title: 'A business opportunity',
+    describe: (o) => `Put $${(o.stake ?? 0).toLocaleString('en-US')} into one of the family's “ventures”. In two weeks it should come back as $${o.reward.toLocaleString('en-US')}… probably.`,
+  },
+};
+
+/** Fresh offers each week for every city with the player's restaurants. */
+export function refreshJobOffers(st: GameState, p: Player): void {
+  const cities = [...new Set(st.restaurants.filter((r) => r.ownerId === p.id).map((r) => r.cityId))];
+  st.jobOffers = {};
+  for (const cityId of cities) {
+    const city = st.cities.find((c) => c.id === cityId);
+    if (!city) continue;
+    const col = cityDef(cityId).costOfLiving;
+    const buildings = city.tiles.map((t, i) => ({ t, i })).filter(({ t }) => t.kind === 'building');
+    const tile = () => {
+      const { i } = buildings[Math.floor(Math.random() * buildings.length)];
+      return { x: i % city.width, y: Math.floor(i / city.width) };
+    };
+    const offers: JobOffer[] = [];
+    const risk = () => Math.round((0.08 + Math.random() * 0.22) * 100) / 100;
+    offers.push({ id: st.nextId++, cityId, type: 'delivery', risk: risk(), reward: Math.round(((2000 + Math.random() * 5000) * col) / 100) * 100, pickup: tile(), dropoff: tile(), expiresDay: st.day + 7 });
+    const stake = Math.round(((10000 + Math.random() * 20000) * col) / 1000) * 1000;
+    offers.push({ id: st.nextId++, cityId, type: 'books', risk: risk(), stake, reward: Math.round((stake * 0.2) / 100) * 100, expiresDay: st.day + 7 });
+    const invest = Math.round(((5000 + Math.random() * 15000) * col) / 1000) * 1000;
+    offers.push({ id: st.nextId++, cityId, type: 'investment', risk: Math.round((risk() + 0.1) * 100) / 100, stake: invest, reward: Math.round((invest * (1.3 + Math.random() * 0.3)) / 100) * 100, expiresDay: st.day + 7 });
+    st.jobOffers[cityId] = offers;
+  }
+}
+
+export function acceptJob(st: GameState, p: Player, offer: JobOffer): string | null {
+  if (p.job) return 'Finish the job you already have first.';
+  if (offer.type === 'investment') {
+    if (p.cash < (offer.stake ?? 0)) return 'You don’t have the cash.';
+    p.cash -= offer.stake ?? 0;
+    p.ledger.push({ day: st.day, label: 'Investment', amount: -(offer.stake ?? 0) });
+  }
+  p.job = {
+    ...offer,
+    stage: offer.type === 'delivery' ? 'pickup' : 'waiting',
+    busted: Math.random() < offer.risk,
+    dueDay: offer.type === 'delivery' ? st.day : st.day + (offer.type === 'books' ? 7 : 14),
+  };
+  st.jobOffers![offer.cityId] = (st.jobOffers?.[offer.cityId] ?? []).filter((o) => o.id !== offer.id);
+  return null;
+}
+
+/** The player clicked a building on the map; returns what happened, or null if it wasn't a job stop. */
+export function visitJobTile(st: GameState, p: Player, cityId: string, x: number, y: number): string | null {
+  const job = p.job;
+  if (!job || job.type !== 'delivery' || job.cityId !== cityId) return null;
+  const target = job.stage === 'pickup' ? job.pickup : job.dropoff;
+  if (!target || Math.abs(target.x - x) > 1 || Math.abs(target.y - y) > 1) return null;
+  if (job.stage === 'pickup') {
+    job.stage = 'dropoff';
+    return 'You collected a heavy, oddly shaped package. Now to the drop-off.';
+  }
+  delete p.job;
+  if (job.busted) {
+    arrest(st, p, cityId, 'glue');
+    return 'Police cars everywhere: it was a set-up! You were arrested at the drop-off.';
+  }
+  p.cash += job.reward;
+  p.ledger.push({ day: st.day, label: 'Cash income', amount: job.reward });
+  return `Delivered. An envelope with $${job.reward.toLocaleString('en-US')} is waiting for you.`;
+}
+
+/** Morning: missed deliveries, and book-keeping and investments paying out (or not). */
+export function jobsMorning(st: GameState): void {
+  const me = st.players.find((p) => p.isHuman);
+  if (!me) return;
+  if (st.day % 7 === 0 || !st.jobOffers) refreshJobOffers(st, me);
+  const job = me.job;
+  if (!job || st.day <= job.dueDay) return;
+  delete me.job;
+  if (job.type === 'delivery') {
+    st.messages.push({ day: st.day, text: 'You never made the delivery. The family is not pleased.' });
+    const targets = st.restaurants.filter((r) => r.ownerId === me.id && r.cityId === job.cityId);
+    if (targets.length && Math.random() < 0.5) applySabotage(st, targets[Math.floor(Math.random() * targets.length)], 'windows');
+  } else if (job.busted) {
+    if (job.type === 'books') {
+      arrest(st, me, job.cityId, 'reviews');
+      st.messages.push({ day: st.day, text: 'Tax inspectors spotted the odd numbers in your books.' });
+    } else {
+      st.messages.push({ day: st.day, text: 'The family’s “venture” went bust. Your investment is gone.' });
+    }
+  } else {
+    me.cash += job.reward;
+    me.ledger.push({ day: st.day, label: job.type === 'books' ? 'Cash income' : 'Investment return', amount: job.reward });
+    st.messages.push({ day: st.day, text: job.type === 'books' ? `The books are clean and $${job.reward.toLocaleString('en-US')} is yours.` : `Your investment came back as $${job.reward.toLocaleString('en-US')}.` });
+  }
+}
+
+/** Hiring the family to sabotage a rival costs about three times the goods. */
+export function hireFee(cityId: string, kind: SabotageKind, day: number): number {
+  return Math.round((fixerPrice(cityId, kind, day) * 3) / 100) * 100;
+}

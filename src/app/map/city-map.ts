@@ -141,7 +141,8 @@ export class CityMapComponent {
     }
     drawLots(this.lots, city, state, selected, hovered);
     const markers = [...this.ui.markers()].sort().join(',');
-    const key = `${overlay}|${markers}|${city.id}|${state.restaurants.length}|${state.day}`;
+    const job = state.players.find((p) => p.isHuman)?.job;
+    const key = `${overlay}|${markers}|${city.id}|${state.restaurants.length}|${state.day}|${job?.id ?? ''}:${job?.stage ?? ''}`;
     if (key !== this.tintKey) {
       this.tintKey = key;
       this.drawOverlay(city, state, overlay);
@@ -171,6 +172,19 @@ export class CityMapComponent {
           }
           if (color !== null) g.rect(x * TILE, y * TILE, TILE, TILE).fill({ color, alpha: 0.38 });
         }
+      }
+    }
+
+    // The local boss's delivery: a parcel to collect, then a flag at the drop-off.
+    const job = state.players.find((p) => p.isHuman)?.job;
+    if (job?.type === 'delivery' && job.cityId === city.id) {
+      const stop = job.stage === 'pickup' ? job.pickup : job.dropoff;
+      if (stop) {
+        const cx = (stop.x + 0.5) * TILE;
+        const cy = (stop.y + 0.5) * TILE;
+        g.circle(cx, cy, TILE * 1.4).fill({ color: 0xffd166, alpha: 0.35 }).stroke({ width: 3, color: 0x7a5a00 });
+        if (job.stage === 'pickup') g.rect(cx - 7, cy - 22, 14, 11).fill(0xb08968).stroke({ width: 2, color: 0x5c3a21 });
+        else g.rect(cx - 1, cy - 30, 2, 22).fill(0x222222).poly([cx + 1, cy - 30, cx + 14, cy - 25, cx + 1, cy - 20]).fill(0xe63946);
       }
     }
 
@@ -381,6 +395,8 @@ export class CityMapComponent {
     if (!w || !city) return;
     const tx = Math.floor((sx - w.position.x) / w.scale.x / TILE);
     const ty = Math.floor((sy - w.position.y) / w.scale.y / TILE);
+    // A delivery job's stop takes the click before anything else.
+    if (this.game.visitTile(tx, ty)) return;
     const lot = city.lots.find((l) => tx >= l.x && tx < l.x + l.w && ty >= l.y && ty < l.y + l.h);
     this.game.selectLot(lot ? lot.id : null);
   }

@@ -13,6 +13,7 @@ import { AdvertisingScreenComponent } from '../ads/advertising-screen';
 import { StockScreenComponent } from '../stock/stock-screen';
 import { WarehouseScreenComponent } from '../stock/warehouse-screen';
 import { CapacityScreenComponent } from './capacity-screen';
+import { UnderworldScreenComponent } from './underworld-screen';
 import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
@@ -40,6 +41,7 @@ const TITLES: Record<string, string> = {
   contest: 'Pizza contest',
   capacity: 'Capacity',
   warehouse: 'Warehouse',
+  underworld: 'Back streets',
 };
 
 /**
@@ -68,6 +70,7 @@ const TITLES: Record<string, string> = {
     DayReportComponent,
     ContestScreenComponent,
     CapacityScreenComponent,
+    UnderworldScreenComponent,
   ],
   template: `
     @if (ui.dialog(); as d) {
@@ -92,6 +95,7 @@ const TITLES: Record<string, string> = {
               @case ('staff') { <app-staff-screen [restaurantId]="d.restaurantId" /> }
               @case ('incident') { <app-incident-screen /> }
               @case ('contest') { <app-contest-screen /> }
+              @case ('underworld') { <app-underworld-screen /> }
               @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
               @case ('capacity') { <app-capacity-screen [restaurantId]="d.restaurantId" /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }

@@ -39,7 +39,10 @@ import { UiService } from '../game/ui.service';
     </div>
     <p role="status" class="status">{{ status() }}</p>
     @if (inGame()) {
-      <button type="button" class="secondary" (click)="quit()">Quit to title</button>
+      <div class="row">
+        <button type="button" class="secondary" (click)="retire()">Retire and record my score</button>
+        <button type="button" class="secondary" (click)="quit()">Quit to title</button>
+      </div>
     }
   `,
   styles: `
@@ -96,6 +99,10 @@ export class SavesDialogComponent {
     } catch {
       this.status.set(`${file.name} is not a Pizza Online save file.`);
     }
+  }
+
+  protected retire(): void {
+    if (confirm('Retire now? Your career ends here and goes on the high-score table.')) this.game.retire();
   }
 
   protected quit(): void {

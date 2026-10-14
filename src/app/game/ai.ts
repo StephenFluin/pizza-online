@@ -1,5 +1,6 @@
 import { POSTERS, campaignCost, flyerRate } from './advertising';
 import { CHARACTERS } from './characters';
+import { difficulty } from './difficulty';
 import { applicantSkillBonus, ownerStats } from './owner-stats';
 import { CITIES, cityDef } from './data';
 import { generateCandidate } from './staff';
@@ -35,7 +36,8 @@ export function runAiWeek(st: GameState): void {
     const own = st.restaurants.filter((r) => r.ownerId === p.id);
     for (const r of own) manage(st, p, r);
     // Expand when there is a comfortable cash cushion.
-    const reserve = 15000 + own.length * 6000;
+    // Pushier rivals (harder difficulty) expand on thinner cushions.
+    const reserve = (15000 + own.length * 6000) / difficulty(st).rivals;
     if (p.cash > reserve && own.length < 14 && Math.random() < 0.55) expand(st, p, own);
     if (p.cash < -3000) {
       // Shed the weakest restaurant when money runs out.

@@ -20,11 +20,6 @@ import { DialogHostComponent } from './dialog-host';
         @if (ui.dialog()) {
           <app-dialog-host class="layer" />
         }
-        @if (outcome(); as o) {
-          <div class="outcome" role="alert">
-            {{ o === 'won' ? 'Congratulations! Your chain is the most popular in every city.' : 'Bankrupt! The bank has closed your business.' }}
-          </div>
-        }
       </main>
       <app-shell-side class="side" />
     </div>
@@ -37,7 +32,6 @@ import { DialogHostComponent } from './dialog-host';
     /* Hidden but still laid out, so PixiJS keeps the right canvas size. */
     .hidden { visibility: hidden; }
     .side { min-height: 0; }
-    .outcome { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; background: var(--cream); color: var(--ink); padding: 8px 16px; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 16px #0006; }
     @media (max-width: 760px) {
       :host { height: auto; }
       .frame { grid-template-columns: 1fr; grid-template-rows: 70dvh auto; padding: 8px; }
@@ -47,12 +41,18 @@ import { DialogHostComponent } from './dialog-host';
 export class GameScreenComponent {
   protected readonly game = inject(GameService);
   protected readonly ui = inject(UiService);
-  protected readonly outcome = computed(() => this.game.state()?.outcome ?? null);
 
   constructor() {
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => destroyRef.onDestroy(this.game.startLoop()));
     // When a trading day ends, show the full-screen report.
+    // A decided game goes to the ending screen.
+    effect(() => {
+      const done = !!this.game.state()?.outcome;
+      untracked(() => {
+        if (done && this.ui.dialog()?.kind !== 'ending') this.ui.open({ kind: 'ending' });
+      });
+    });
     // Staff matters waiting for an answer, then the pizza contest, take over the screen.
     effect(() => {
       const st = this.game.state();

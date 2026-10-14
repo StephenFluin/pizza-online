@@ -1,5 +1,6 @@
 import { cityDef } from './data';
 import { GameState, Player, Restaurant } from './model';
+import { difficulty } from './difficulty';
 import { queueCall } from './inspections';
 import { Rng, hashString } from './rng';
 
@@ -229,7 +230,7 @@ export function rivalMischief(st: GameState, rivalStats: (p: Player) => { courag
   for (const rival of st.players.filter((p) => !p.isHuman)) {
     const stats = rivalStats(rival);
     // Bolder rivals try more often.
-    if (Math.random() > 0.015 * (stats.courage / 50)) continue;
+    if (Math.random() > 0.015 * (stats.courage / 50) * difficulty(st).rivals) continue;
     const target = mine[Math.floor(Math.random() * mine.length)];
     if (st.protection?.[target.cityId]) {
       st.messages.push({ day: st.day, text: `Some suspicious characters were seen near ${target.name}, but they left in a hurry. Your protection is paying off.` });

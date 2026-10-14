@@ -180,9 +180,9 @@ describes the systems being reproduced (in our own code, text and art).
 - [ ] Market research reports (area, customers, competitors, trends)
 - [ ] Click guests in the restaurant view to hear what they think
 - [ ] Supplier contracts with discounts, delivery amounts and penalties
-- [ ] Difficulty levels
+- [x] Difficulty levels
 - [ ] Restaurant statistics (week's takings, sales curve) and a chain comparison
-- [ ] Game-over and win screens with high scores
+- [x] Game-over and win screens with high scores
 
 ### Phase 21 – Polish
 

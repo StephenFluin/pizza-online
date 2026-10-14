@@ -2,6 +2,7 @@ import { Component, afterNextRender, computed, inject, signal } from '@angular/c
 import { PortraitComponent } from '../characters/portrait';
 import { CHARACTERS, CharacterStats, STAT_LABELS, character } from '../game/characters';
 import { CITIES } from '../game/data';
+import { DIFFICULTIES, DifficultyId } from '../game/difficulty';
 import { GameService } from '../game/game.service';
 import { formatMoney } from '../game/model';
 import { listSlots } from '../game/saves';
@@ -67,6 +68,7 @@ const CONTINENTS: number[][] = [
             @if (hasSaves()) {
               <button type="button" class="secondary load" (click)="ui.open({ kind: 'saves' })">Load a saved game</button>
             }
+            <button type="button" class="secondary load" (click)="ui.open({ kind: 'highscores' })">High scores</button>
           </section>
 
           <section class="column" aria-labelledby="companies-title">
@@ -104,6 +106,12 @@ const CONTINENTS: number[][] = [
               <button type="button" role="radio" class="city" [attr.aria-checked]="cityId() === c.id" (click)="cityId.set(c.id)">{{ c.name }}</button>
             }
           </div>
+          <div class="levels" role="radiogroup" aria-label="Difficulty">
+            @for (d of difficulties; track d.id) {
+              <button type="button" role="radio" class="city" [attr.aria-checked]="level() === d.id" (click)="level.set(d.id)" [attr.title]="d.description">{{ d.label }}</button>
+            }
+          </div>
+          <p class="level-note">{{ levelNote() }}</p>
           <div class="go">
             <button type="button" class="secondary" (click)="step.set('cast')">Back</button>
             <button type="button" class="start" (click)="start()">Open for business in {{ cityName() }}</button>
@@ -147,6 +155,8 @@ const CONTINENTS: number[][] = [
     .city { background: #f5ecd9; color: #2b1d0e; border: 2px solid #8a6a3a; font-weight: 400; padding: 4px 10px; }
     .city[aria-checked='true'] { background: #ffd166; border-color: #7a4a1c; font-weight: 700; }
     .go { display: flex; gap: 10px; }
+    .levels { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .level-note { color: var(--cream); margin: 0; }
     .credit { color: var(--cream); font-size: 0.85rem; margin: 6px 0 0; }
     .overlay { position: fixed; inset: 0; z-index: 10; padding: 16px; background: #000a; display: grid; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -168,6 +178,9 @@ export class NewGameComponent {
   protected readonly active = signal(0);
   protected readonly renaming = signal(false);
   protected readonly cityId = signal('rome');
+  protected readonly difficulties = DIFFICULTIES;
+  protected readonly level = signal<DifficultyId>('normal');
+  protected readonly levelNote = computed(() => DIFFICULTIES.find((d) => d.id === this.level())?.description ?? '');
   protected readonly chosen = computed(() => character(this.slots()[this.active()]));
   protected readonly cityName = computed(() => CITIES.find((c) => c.id === this.cityId())?.name ?? '');
   /** Read after render: saves live in localStorage, which doesn't exist during prerendering. */
@@ -211,6 +224,6 @@ export class NewGameComponent {
 
   protected start(): void {
     const [me, ...rivals] = this.slots();
-    this.game.newGame(this.names()[0], this.cityId(), me, undefined, rivals);
+    this.game.newGame(this.names()[0], this.cityId(), me, undefined, rivals, this.level());
   }
 }

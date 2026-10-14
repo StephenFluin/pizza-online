@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { DIFFICULTIES, DifficultyId } from './difficulty';
 import { JobOffer, SabotageKind, acceptJob, attemptSabotage, hireFee, inJail, visitJobTile } from './underworld';
 import { Contest, donate, judgeContest } from './awards';
 import { InsuranceType, repayLoan, takeLoan } from './insurance';
@@ -78,7 +79,8 @@ export class GameService {
   };
   private readonly saveOnExit = () => this.autosaveNow();
 
-  newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31), rivalIds: string[] = []): void {
+  newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31), rivalIds: string[] = [], difficultyId: DifficultyId = 'normal'): void {
+    const level = DIFFICULTIES.find((d) => d.id === difficultyId) ?? DIFFICULTIES[1];
     const hero = character(characterId);
     const human: Player = {
       id: 0,
@@ -86,7 +88,7 @@ export class GameService {
       characterId: hero.id,
       color: PLAYER_COLORS[0],
       isHuman: true,
-      cash: hero.stats.money,
+      cash: Math.round(hero.stats.money * level.cash),
       loan: 0,
       ledger: [],
       ads: [],
@@ -112,6 +114,7 @@ export class GameService {
       newspaper: null,
       charts: {},
       contest: null,
+      difficulty: level.id,
     });
     this.mutate((st) => CITIES.forEach((c) => jobMarket(st, c.id)));
     this.selectedLotId.set(null);
@@ -165,7 +168,7 @@ export class GameService {
   /** Advances the clock by real elapsed seconds. */
   tick(seconds: number): void {
     const s = this.state();
-    if (!s || this.speed() === 0 || this.dayReport() !== null) return;
+    if (!s || s.outcome || this.speed() === 0 || this.dayReport() !== null) return;
     this.minuteAccumulator += seconds * MINUTES_PER_SECOND * this.speed();
     const minutes = Math.floor(this.minuteAccumulator);
     if (minutes < 1) return;
@@ -560,6 +563,12 @@ export class GameService {
 
   loadFromText(text: string): void {
     this.replaceState(deserialize(text));
+  }
+
+  /** Ends the career now so it can go on the high-score table. */
+  retire(): void {
+    this.mutate((st) => (st.outcome ??= 'retired'));
+    this.speed.set(0);
   }
 
   quit(): void {

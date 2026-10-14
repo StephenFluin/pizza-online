@@ -1,4 +1,5 @@
 import type { Award, Boost, Contest } from './awards';
+import type { DifficultyId } from './difficulty';
 import type { IncomingCall } from './inspections';
 import type { Shipment, Warehouse } from './warehouse';
 import type { InsuranceType, Loan } from './insurance';
@@ -360,8 +361,11 @@ export interface GameState {
   recipes: Recipe[];
   nextId: number;
   messages: GameMessage[];
-  /** Set when the game has been decided. */
-  outcome: 'won' | 'lost' | null;
+  /** Set when the game has been decided (or the player retired). */
+  outcome: 'won' | 'lost' | 'retired' | null;
+  difficulty?: DifficultyId;
+  /** Set once the finished career is on the high-score table. */
+  scoreRecorded?: boolean;
   /** Stock orders waiting for delivery. */
   orders: StockOrder[];
   /** Vendor id -> total the human player has spent there ("so far" on the vendor list). */

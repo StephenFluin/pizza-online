@@ -14,6 +14,8 @@ import { StockScreenComponent } from '../stock/stock-screen';
 import { WarehouseScreenComponent } from '../stock/warehouse-screen';
 import { CapacityScreenComponent } from './capacity-screen';
 import { UnderworldScreenComponent } from './underworld-screen';
+import { EndingScreenComponent } from './ending-screen';
+import { HighScoresComponent } from './high-scores';
 import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
@@ -42,6 +44,8 @@ const TITLES: Record<string, string> = {
   capacity: 'Capacity',
   warehouse: 'Warehouse',
   underworld: 'Back streets',
+  ending: 'The end of an era',
+  highscores: 'High scores',
 };
 
 /**
@@ -71,6 +75,8 @@ const TITLES: Record<string, string> = {
     ContestScreenComponent,
     CapacityScreenComponent,
     UnderworldScreenComponent,
+    EndingScreenComponent,
+    HighScoresComponent,
   ],
   template: `
     @if (ui.dialog(); as d) {
@@ -96,6 +102,8 @@ const TITLES: Record<string, string> = {
               @case ('incident') { <app-incident-screen /> }
               @case ('contest') { <app-contest-screen /> }
               @case ('underworld') { <app-underworld-screen /> }
+              @case ('ending') { <app-ending-screen /> }
+              @case ('highscores') { <app-high-scores /> }
               @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
               @case ('capacity') { <app-capacity-screen [restaurantId]="d.restaurantId" /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }
@@ -142,6 +150,11 @@ export class DialogHostComponent {
     const d = this.ui.dialog();
     // The designer returns to the cook book; while a day report is pending, screens return to it.
     if (d?.kind === 'designer') this.ui.open({ kind: 'cookbook' });
+    else if (d?.kind === 'ending') {
+      // A finished career has nowhere to go back to.
+      this.ui.close();
+      this.game.quit();
+    }
     else if (this.game.dayReport() !== null) this.ui.open({ kind: 'report' });
     else this.ui.close();
   }

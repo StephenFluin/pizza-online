@@ -21,7 +21,9 @@ export type Dialog =
   | { kind: 'contest' }
   | { kind: 'capacity'; restaurantId?: number }
   | { kind: 'warehouse'; cityId?: string }
-  | { kind: 'underworld' };
+  | { kind: 'underworld' }
+  | { kind: 'ending' }
+  | { kind: 'highscores' };
 
 /** The map's folder tabs: plain map, district boundaries, or which chain controls each district. */
 export type MapOverlay = 'none' | 'districts' | 'control' | 'wealth' | 'competition';

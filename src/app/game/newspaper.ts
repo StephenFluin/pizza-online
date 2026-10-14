@@ -1,6 +1,7 @@
 import { CITIES, INGREDIENTS, cityDef, ingredient } from './data';
 import { GameState } from './model';
 import { invalidatePizzaStats } from './pizza-stats';
+import { difficulty } from './difficulty';
 
 /**
  * The city papers: daily events that move ingredient fashions and demand,
@@ -121,7 +122,7 @@ export function conditions(st: GameState, cityId: string): CityConditions {
 /** Demand multiplier for a city today from its economy and any special occasion. */
 export function demandFactor(st: GameState, cityId: string): number {
   const c = conditions(st, cityId);
-  return (1 + c.economy * 0.15) * (1 + (c.boostDays > 0 ? c.demandBoost : 0));
+  return (1 + c.economy * 0.15) * (1 + (c.boostDays > 0 ? c.demandBoost : 0)) * difficulty(st).demand;
 }
 
 /** Morning: age running trends and occasions, then maybe a new event per city; returns the player's front page. */

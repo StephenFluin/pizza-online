@@ -4,6 +4,7 @@ import { cityDef } from '../game/data';
 import { CUSTOMER_GROUPS } from '../game/pizza-stats';
 import { SELL_BACK, StoreKind, canPlace, catalogItem, floorType, itemAt, roomSize, roomStats, seatingPlan, store } from '../game/furniture';
 import { GameService } from '../game/game.service';
+import { GuestRemark, guestRemark } from '../game/guest-talk';
 import { CLOSE_MINUTE, OPEN_MINUTE, Restaurant, formatMoney } from '../game/model';
 import { UiService } from '../game/ui.service';
 import { ArtCacheService } from '../shell/art-cache.service';
@@ -35,7 +36,14 @@ type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'mo
             aria-describedby="room-status"
             (keydown)="onKey($event)"
             (pointerleave)="cursor.set(null)"
-          ></div>
+          >
+            @if (talk(); as t) {
+              <div class="bubble" role="status" [class.happy]="t.remark.mood === 'happy'" [class.unhappy]="t.remark.mood === 'unhappy'" [class.below]="t.below" [style.left.px]="t.x" [style.top.px]="t.y">
+                <small>{{ t.remark.groupLabel }}@if (t.remark.pizza) { · eating {{ t.remark.pizza }}}</small>
+                “{{ t.remark.text }}”
+              </div>
+            }
+          </div>
           <p id="room-status" class="status" aria-live="polite">{{ status() }}</p>
         </div>
 
@@ -84,6 +92,13 @@ type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'mo
     .room { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
     .canvas { position: relative; min-height: 280px; border-radius: 6px; overflow: hidden; cursor: crosshair; background: #3e2a1c; }
     .canvas:focus-visible { outline: 3px solid #f4a261; outline-offset: 2px; }
+    .bubble { position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px)); width: max-content; max-width: 260px; background: #fffaf0; color: var(--ink); border: 3px solid #adb5bd; border-radius: 12px; padding: 6px 10px; font-size: 0.9rem; line-height: 1.3; box-shadow: 0 4px 12px #0006; pointer-events: none; }
+    .bubble small { display: block; color: #555; font-size: 0.75rem; }
+    .bubble::after { content: ''; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); border: 8px solid transparent; border-top-color: inherit; border-bottom: 0; }
+    .bubble.below { transform: translate(-50%, 10px); }
+    .bubble.below::after { bottom: auto; top: -10px; border-top: 0; border-bottom: 8px solid; border-bottom-color: inherit; }
+    .bubble.happy { border-color: #2a9d8f; }
+    .bubble.unhappy { border-color: var(--tomato); }
     .status { margin: 4px 0 0; min-height: 1.4em; }
     /* Storage, the selected piece and style appeal sit in a strip under the room. */
     .tray { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 4px; }
@@ -120,6 +135,8 @@ export class InteriorViewComponent {
   protected readonly cursor = signal<{ x: number; y: number } | null>(null);
   protected readonly selectedIndex = signal<number | null>(null);
   protected readonly message = signal('');
+  /** A guest's remark after clicking an occupied chair, and where to show the bubble. */
+  protected readonly talk = signal<{ chair: number; remark: GuestRemark; x: number; y: number; below: boolean } | null>(null);
 
   private readonly host = viewChild<ElementRef<HTMLDivElement>>('canvasHost');
   private app: Application | null = null;
@@ -172,7 +189,7 @@ export class InteriorViewComponent {
     const m = this.mode();
     if (m.kind === 'place') return `Placing ${catalogItem(m.itemId).name}: click a free spot. Chairs only seat guests when they stand against a table.`;
     if (m.kind === 'move') return 'Click where the piece should go.';
-    return 'Click a piece to move or store it, or choose something from storage to place.';
+    return this.isOpen() ? 'Click a guest to hear what they think, a piece to move or store it, or choose something from storage to place.' : 'Click a piece to move or store it, or choose something from storage to place.';
   });
 
   private readonly lines = computed<LcdLine[]>(() => {
@@ -304,6 +321,9 @@ export class InteriorViewComponent {
     const moving = this.mode().kind === 'move' ? (this.mode() as { index: number }).index : -1;
     const { seatedChairs } = seatingPlan(r.layout);
     const occupied = this.occupiedChairs(r, seatedChairs);
+    // The guest has gone home once their chair empties.
+    const talking = this.talk();
+    if (talking && !occupied.has(talking.chair)) this.talk.set(null);
     r.layout.forEach((p, i) => {
       if (i === moving) return;
       drawItem(g, p, 1, occupied.has(i));
@@ -423,7 +443,34 @@ export class InteriorViewComponent {
       return;
     }
     const i = itemAt(r.layout, cell.x, cell.y);
+    if (i >= 0 && this.occupiedChairs(r, seatingPlan(r.layout).seatedChairs).has(i)) {
+      this.listen(r, i);
+      return;
+    }
+    this.talk.set(null);
     this.selectedIndex.set(i >= 0 ? i : null);
+  }
+
+  private isOpen(): boolean {
+    const minute = this.game.state()?.minute ?? 0;
+    return minute >= OPEN_MINUTE && minute < CLOSE_MINUTE;
+  }
+
+  /** Shows what the guest on a chair thinks in a speech bubble above them. */
+  private listen(r: Restaurant, chair: number): void {
+    const st = this.game.state();
+    const w = this.world;
+    const host = this.host()?.nativeElement;
+    const remark = st ? guestRemark(st, r, chair) : null;
+    if (!remark || !w || !host) return;
+    this.selectedIndex.set(null);
+    const p = r.layout[chair];
+    const it = catalogItem(p.itemId);
+    const x = w.position.x + (p.x + it.w / 2) * CELL * w.scale.x;
+    const top = w.position.y + (WALL + p.y * CELL) * w.scale.y;
+    const below = top < 110;
+    const y = below ? w.position.y + (WALL + (p.y + it.h) * CELL) * w.scale.y : top;
+    this.talk.set({ chair, remark, x: Math.max(130, Math.min(host.clientWidth - 130, x)), y, below });
   }
 
   private isKitchen(itemId: string): boolean {
@@ -479,6 +526,10 @@ export class InteriorViewComponent {
         break;
       }
       case 'Escape':
+        if (this.talk()) {
+          this.talk.set(null);
+          break;
+        }
         if (this.mode().kind === 'select') return;
         this.mode.set({ kind: 'select' });
         break;

@@ -123,8 +123,13 @@ export function drawItemAt(g: Graphics, it: CatalogItem, x: number, y: number, a
       g.roundRect(x + 6, y + 6, w - 12, h - 12, 3).fill(f(shade(accent, 0.9)));
       g.rect(x + 3, y + 3, w - 6, 5).fill(f(shade(main, 0.7)));
       if (occupied) {
-        g.circle(x + w / 2, y + h / 2, 7).fill(f([0x2a9d8f, 0xe76f51, 0x457b9d, 0x6a4c93][(it.w + Math.round(x + y)) % 4]));
-        g.circle(x + w / 2, y + h / 2 - 2, 4.5).fill(f(0xf1c27d));
+        // A diner seen from above: shoulders, then a head with hair.
+        const k = Math.round(x * 3 + y * 7);
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+        g.ellipse(cx, cy + 2, 12, 9).fill(f([0x2a9d8f, 0xe76f51, 0x457b9d, 0x6a4c93, 0xe9c46a][k % 5])).stroke({ width: 1, color: 0x000000, alpha: 0.25 * alpha });
+        g.circle(cx, cy, 7).fill(f([0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac][(k >> 2) % 5]));
+        g.circle(cx, cy - 1.5, 6).fill(f([0x3b2a1a, 0x7a4a1e, 0xd9b26f, 0x111111, 0xa0522d, 0xbcbcbc][(k >> 4) % 6]));
       }
       break;
     }

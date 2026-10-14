@@ -178,7 +178,7 @@ describes the systems being reproduced (in our own code, text and art).
 ### Phase 20 – More of the original
 
 - [x] Market research reports (area, customers, competitors, trends)
-- [ ] Click guests in the restaurant view to hear what they think
+- [x] Click guests in the restaurant view to hear what they think
 - [ ] Supplier contracts with discounts, delivery amounts and penalties
 - [x] Difficulty levels
 - [x] Restaurant statistics (week's takings, sales curve) and a chain comparison

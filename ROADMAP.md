@@ -146,8 +146,8 @@ describes the systems being reproduced (in our own code, text and art).
 
 - [x] Daily newspaper, with events that start ingredient trends
 - [x] Pizza charts
-- [ ] Mayor awards and favour, annual pizza competition with judges
-- [ ] Social status ranks and awards
+- [x] Mayor awards and favour, annual pizza competition with judges
+- [x] Social status ranks and awards
 - [x] Economic trend per city
 - [ ] Loan schedules and insurance
 

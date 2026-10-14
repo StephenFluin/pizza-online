@@ -3,6 +3,7 @@ import { INTEREST_RATE, adBonus, cookingBonus, ingredientPriceFactor, ownerStats
 import { cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
+import { cityLifeMorning, cityPrestige } from './awards';
 import { demandFactor, morningNews } from './newspaper';
 import { effectiveSkill, isAvailable, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
@@ -173,7 +174,7 @@ function districtLookAppeal(room: RoomStats, district: CityMap['districts'][numb
 }
 
 export function emptyPopularity(): Popularity {
-  return { waiting: 0, menu: 0, advertising: 0, stars: 0, fulfilment: 0, events: 0, supervision: 0, total: 0, waitMinutes: 0, expectedMinutes: 15, starCount: 0 };
+  return { waiting: 0, menu: 0, advertising: 0, stars: 0, fulfilment: 0, events: 0, supervision: 0, prestige: 0, total: 0, waitMinutes: 0, expectedMinutes: 15, starCount: 0 };
 }
 
 /** Turns popularity points into a demand multiplier (100 points doubles demand). */
@@ -221,8 +222,11 @@ export function computePopularity(state: GameState, r: Restaurant, city: CityMap
   const managed = r.staff.some((s) => s.role === 'manager' && isAvailable(s));
   const supervision = !managed && own.indexOf(r.id) >= supervisable(ownerStats(state, r.ownerId)) ? -10 : 0;
 
-  const total = waiting + menu + advertising + stars + fulfilment + events + supervision;
-  return { waiting, menu, advertising, stars, fulfilment, events, supervision, total, waitMinutes, expectedMinutes, starCount };
+  const owner = state.players.find((p) => p.id === r.ownerId);
+  const prestige = owner ? cityPrestige(state, owner, r.cityId) : 0;
+
+  const total = waiting + menu + advertising + stars + fulfilment + events + supervision + prestige;
+  return { waiting, menu, advertising, stars, fulfilment, events, supervision, prestige, total, waitMinutes, expectedMinutes, starCount };
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
@@ -278,6 +282,7 @@ export function startDay(state: GameState): void {
   for (const r of state.restaurants) if (r.autoRestock || r.staff.some((s) => s.role === 'manager' && isAvailable(s))) restock(state, r);
   staffMorning(state);
   morningNews(state);
+  cityLifeMorning(state);
 }
 
 /** Adds units to a restaurant's stock, blending their quality into what is already there. */

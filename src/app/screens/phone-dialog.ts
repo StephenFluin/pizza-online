@@ -8,6 +8,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   { kind: 'bank', label: 'Bank' },
   { kind: 'supplier', label: 'Wholesaler' },
   { kind: 'agency', label: 'Staff agency' },
+  { kind: 'mayor', label: 'City hall' },
 ];
 
 /** The phone: a phone book on the left and the live call on the right. Picking a contact connects at once. */

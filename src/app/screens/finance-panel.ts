@@ -1,5 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { GameService } from '../game/game.service';
+import { RANKS, netWorth, rankOf } from '../game/awards';
+import { cityDef } from '../game/data';
 import { DAYS_PER_MONTH, formatMoney } from '../game/model';
 
 /** Income and expenses for the current month, grouped by category. */
@@ -25,9 +27,31 @@ import { DAYS_PER_MONTH, formatMoney } from '../game/model';
         </tfoot>
       </table>
     </section>
+
+    @if (status(); as st) {
+      <section aria-labelledby="status-title" class="fin">
+        <h3 id="status-title">Standing</h3>
+        <p class="rank"><b>{{ st.rank }}</b> · net worth {{ money(st.worth) }}</p>
+        @if (st.next; as n) {
+          <p>Next: {{ n.title }} at {{ money(n.netWorth) }} <meter min="0" max="1" [value]="st.progress" aria-label="Progress to the next rank"></meter></p>
+        }
+        <h3>Awards</h3>
+        <ul class="awards">
+          @for (a of st.awards; track $index) {<li>🏆 {{ a.title }} {{ a.year }}, {{ a.city }}</li>} @empty {<li>No awards yet. The mayors present them at the end of each year.</li>}
+        </ul>
+        @if (st.favour.length) {
+          <h3>Mayors’ favour</h3>
+          <ul class="awards">
+            @for (f of st.favour; track f.city) {<li>{{ f.city }}: {{ f.value }} / 200</li>}
+          </ul>
+        }
+      </section>
+    }
   `,
   styles: `
-    .fin { min-width: min(360px, 80vw); }
+    .fin { min-width: min(360px, 80vw); margin-bottom: 16px; }
+    .rank { font-size: 1.1rem; }
+    .awards { margin: 0; padding-left: 18px; }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; font-weight: 400; }
     td { text-align: right; font-variant-numeric: tabular-nums; }
@@ -50,6 +74,24 @@ export class FinancePanelComponent {
     return [...totals].map(([label, amount]) => ({ label, amount })).sort((a, b) => b.amount - a.amount);
   });
   protected readonly net = computed(() => this.rows().reduce((n, r) => n + r.amount, 0));
+
+  protected readonly status = computed(() => {
+    const st = this.game.state();
+    const me = this.game.human();
+    if (!st || !me) return null;
+    const worth = netWorth(st, me);
+    const rank = rankOf(worth);
+    const prev = RANKS[rank.index].netWorth;
+    const progress = rank.next ? Math.max(0, Math.min(1, (worth - Math.max(0, prev)) / (rank.next.netWorth - Math.max(0, prev)))) : 1;
+    return {
+      rank: rank.title,
+      worth,
+      next: rank.next,
+      progress,
+      awards: (me.awards ?? []).map((a) => ({ ...a, city: cityDef(a.cityId).name })).reverse(),
+      favour: Object.entries(me.favour ?? {}).filter(([, v]) => v > 0).map(([id, v]) => ({ city: cityDef(id).name, value: Math.round(v) })),
+    };
+  });
 
   protected money(n: number): string {
     return formatMoney(n);

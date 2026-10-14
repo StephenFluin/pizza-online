@@ -53,11 +53,16 @@ export class GameScreenComponent {
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => destroyRef.onDestroy(this.game.startLoop()));
     // When a trading day ends, show the full-screen report.
-    // Staff matters waiting for an answer take over the screen.
+    // Staff matters waiting for an answer, then the pizza contest, take over the screen.
     effect(() => {
-      const waiting = (this.game.state()?.staffEvents.length ?? 0) > 0;
+      const st = this.game.state();
+      const waiting = (st?.staffEvents.length ?? 0) > 0;
+      const contest = st?.contest?.phase === 'entry';
       untracked(() => {
-        if (waiting && this.ui.dialog()?.kind !== 'incident' && this.game.speed() === 0 && this.game.dayReport() === null) this.ui.open({ kind: 'incident' });
+        const open = this.ui.dialog()?.kind;
+        if (this.game.speed() !== 0 || this.game.dayReport() !== null) return;
+        if (waiting && open !== 'incident') this.ui.open({ kind: 'incident' });
+        else if (!waiting && contest && open !== 'contest' && open !== 'cookbook' && open !== 'designer') this.ui.open({ kind: 'contest' });
       });
     });
     effect(() => {

@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { MAX_FAVOUR, favour } from './awards';
 import { creditLimit, haggleBonus, statsOf } from './owner-stats';
 import { Contact, cityContacts, weeklySpecial } from './contacts';
 import { cityDef, ingredient } from './data';
@@ -66,6 +67,7 @@ export class PhoneService {
       case 'bank': this.bank(call, optionId); break;
       case 'supplier': this.supplier(call, optionId); break;
       case 'agency': this.agency(call, optionId); break;
+      case 'mayor': this.mayor(call, optionId); break;
     }
     this.call.set({ ...call });
   }
@@ -92,6 +94,10 @@ export class PhoneService {
       case 'agency':
         this.say(call, `${hello} Looking for good people? Which restaurant needs staff?`);
         this.agencyOptions(call);
+        break;
+      case 'mayor':
+        this.say(call, `${c.company}, ${c.name.split(' ')[0]} speaking. ${this.mayorMood(call)}`);
+        this.mayorOptions(call);
         break;
     }
   }
@@ -319,6 +325,43 @@ export class PhoneService {
       return;
     }
     this.agencyOptions(call);
+  }
+
+  // ---- Mayor ---------------------------------------------------------------
+
+  private mayorMood(call: Call): string {
+    const me = this.game.human();
+    const f = me ? favour(me, call.contact.cityId) : 0;
+    if (f > 120) return 'Always a pleasure! The city is lucky to have you.';
+    if (f > 50) return 'Ah, a friend of the city. What can I do for you?';
+    return 'The mayor is very busy. Is this about a donation?';
+  }
+
+  private mayorOptions(call: Call): void {
+    const col = cityDef(call.contact.cityId).costOfLiving;
+    call.options = [
+      ...[1000, 5000, 20000].map((n) => ({ id: `donate:${Math.round(n * col)}`, label: `I'd like to donate ${formatMoney(Math.round(n * col))} to the city's good causes.` })),
+      { id: 'awards', label: 'Tell me about the city awards.' },
+      { id: 'bye', label: 'That’s all, thank you.' },
+    ];
+  }
+
+  private mayor(call: Call, optionId: string): void {
+    if (optionId.startsWith('donate:')) {
+      const amount = Number(optionId.slice(7));
+      if ((this.game.human()?.cash ?? 0) < amount) this.say(call, 'Generous of you, but your bank tells me otherwise.');
+      else {
+        const f = this.game.donateToMayor(call.contact.cityId, amount);
+        this.say(call, f >= MAX_FAVOUR ? 'The mayor could not be more grateful.' : 'How generous! The mayor will hear of this.');
+      }
+    } else if (optionId === 'awards') {
+      this.say(call, 'At the end of every year the mayor presents the Golden Oven, the Prettiest Pizzeria, Employer of the Year and the People’s Favourite. Friends of the city are always remembered.');
+    } else {
+      this.say(call, 'Goodbye, and thank you for calling.');
+      this.end(call);
+      return;
+    }
+    this.mayorOptions(call);
   }
 
   // ---- Helpers -------------------------------------------------------------

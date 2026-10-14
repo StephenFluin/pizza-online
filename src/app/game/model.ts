@@ -1,3 +1,4 @@
+import type { Award, Boost, Contest } from './awards';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
 
@@ -164,6 +165,8 @@ export interface Popularity {
   events: number;
   /** Penalty for restaurants beyond what the owner can supervise. */
   supervision: number;
+  /** The mayor's favour and award boosts. */
+  prestige: number;
   total: number;
   /** Estimated wait in minutes, and what the district expects. */
   waitMinutes: number;
@@ -272,6 +275,13 @@ export interface Player {
   loan: number;
   ledger: LedgerEntry[];
   ads: AdCampaign[];
+  /** City id -> the mayor's favour (0–200). */
+  favour?: Record<string, number>;
+  awards?: Award[];
+  /** Temporary popularity boosts from awards and contests. */
+  boosts?: Boost[];
+  /** Highest business rank reached (index into RANKS). */
+  rank?: number;
 }
 
 export type AdChannel = 'flyers' | 'posters' | 'newspaper' | 'tv';
@@ -322,6 +332,8 @@ export interface GameState {
   newspaper: Edition | null;
   /** City id -> weekly top pizzas. */
   charts: Record<string, ChartEntry[]>;
+  /** This year's pizza contest while it's open or just judged. */
+  contest?: Contest | null;
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */

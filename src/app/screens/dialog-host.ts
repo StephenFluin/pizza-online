@@ -11,6 +11,7 @@ import { PizzaDesignerComponent } from '../pizza/pizza-designer';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { AdvertisingScreenComponent } from '../ads/advertising-screen';
 import { StockScreenComponent } from '../stock/stock-screen';
+import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
 import { NewsDialogComponent } from './news-dialog';
@@ -26,7 +27,7 @@ const TITLES: Record<string, string> = {
   bank: 'Advertising',
   saves: 'Disk',
   restaurants: 'Your restaurants',
-  finances: 'Finances',
+  finances: 'Finances and status',
   news: 'Newspaper',
   phone: 'Telephone',
   report: 'End of day',
@@ -34,6 +35,7 @@ const TITLES: Record<string, string> = {
   shop: 'Stores',
   staff: 'Staff',
   incident: 'A staff matter',
+  contest: 'Pizza contest',
 };
 
 /**
@@ -59,6 +61,7 @@ const TITLES: Record<string, string> = {
     StaffScreenComponent,
     IncidentScreenComponent,
     DayReportComponent,
+    ContestScreenComponent,
   ],
   template: `
     @if (ui.dialog(); as d) {
@@ -82,6 +85,7 @@ const TITLES: Record<string, string> = {
               @case ('news') { <app-news-dialog /> }
               @case ('staff') { <app-staff-screen [restaurantId]="d.restaurantId" /> }
               @case ('incident') { <app-incident-screen /> }
+              @case ('contest') { <app-contest-screen /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }
               @case ('stock') { <app-stock-screen [restaurantId]="d.restaurantId" /> }
               @case ('saves') { <app-saves-dialog /> }

@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { Contest, donate, judgeContest } from './awards';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
 import { Course, jobMarket, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
 import { vendorById, vendorPrice } from './vendors';
@@ -107,6 +108,7 @@ export class GameService {
       cityConditions: {},
       newspaper: null,
       charts: {},
+      contest: null,
     });
     this.mutate((st) => CITIES.forEach((c) => jobMarket(st, c.id)));
     this.selectedLotId.set(null);
@@ -203,8 +205,8 @@ export class GameService {
     st.minute++;
     if (st.minute === OPEN_MINUTE) {
       startDay(st);
-      // Staff incidents need the owner's answer before the day gets going.
-      if (st.staffEvents.length > 0) {
+      // Staff incidents and the pizza contest need the owner's answer before the day gets going.
+      if (st.staffEvents.length > 0 || st.contest?.phase === 'entry') {
         this.resumeSpeed = this.speed() || this.resumeSpeed;
         this.speed.set(0);
         return true;
@@ -594,5 +596,30 @@ export class GameService {
 
   cancelOrder(orderId: number): void {
     this.mutate((st) => (st.orders = st.orders.filter((o) => o.id !== orderId)));
+  }
+
+  /** Enters a recipe in this year's contest and has it judged. */
+  enterContest(recipe: Recipe): Contest | null {
+    let result: Contest | null = null;
+    this.mutate((st) => (result = judgeContest(st, recipe)));
+    return result;
+  }
+
+  /** Closes the contest screen and lets the day carry on. */
+  finishContest(): void {
+    this.mutate((st) => (st.contest = null));
+    if (this.speed() === 0 && this.dayReport() === null && (this.state()?.staffEvents.length ?? 0) === 0) this.speed.set(this.resumeSpeed || 1);
+  }
+
+  /** A donation to a city's mayor; returns the new favour. */
+  donateToMayor(cityId: string, amount: number): number {
+    let result = 0;
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (!p || p.cash < amount) return;
+      addLedger(p, st.day, 'Donations', -amount);
+      result = donate(st, p, cityId, amount);
+    });
+    return result;
   }
 }

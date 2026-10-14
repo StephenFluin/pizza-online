@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, inject } from '@angular/core';
+import { netWorth, rankOf } from '../game/awards';
 import { GameService, GameSpeed } from '../game/game.service';
 import { MapMarker, MapOverlay, UiService } from '../game/ui.service';
 import { CityMapComponent } from '../map/city-map';
@@ -86,6 +87,7 @@ export class CityScreenComponent {
       { label: this.game.city()?.name ?? '' },
       { label: `In ${SEASONS[month]}` },
       { label: me.name },
+      { label: rankOf(netWorth(st, me)).title },
       { label: 'Restaurants', value: String(st.restaurants.filter((r) => r.ownerId === me.id).length) },
       { label: 'Recipes', value: String(st.recipes.filter((r) => r.ownerId === null || r.ownerId === me.id).length) },
       { label: 'Loan', value: me.loan ? `$${Math.round(me.loan / 1000)}k` : 'None' },

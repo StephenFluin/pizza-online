@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { MAX_FAVOUR, favour } from './awards';
 import { COMPLAINTS, IncomingCall, PROJECTS } from './inspections';
 import { recipeQuality } from './recipes';
+import { BLACK_MARKET, FIXER_BUYBACK, protectionFee, SABOTAGE, SHARK_AMOUNTS, SHARK_WEEKLY, SHARK_WEEKS, SabotageKind, borrowFromShark, extendShark, fixerPrice, inJail, repayShark, sharkReprisal } from './underworld';
 import { InsuranceType, LOAN_TERMS, MONTHLY_INTEREST, POLICIES, insured, premium } from './insurance';
 import { creditLimit, haggleBonus, statsOf } from './owner-stats';
 import { Contact, cityContacts, weeklySpecial } from './contacts';
@@ -57,6 +58,12 @@ export class PhoneService {
   connect(contact: Contact, lotId: number | null = null): void {
     const call: Call = { contact, lotId, restaurantId: null, lines: [], options: [], haggles: 0, discount: 0, ended: false };
     this.call.set(call);
+    const st = this.game.state();
+    if (st && inJail(st, this.game.human())) {
+      this.say(call, 'A guard takes the receiver out of your hand. “No calls from the cells.”');
+      this.end(call);
+      return;
+    }
     this.greet(call);
   }
 
@@ -107,6 +114,10 @@ export class PhoneService {
       case 'agency': this.agency(call, optionId); break;
       case 'mayor': this.mayor(call, optionId); break;
       case 'insurance': this.insurance(call, optionId); break;
+      case 'shark': this.shark(call, optionId); break;
+      case 'fixer': this.fixer(call, optionId); break;
+      case 'boss': this.boss(call, optionId); break;
+      default: this.end(call);
     }
     this.call.set({ ...call });
   }
@@ -137,6 +148,22 @@ export class PhoneService {
       case 'insurance':
         this.say(call, `${hello} Burglars, fires, lawsuits: one call and you can sleep at night. What can I cover for you?`);
         this.insuranceOptions(call);
+        break;
+      case 'shark':
+        this.say(call, `Yeah? ${c.name.split(' ')[0]}. Need cash fast? No forms, no questions. Just don't be late paying it back.`);
+        this.sharkOptions(call);
+        break;
+      case 'fixer':
+        this.say(call, `You didn't get this number from me. What do you need?`);
+        this.fixerOptions(call);
+        break;
+      case 'boss':
+        this.say(call, `So, the pizza people. ${c.company} looks after this part of town. Things can happen to restaurants that nobody looks after…`);
+        this.bossOptions(call);
+        break;
+      case 'police':
+        this.say(call, `${c.name}, City Police. Unless you're reporting a crime, I'm busy.`);
+        call.options = [{ id: 'bye', label: 'Sorry, wrong number.' }];
         break;
       case 'mayor':
         this.say(call, `${c.company}, ${c.name.split(' ')[0]} speaking. ${this.mayorMood(call)}`);
@@ -459,6 +486,25 @@ export class PhoneService {
         ];
         break;
       }
+      case 'shark':
+        this.say(call, `Remember me? You owe ${formatMoney(inc.amount ?? 0)} and you're late. So what's it going to be?`);
+        call.options = [
+          { id: 'pay', label: `Here's the ${formatMoney(inc.amount ?? 0)}.` },
+          { id: 'time', label: 'I need another week. (10% more)' },
+          { id: 'refuse', label: "I'm not paying." },
+        ];
+        break;
+      case 'police':
+        this.say(call, `${call.contact.name}, City Police. You were caught with ${inc.title?.toLowerCase()} near a rival's restaurant. That's a ${formatMoney(inc.amount ?? 0)} fine${inc.after ? `, and with your record, ${inc.after} days in a cell` : ''}.`);
+        call.options = [{ id: 'ok', label: inc.after ? 'I want my lawyer…' : 'I’ll pay.' }];
+        break;
+      case 'protection':
+        this.say(call, `It's ${call.contact.company}. Nice restaurants you have. Shame if something happened to them. ${formatMoney(inc.amount ?? 0)} a week and nothing will.`);
+        call.options = [
+          { id: 'accept', label: 'All right, I’ll pay for protection.' },
+          { id: 'decline', label: 'I don’t need your “protection”.' },
+        ];
+        break;
       case 'award':
         this.say(call, `${who} Congratulations! The mayor has chosen you for the ${inc.title} award. A cheque for ${formatMoney(inc.amount ?? 0)} is on its way, and the whole city will hear about it.`);
         call.options = [{ id: 'thanks', label: 'What an honour, thank you!' }];
@@ -476,7 +522,24 @@ export class PhoneService {
       call.options = [{ id: 'thanks', label: 'Thank you, I’ll work on it.' }];
       return;
     }
-    if (inc.topic === 'donation') {
+    if (inc.topic === 'shark') {
+      if (optionId === 'pay') {
+        let ok = false;
+        this.game.mutate((st) => (ok = repayShark(st, me)));
+        this.say(call, ok ? 'Pleasure doing business. Call again.' : 'That’s not enough. We’ll be in touch.');
+      } else if (optionId === 'time') {
+        this.game.mutate((st) => extendShark(st, me));
+        this.say(call, 'One more week. It’ll cost you. Don’t make me call again.');
+      } else {
+        this.game.mutate((st) => sharkReprisal(st, me));
+        this.say(call, 'Wrong answer. Check on your restaurants tomorrow.');
+      }
+    } else if (inc.topic === 'police') {
+      this.say(call, inc.after ? 'Your lawyer will see you in the cell. Enjoy the porridge.' : 'Paid. Keep your nose clean.');
+    } else if (inc.topic === 'protection') {
+      this.game.mutate((st) => ((st.protection ??= {})[cityId] = optionId === 'accept'));
+      this.say(call, optionId === 'accept' ? 'Smart. We’ll take it from your account every week.' : 'Your choice. Sleep well.');
+    } else if (inc.topic === 'donation') {
       const amount = optionId === 'full' ? (inc.amount ?? 0) : optionId === 'half' ? Math.round((inc.amount ?? 0) / 2) : 0;
       if (amount > 0 && me.cash >= amount) {
         this.game.donateToMayor(cityId, amount);
@@ -525,6 +588,115 @@ export class PhoneService {
       { v: r.decor / 3, text: 'The dining room felt bare. Nicer furniture, flooring and decoration would impress them.' },
     ].sort((a, b) => a.v - b.v)[0];
     return `The inspectors rated it ${r.qualityRating ?? 0} out of 100. ${weakest.text}`;
+  }
+
+  // ---- The back streets --------------------------------------------------------
+
+  private sharkOptions(call: Call): void {
+    const me = this.game.human();
+    const st = this.game.state();
+    if (me?.shark && st) {
+      call.options = [
+        { id: 'repay', label: `I want to settle up: ${formatMoney(me.shark.owed)}.` },
+        { id: 'bye', label: 'Just checking in. Bye.' },
+      ];
+      return;
+    }
+    call.options = [
+      ...SHARK_AMOUNTS.map((n) => ({ id: `borrow:${n}`, label: `Lend me ${formatMoney(n)} (pay back ${formatMoney(Math.round(n * (1 + SHARK_WEEKLY * SHARK_WEEKS)))} in ${SHARK_WEEKS} weeks).` })),
+      { id: 'bye', label: 'Never mind.' },
+    ];
+  }
+
+  private shark(call: Call, optionId: string): void {
+    const me = this.game.human();
+    if (!me) return;
+    if (optionId.startsWith('borrow:')) {
+      let error: string | null = null;
+      this.game.mutate((st) => (error = borrowFromShark(st, me, call.contact.cityId, Number(optionId.slice(7)))));
+      this.say(call, error ?? `Here you go. ${SHARK_WEEKS} weeks. Don’t make me come looking for you.`);
+    } else if (optionId === 'repay') {
+      let ok = false;
+      this.game.mutate((st) => (ok = repayShark(st, me)));
+      this.say(call, ok ? 'All square. Nice doing business.' : 'You’re short. Come back when you have it all.');
+    } else {
+      this.say(call, 'Click.');
+      this.end(call);
+      return;
+    }
+    this.sharkOptions(call);
+  }
+
+  private fixerOptions(call: Call): void {
+    const st = this.game.state();
+    const me = this.game.human();
+    if (!st || !me) return;
+    const city = call.contact.cityId;
+    call.options = [
+      ...BLACK_MARKET.map((b) => ({ id: `buy:${b.kind}`, label: `${SABOTAGE[b.kind].label}: ${formatMoney(fixerPrice(city, b.kind, st.day))} (${SABOTAGE[b.kind].effect}).` })),
+      ...BLACK_MARKET.filter((b) => (me.blackMarket?.[b.kind] ?? 0) > 0).map((b) => ({ id: `sell:${b.kind}`, label: `Sell you my ${SABOTAGE[b.kind].label.toLowerCase()} for ${formatMoney(Math.round(fixerPrice(city, b.kind, st.day) * FIXER_BUYBACK))}.` })),
+      { id: 'bye', label: 'That’s all.' },
+    ];
+  }
+
+  private fixer(call: Call, optionId: string): void {
+    const me = this.game.human();
+    if (!me) return;
+    const [action, kind] = optionId.split(':') as ['buy' | 'sell' | 'bye', SabotageKind];
+    if (action === 'buy' || action === 'sell') {
+      let ok = false;
+      this.game.mutate((st) => {
+        const price = fixerPrice(call.contact.cityId, kind, st.day);
+        me.blackMarket ??= {};
+        if (action === 'buy' && me.cash >= price) {
+          me.cash -= price;
+          me.ledger.push({ day: st.day, label: 'Cash purchases', amount: -price });
+          me.blackMarket[kind] = (me.blackMarket[kind] ?? 0) + 1;
+          ok = true;
+        } else if (action === 'sell' && (me.blackMarket[kind] ?? 0) > 0) {
+          const pay = Math.round(price * FIXER_BUYBACK);
+          me.cash += pay;
+          me.ledger.push({ day: st.day, label: 'Cash sales', amount: pay });
+          me.blackMarket[kind] = (me.blackMarket[kind] ?? 0) - 1;
+          ok = true;
+        }
+      });
+      this.say(call, ok ? (action === 'buy' ? 'It’ll be in the usual place. You never saw me.' : 'Pleasure. Cash, as always.') : 'Can’t do that.');
+      this.fixerOptions(call);
+      return;
+    }
+    this.say(call, 'Click.');
+    this.end(call);
+  }
+
+  private bossOptions(call: Call): void {
+    const st = this.game.state();
+    const protectedHere = !!st?.protection?.[call.contact.cityId];
+    call.options = [
+      protectedHere ? { id: 'stop', label: 'I want to stop paying for protection.' } : { id: 'protect', label: `What would protection cost? (${formatMoney(this.protectionFee(call.contact.cityId))} a week)` },
+      { id: 'bye', label: 'Goodbye.' },
+    ];
+  }
+
+  private protectionFee(cityId: string): number {
+    const st = this.game.state();
+    const me = this.game.human();
+    return st && me ? protectionFee(st, me, cityId) : 0;
+  }
+
+  private boss(call: Call, optionId: string): void {
+    if (optionId === 'protect') {
+      this.game.mutate((st) => ((st.protection ??= {})[call.contact.cityId] = true));
+      this.say(call, `Wise. ${formatMoney(this.protectionFee(call.contact.cityId))} a week, and nobody touches your restaurants here.`);
+    } else if (optionId === 'stop') {
+      this.game.mutate((st) => ((st.protection ??= {})[call.contact.cityId] = false));
+      this.say(call, 'As you like. Accidents happen, you know.');
+    } else {
+      this.say(call, 'Ciao.');
+      this.end(call);
+      return;
+    }
+    this.bossOptions(call);
   }
 
   // ---- Mayor ---------------------------------------------------------------

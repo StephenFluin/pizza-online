@@ -168,12 +168,12 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 19 – The underworld
 
-- [ ] Loan sharks: quick loans without credit checks, steep weekly interest, collection calls and reprisals
+- [x] Loan sharks: quick loans without credit checks, steep weekly interest, collection calls and reprisals
 - [ ] Mafia jobs (deliveries, laundering, investments) with risk, reward and police busts
-- [ ] Black-market fixer selling sabotage goods at prices that drift by city
+- [x] Black-market fixer selling sabotage goods at prices that drift by city
 - [ ] Non-violent sabotage of rival restaurants (rats, stink bombs, glue in the locks, fake reviews, gas cut-off) with success from dexterity and courage
-- [ ] Rivals sabotage the player too; insurance and police respond
-- [ ] Police investigations: fines, or days in jail away from the business
+- [x] Rivals sabotage the player too; insurance and police respond
+- [x] Police investigations: fines, or days in jail away from the business
 
 ### Phase 20 – More of the original
 

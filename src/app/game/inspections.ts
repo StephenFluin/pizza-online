@@ -10,7 +10,7 @@ import { recipeQuality } from './recipes';
  * Numbers and texts are our own.
  */
 
-export type IncomingTopic = 'inspection' | 'donation' | 'complaint' | 'award';
+export type IncomingTopic = 'inspection' | 'donation' | 'complaint' | 'award' | 'shark' | 'police' | 'protection' | 'job';
 
 /** A call waiting for the player to answer; the clock pauses while one is ringing. */
 export interface IncomingCall {

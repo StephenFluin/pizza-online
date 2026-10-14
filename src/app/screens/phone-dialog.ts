@@ -10,6 +10,9 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   { kind: 'agency', label: 'Staff agency' },
   { kind: 'insurance', label: 'Insurance' },
   { kind: 'mayor', label: 'City hall' },
+  { kind: 'shark', label: 'Back streets' },
+  { kind: 'fixer', label: '' },
+  { kind: 'boss', label: '' },
 ];
 
 /** The phone: a phone book on the left and the live call on the right. Picking a contact connects at once. */
@@ -20,7 +23,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
     <div class="phone">
       <nav class="book" aria-label="Phone book">
         @for (g of groups(); track g.kind) {
-          <h3>{{ g.label }}</h3>
+          @if (g.label) {<h3>{{ g.label }}</h3>}
           <ul>
             @for (c of g.contacts; track c.id) {
               <li>

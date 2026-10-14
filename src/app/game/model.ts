@@ -2,6 +2,7 @@ import type { Award, Boost, Contest } from './awards';
 import type { IncomingCall } from './inspections';
 import type { Shipment, Warehouse } from './warehouse';
 import type { InsuranceType, Loan } from './insurance';
+import type { SabotageKind, SharkLoan } from './underworld';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
 
@@ -171,6 +172,8 @@ export interface Restaurant {
   closedDays?: number;
   /** What the restaurant's manager may do on the owner's behalf. */
   managerSettings?: ManagerSettings;
+  /** Temporary popularity hits (stink bombs and the like). */
+  troubles?: { points: number; daysLeft: number }[];
   /** Stars from the mayor's inspectors (0–5), the last rating (0–100) and when they come next. */
   stars?: number;
   qualityRating?: number;
@@ -309,6 +312,13 @@ export interface Player {
   boosts?: Boost[];
   /** Highest business rank reached (index into RANKS). */
   rank?: number;
+  /** An outstanding loan from a loan shark. */
+  shark?: SharkLoan;
+  /** Day the player gets out of jail, and how many times they've been caught. */
+  jailUntil?: number;
+  record?: number;
+  /** Sabotage goods bought from the fixer. */
+  blackMarket?: Partial<Record<SabotageKind, number>>;
   /** City id -> the player's warehouse there. */
   warehouses?: Record<string, Warehouse>;
   /** Loans with repayment schedules; `loan` holds their total. */
@@ -370,6 +380,10 @@ export interface GameState {
   phoneQueue?: IncomingCall[];
   /** Stock on its way between warehouses. */
   shipments?: Shipment[];
+  /** City id -> true while the player pays the local boss for protection. */
+  protection?: Record<string, boolean>;
+  /** Cities where the boss has already offered protection. */
+  protectionOffered?: Record<string, boolean>;
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */

@@ -5,6 +5,7 @@ import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, star
 import { CityMap, CustomerGroup, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { cityLifeMorning, cityPrestige } from './awards';
 import { mayorMorning } from './inspections';
+import { inJail, rivalMischief, troublePoints, underworldMorning } from './underworld';
 import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
 import { CUSTOMER_GROUPS } from './pizza-stats';
@@ -263,13 +264,15 @@ export function computePopularity(state: GameState, r: Restaurant, city: CityMap
   const fulfilled = wanted > 0 ? (100 * y.customers) / wanted : 100;
   const fulfilment = -Math.round((100 - fulfilled) / 6);
 
-  const events = r.popularity?.events ?? 0;
+  const events = troublePoints(r);
 
   // The owner can only keep an eye on so many restaurants; the rest lose a little popularity.
   const own = state.restaurants.filter((x) => x.ownerId === r.ownerId).map((x) => x.id).sort((a, b) => a - b);
   // A manager supervises in the owner's place.
   const managed = r.staff.some((s) => s.role === 'manager' && isAvailable(s));
-  const supervision = !managed && own.indexOf(r.id) >= supervisable(ownerStats(state, r.ownerId)) ? -10 : 0;
+  // From a jail cell the owner supervises nothing.
+  const jailed = inJail(state, state.players.find((p) => p.id === r.ownerId));
+  const supervision = !managed && (jailed || own.indexOf(r.id) >= supervisable(ownerStats(state, r.ownerId))) ? -10 : 0;
 
   const owner = state.players.find((p) => p.id === r.ownerId);
   const prestige = owner ? cityPrestige(state, owner, r.cityId) : 0;
@@ -367,6 +370,8 @@ export function startDay(state: GameState): void {
   morningNews(state);
   cityLifeMorning(state);
   mayorMorning(state);
+  underworldMorning(state);
+  rivalMischief(state, (p) => ownerStats(state, p.id));
 }
 
 /** Adds units to a restaurant's stock, blending their quality into what is already there. */

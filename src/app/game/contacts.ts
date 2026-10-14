@@ -2,7 +2,7 @@ import { Accessory, FacialHair, HairStyle, Look } from './characters';
 import { FIRST_NAMES, INGREDIENTS, LAST_NAMES } from './data';
 import { Rng, hashString } from './rng';
 
-export type ContactKind = 'realtor' | 'bank' | 'supplier' | 'agency' | 'mayor' | 'insurance';
+export type ContactKind = 'realtor' | 'bank' | 'supplier' | 'agency' | 'mayor' | 'insurance' | 'shark' | 'fixer' | 'boss' | 'police';
 
 export interface Contact {
   id: string;
@@ -69,6 +69,15 @@ export function cityContacts(cityId: string, gameSeed: number): Contact[] {
   contacts.push({ id: `${cityId}:insurance`, kind: 'insurance', cityId, name: `${broker.first} ${broker.last}`, company: 'Safe Harbour Insurance', look: randomLook(rng), color: 0x2a9d8f, toughness: 0.5 });
   const mayor = person(rng);
   contacts.push({ id: `${cityId}:mayor`, kind: 'mayor', cityId, name: `${mayor.first} ${mayor.last}`, company: 'Office of the Mayor', look: { ...randomLook(rng), shirt: 0x2b2d42 }, color: 0x9d0208, toughness: 0.5 });
+  // The back streets, and the police who'd like a word with them.
+  const shark = person(rng);
+  contacts.push({ id: `${cityId}:shark`, kind: 'shark', cityId, name: `${shark.first} ${shark.last}`, company: 'Quick Cash, No Questions', look: { ...randomLook(rng), accessory: 'sunglasses' }, color: 0x3d405b, toughness: 0.8 });
+  const fixer = person(rng);
+  contacts.push({ id: `${cityId}:fixer`, kind: 'fixer', cityId, name: `${fixer.first} ${fixer.last}`, company: 'The Fixer', look: { ...randomLook(rng), accessory: 'hat' }, color: 0x495057, toughness: 0.6 });
+  const boss = person(rng);
+  contacts.push({ id: `${cityId}:boss`, kind: 'boss', cityId, name: `${boss.first} ${boss.last}`, company: 'The Calzone Family', look: { ...randomLook(rng), accessory: 'hat', facialHair: 'moustache' }, color: 0x2b2d42, toughness: 0.9 });
+  const cop = person(rng);
+  contacts.push({ id: `${cityId}:police`, kind: 'police', cityId, name: `Inspector ${cop.last}`, company: 'City Police', look: { ...randomLook(rng), shirt: 0x1d3557, accessory: 'hat' }, color: 0x1d3557, toughness: 0.7 });
   const ag = person(rng);
   contacts.push({ id: `${cityId}:agency`, kind: 'agency', cityId, name: `${ag.first} ${ag.last}`, company: 'Top Staff Agency', look: randomLook(rng), color: 0xe9c46a, toughness: 0.5 });
   return contacts;

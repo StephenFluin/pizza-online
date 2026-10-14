@@ -1,4 +1,5 @@
 import type { Award, Boost, Contest } from './awards';
+import type { InsuranceType, Loan } from './insurance';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
 
@@ -148,6 +149,8 @@ export interface Restaurant {
   restockTarget: number;
   /** Popularity components, refreshed every hour while open. */
   popularity: Popularity;
+  /** Days the restaurant stays shut (after a fire). */
+  closedDays?: number;
   /** Stats for the day in progress and the last finished day. */
   today: DayStats;
   lastDay: DayStats;
@@ -282,6 +285,9 @@ export interface Player {
   boosts?: Boost[];
   /** Highest business rank reached (index into RANKS). */
   rank?: number;
+  /** Loans with repayment schedules; `loan` holds their total. */
+  loans?: Loan[];
+  insurance?: Partial<Record<InsuranceType, boolean>>;
 }
 
 export type AdChannel = 'flyers' | 'posters' | 'newspaper' | 'tv';

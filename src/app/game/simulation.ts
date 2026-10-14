@@ -1,9 +1,10 @@
 import { firstName } from './characters';
-import { INTEREST_RATE, adBonus, cookingBonus, ingredientPriceFactor, ownerStats, startReputation, statsOf, supervisable } from './owner-stats';
+import { adBonus, cookingBonus, ingredientPriceFactor, ownerStats, startReputation, statsOf, supervisable } from './owner-stats';
 import { cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { cityLifeMorning, cityPrestige } from './awards';
+import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
 import { effectiveSkill, isAvailable, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
@@ -67,7 +68,8 @@ export function simulateHour(state: GameState, hour: number): void {
   const rate = HOURLY_RATE[hour];
   if (!rate) return;
   for (const city of state.cities) {
-    const restaurants = state.restaurants.filter((r) => r.cityId === city.id);
+    // Restaurants closed for repairs don't trade.
+    const restaurants = state.restaurants.filter((r) => r.cityId === city.id && !r.closedDays);
     if (restaurants.length === 0) continue;
     simulateCityHour(state, city, restaurants, rate);
   }
@@ -281,6 +283,7 @@ export function startDay(state: GameState): void {
   // Managers do the shopping even without a standing order.
   for (const r of state.restaurants) if (r.autoRestock || r.staff.some((s) => s.role === 'manager' && isAvailable(s))) restock(state, r);
   staffMorning(state);
+  morningRisks(state);
   morningNews(state);
   cityLifeMorning(state);
 }
@@ -396,7 +399,8 @@ function endMonth(state: GameState): void {
       const wages = r.staff.reduce((n, s) => n + s.wagePerMonth, 0);
       if (wages > 0) addLedger(player, state.day, 'Wages', -wages);
     }
-    if (player.loan > 0) addLedger(player, state.day, 'Loan interest', -Math.round(player.loan * INTEREST_RATE));
+    monthlyLoanPayments(state, player, (label, amount) => addLedger(player, state.day, label, amount));
+    for (const type of Object.keys(POLICIES) as InsuranceType[]) if (insured(player, type)) addLedger(player, state.day, 'Insurance', -premium(state, player, type));
     if (player.isHuman) {
       const month = player.ledger.filter((e) => e.day > state.day - DAYS_PER_MONTH);
       const net = month.reduce((n, e) => n + e.amount, 0);

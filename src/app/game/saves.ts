@@ -81,6 +81,10 @@ export function deserialize(text: string): GameState {
   }
   // Campaigns from before the advertising channels existed are dropped.
   for (const p of st.players) p.ads = (p.ads ?? []).filter((a) => typeof a.channel === 'string' && typeof a.effectiveness === 'number');
+  // Older saves kept a single loan balance; turn it into a two-year loan.
+  for (const p of st.players) {
+    if (!p.loans && p.loan > 0) p.loans = [{ id: st.nextId++, principal: p.loan, remaining: p.loan, termMonths: 24, monthsLeft: 24 }];
+  }
   const loaded: GameState = { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {}, jobMarket: st.jobMarket ?? {}, staffEvents: st.staffEvents ?? [], cityConditions: st.cityConditions ?? {}, newspaper: st.newspaper ?? null, charts: st.charts ?? {}, contest: st.contest ?? null };
   for (const c of CITIES) jobMarket(loaded, c.id);
   return loaded;

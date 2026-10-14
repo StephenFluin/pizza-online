@@ -149,7 +149,7 @@ describes the systems being reproduced (in our own code, text and art).
 - [x] Mayor awards and favour, annual pizza competition with judges
 - [x] Social status ranks and awards
 - [x] Economic trend per city
-- [ ] Loan schedules and insurance
+- [x] Loan schedules and insurance
 
 ### Phase 17 – Polish
 

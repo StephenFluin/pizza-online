@@ -304,7 +304,8 @@ export function resolveStaffEvent(st: GameState, event: StaffEvent, choice: numb
       leave();
       return `${s.name} has left.`;
     case 'theft':
-      owner.cash -= event.amount ?? 0;
+      // Theft cover pays back what was stolen.
+      if (!owner.insurance?.theft) owner.cash -= event.amount ?? 0;
       if (choice === 0) {
         leave();
         return `${s.name} has been fired.`;

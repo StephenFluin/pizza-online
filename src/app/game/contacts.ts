@@ -2,7 +2,7 @@ import { Accessory, FacialHair, HairStyle, Look } from './characters';
 import { FIRST_NAMES, INGREDIENTS, LAST_NAMES } from './data';
 import { Rng, hashString } from './rng';
 
-export type ContactKind = 'realtor' | 'bank' | 'supplier' | 'agency' | 'mayor';
+export type ContactKind = 'realtor' | 'bank' | 'supplier' | 'agency' | 'mayor' | 'insurance';
 
 export interface Contact {
   id: string;
@@ -65,6 +65,8 @@ export function cityContacts(cityId: string, gameSeed: number): Contact[] {
   contacts.push({ id: `${cityId}:bank`, kind: 'bank', cityId, name: `${bank.first} ${bank.last}`, company: 'City Savings Bank', look: { ...randomLook(rng), shirt: 0x1d3557 }, color: 0x264653, toughness: 0.5 });
   const sup = person(rng);
   contacts.push({ id: `${cityId}:supplier`, kind: 'supplier', cityId, name: `${sup.first} ${sup.last}`, company: 'Fresh Fields Wholesale', look: randomLook(rng), color: 0x6a994e, toughness: rng.range(0.2, 0.8) });
+  const broker = person(rng);
+  contacts.push({ id: `${cityId}:insurance`, kind: 'insurance', cityId, name: `${broker.first} ${broker.last}`, company: 'Safe Harbour Insurance', look: randomLook(rng), color: 0x2a9d8f, toughness: 0.5 });
   const mayor = person(rng);
   contacts.push({ id: `${cityId}:mayor`, kind: 'mayor', cityId, name: `${mayor.first} ${mayor.last}`, company: 'Office of the Mayor', look: { ...randomLook(rng), shirt: 0x2b2d42 }, color: 0x9d0208, toughness: 0.5 });
   const ag = person(rng);

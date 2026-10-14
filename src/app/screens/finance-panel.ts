@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { GameService } from '../game/game.service';
 import { RANKS, netWorth, rankOf } from '../game/awards';
 import { cityDef } from '../game/data';
+import { InsuranceType, POLICIES, insured, premium } from '../game/insurance';
 import { DAYS_PER_MONTH, formatMoney } from '../game/model';
 
 /** Income and expenses for the current month, grouped by category. */
@@ -28,6 +29,23 @@ import { DAYS_PER_MONTH, formatMoney } from '../game/model';
       </table>
     </section>
 
+    <section aria-labelledby="loans-title" class="fin">
+      <h3 id="loans-title">Loans and insurance</h3>
+      <ul class="awards">
+        @for (l of loans(); track l.id) {
+          <li>{{ money(l.principal) }} loan: {{ money(l.remaining) }} left, {{ l.monthsLeft }} of {{ l.termMonths }} months to go</li>
+        } @empty {
+          <li>No loans. Phone the bank to borrow.</li>
+        }
+      </ul>
+      <ul class="awards">
+        @for (p of policies(); track p.label) {
+          <li>{{ p.label }}: {{ p.on ? 'covered, ' + money(p.premium) + ' a month' : 'not insured' }}</li>
+        }
+      </ul>
+      <p class="hint">Arrange cover by phoning your insurance broker.</p>
+    </section>
+
     @if (status(); as st) {
       <section aria-labelledby="status-title" class="fin">
         <h3 id="status-title">Standing</h3>
@@ -51,7 +69,8 @@ import { DAYS_PER_MONTH, formatMoney } from '../game/model';
   styles: `
     .fin { min-width: min(360px, 80vw); margin-bottom: 16px; }
     .rank { font-size: 1.1rem; }
-    .awards { margin: 0; padding-left: 18px; }
+    .awards { margin: 0 0 6px; padding-left: 18px; }
+    .hint { margin: 0; font-size: 0.85rem; color: #555; }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; font-weight: 400; }
     td { text-align: right; font-variant-numeric: tabular-nums; }
@@ -74,6 +93,14 @@ export class FinancePanelComponent {
     return [...totals].map(([label, amount]) => ({ label, amount })).sort((a, b) => b.amount - a.amount);
   });
   protected readonly net = computed(() => this.rows().reduce((n, r) => n + r.amount, 0));
+
+  protected readonly loans = computed(() => this.game.human()?.loans ?? []);
+  protected readonly policies = computed(() => {
+    const st = this.game.state();
+    const me = this.game.human();
+    if (!st || !me) return [];
+    return (Object.keys(POLICIES) as InsuranceType[]).map((t) => ({ label: POLICIES[t].label, on: insured(me, t), premium: premium(st, me, t) }));
+  });
 
   protected readonly status = computed(() => {
     const st = this.game.state();

@@ -8,6 +8,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   { kind: 'bank', label: 'Bank' },
   { kind: 'supplier', label: 'Wholesaler' },
   { kind: 'agency', label: 'Staff agency' },
+  { kind: 'insurance', label: 'Insurance' },
   { kind: 'mayor', label: 'City hall' },
 ];
 

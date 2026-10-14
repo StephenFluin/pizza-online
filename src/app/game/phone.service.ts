@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MAX_FAVOUR, favour } from './awards';
+import { InsuranceType, LOAN_TERMS, MONTHLY_INTEREST, POLICIES, insured, premium } from './insurance';
 import { creditLimit, haggleBonus, statsOf } from './owner-stats';
 import { Contact, cityContacts, weeklySpecial } from './contacts';
 import { cityDef, ingredient } from './data';
@@ -25,6 +26,8 @@ export interface Call {
   lines: CallLine[];
   options: CallOption[];
   haggles: number;
+  /** Amount being borrowed while the term is chosen. */
+  pendingLoan?: number;
   /** Fraction knocked off the asking rent/price so far. */
   discount: number;
   ended: boolean;
@@ -68,6 +71,7 @@ export class PhoneService {
       case 'supplier': this.supplier(call, optionId); break;
       case 'agency': this.agency(call, optionId); break;
       case 'mayor': this.mayor(call, optionId); break;
+      case 'insurance': this.insurance(call, optionId); break;
     }
     this.call.set({ ...call });
   }
@@ -94,6 +98,10 @@ export class PhoneService {
       case 'agency':
         this.say(call, `${hello} Looking for good people? Which restaurant needs staff?`);
         this.agencyOptions(call);
+        break;
+      case 'insurance':
+        this.say(call, `${hello} Burglars, fires, lawsuits: one call and you can sleep at night. What can I cover for you?`);
+        this.insuranceOptions(call);
         break;
       case 'mayor':
         this.say(call, `${c.company}, ${c.name.split(' ')[0]} speaking. ${this.mayorMood(call)}`);
@@ -201,13 +209,20 @@ export class PhoneService {
 
   private bankOptions(call: Call): void {
     const me = this.game.human();
-    const loan = me?.loan ?? 0;
+    const debt = me?.loan ?? 0;
     const opts: CallOption[] = [];
-    if (loan + LOAN_STEP <= MAX_LOAN) opts.push({ id: 'borrow:1', label: `I'd like to borrow ${formatMoney(LOAN_STEP)}.` });
-    if (loan + LOAN_STEP * 5 <= MAX_LOAN) opts.push({ id: 'borrow:5', label: `I'd like to borrow ${formatMoney(LOAN_STEP * 5)}.` });
-    if (loan > 0) opts.push({ id: 'repay:1', label: `I want to repay ${formatMoney(Math.min(LOAN_STEP, loan))}.` });
-    if (loan > LOAN_STEP) opts.push({ id: 'repay:all', label: 'I want to pay off the whole loan.' });
-    opts.push({ id: 'rate', label: 'What interest do you charge?' }, { id: 'bye', label: 'That’s all, thank you.' });
+    if (call.pendingLoan) {
+      // Second step of borrowing: how long to pay it back over.
+      call.options = [
+        ...LOAN_TERMS.map((m) => ({ id: `term:${m}`, label: `Over ${m} months, please (about ${formatMoney(Math.round(call.pendingLoan! / m + call.pendingLoan! * MONTHLY_INTEREST))} a month at first).` })),
+        { id: 'cancel', label: 'Actually, never mind.' },
+      ];
+      return;
+    }
+    if (debt + LOAN_STEP <= MAX_LOAN) opts.push({ id: 'borrow:1', label: `I'd like to borrow ${formatMoney(LOAN_STEP)}.` });
+    if (debt + LOAN_STEP * 5 <= MAX_LOAN) opts.push({ id: 'borrow:5', label: `I'd like to borrow ${formatMoney(LOAN_STEP * 5)}.` });
+    for (const l of me?.loans ?? []) opts.push({ id: `repay:${l.id}`, label: `Pay off the ${formatMoney(l.principal)} loan early (${formatMoney(l.remaining)} left, ${l.monthsLeft} months to go).` });
+    opts.push({ id: 'rate', label: 'What are your terms?' }, { id: 'bye', label: 'That’s all, thank you.' });
     call.options = opts;
   }
 
@@ -221,25 +236,64 @@ export class PhoneService {
       if (me.loan + amount > creditLimit(statsOf(me), shops)) {
         this.say(call, 'I’m sorry, with your current business we can’t lend that much. Open more restaurants and ask again.');
       } else {
-        this.game.borrow(amount);
-        this.say(call, `Done. ${formatMoney(amount)} has been paid into your account. ${this.bankStatus()}`);
+        call.pendingLoan = amount;
+        this.say(call, `Certainly. Over how long would you like to repay the ${formatMoney(amount)}?`);
       }
+    } else if (optionId.startsWith('term:')) {
+      const months = Number(optionId.slice(5));
+      const amount = call.pendingLoan ?? 0;
+      call.pendingLoan = undefined;
+      this.game.borrow(amount, months);
+      this.say(call, `Done. ${formatMoney(amount)} is in your account, repaid over ${months} months. ${this.bankStatus()}`);
+    } else if (optionId === 'cancel') {
+      call.pendingLoan = undefined;
+      this.say(call, 'No problem at all.');
     } else if (optionId.startsWith('repay:')) {
-      const amount = optionId === 'repay:all' ? me.loan : LOAN_STEP;
-      if (me.cash < Math.min(amount, me.loan)) this.say(call, 'You don’t have enough cash for that repayment.');
+      const id = Number(optionId.slice(6));
+      const loan = me.loans?.find((l) => l.id === id);
+      if (!loan) this.say(call, 'I can’t find that loan.');
+      else if (me.cash <= 0) this.say(call, 'You don’t have the cash to repay anything right now.');
       else {
-        this.game.repay(amount);
+        this.game.repayLoanEarly(id);
         this.say(call, `Thank you. ${this.bankStatus()}`);
       }
     } else if (optionId === 'rate') {
       const shops = this.game.state()!.restaurants.filter((r) => r.ownerId === me.id).length;
-      this.say(call, `One percent a month on the outstanding loan, charged at the end of each month. With your standing I can lend you up to ${formatMoney(creditLimit(statsOf(me), shops))} in total.`);
+      this.say(call, `One percent a month on what you still owe, plus an equal slice of the loan each month, taken at the end of the month. With your standing I can lend you up to ${formatMoney(creditLimit(statsOf(me), shops))} in total.`);
     } else {
       this.say(call, 'Goodbye, and good luck with the pizzas.');
       this.end(call);
       return;
     }
     this.bankOptions(call);
+  }
+
+  // ---- Insurance -----------------------------------------------------------
+
+  private insuranceOptions(call: Call): void {
+    const st = this.game.state();
+    const me = this.game.human();
+    if (!st || !me) return;
+    call.options = [
+      ...(Object.keys(POLICIES) as InsuranceType[]).map((t) =>
+        insured(me, t)
+          ? { id: `cancel:${t}`, label: `Cancel my ${POLICIES[t].label.toLowerCase()}.` }
+          : { id: `buy:${t}`, label: `I'll take ${POLICIES[t].label.toLowerCase()} (${POLICIES[t].covers}) for ${formatMoney(premium(st, me, t))} a month.` },
+      ),
+      { id: 'bye', label: 'That’s all for now.' },
+    ];
+  }
+
+  private insurance(call: Call, optionId: string): void {
+    if (optionId.startsWith('buy:') || optionId.startsWith('cancel:')) {
+      const [action, type] = optionId.split(':') as ['buy' | 'cancel', InsuranceType];
+      this.game.setInsurance(type, action === 'buy');
+      this.say(call, action === 'buy' ? `You're covered from today. The premium is collected at the end of each month.` : 'Policy cancelled. I hope you won’t regret it.');
+      this.insuranceOptions(call);
+      return;
+    }
+    this.say(call, 'Stay safe out there!');
+    this.end(call);
   }
 
   // ---- Supplier ------------------------------------------------------------

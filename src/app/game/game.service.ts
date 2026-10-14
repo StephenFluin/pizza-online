@@ -3,6 +3,7 @@ import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
 import { Contest, donate, judgeContest } from './awards';
+import { InsuranceType, repayLoan, takeLoan } from './insurance';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
 import { Course, jobMarket, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
 import { vendorById, vendorPrice } from './vendors';
@@ -484,23 +485,31 @@ export class GameService {
     this.selectedLotId.set(null);
   }
 
-  borrow(amount: number): void {
+  /** Takes out a loan with a repayment term in months. */
+  borrow(amount: number, termMonths = 24): void {
     this.mutate((st) => {
       const p = st.players.find((x) => x.isHuman);
       if (!p || p.loan + amount > MAX_LOAN) return;
-      p.loan += amount;
+      takeLoan(st, p, amount, termMonths);
       addLedger(p, st.day, 'Loan', amount);
     });
   }
 
-  repay(amount: number): void {
+  /** Pays off one loan early (or as much of it as cash allows). */
+  repayLoanEarly(loanId: number): void {
     this.mutate((st) => {
       const p = st.players.find((x) => x.isHuman);
       if (!p) return;
-      const pay = Math.min(amount, p.loan, Math.max(0, p.cash));
-      if (pay <= 0) return;
-      p.loan -= pay;
-      addLedger(p, st.day, 'Loan repayment', -pay);
+      const paid = repayLoan(p, loanId);
+      if (paid > 0) p.ledger.push({ day: st.day, label: 'Loan repayment', amount: -paid });
+    });
+  }
+
+  /** Takes out or cancels an insurance policy. */
+  setInsurance(type: InsuranceType, on: boolean): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (p) (p.insurance ??= {})[type] = on;
     });
   }
 

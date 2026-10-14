@@ -100,6 +100,8 @@ export interface Restaurant {
   /** Stats for the day in progress and the last finished day. */
   today: DayStats;
   lastDay: DayStats;
+  /** Finished days, newest last, for trends in the end-of-day report. */
+  history: DayStats[];
 }
 
 export interface DayStats {
@@ -111,6 +113,29 @@ export interface DayStats {
   /** Why customers were turned away, for player feedback. */
   noStaff: number;
   noStock: number;
+  /** Guests lost because the kitchen, the waiters or the seats were the bottleneck. */
+  lostKitchen: number;
+  lostFloor: number;
+  lostSeats: number;
+  /** Ingredient cost of the pizzas actually served. */
+  foodCost: number;
+  /** Recipe id -> how often it was wanted and served. */
+  pizzas: Record<string, PizzaSales>;
+  /** Ingredient id -> guests whose favourite pizza couldn't be made because it ran out. */
+  missing: Record<string, number>;
+  /** Most guests the restaurant could have served today (for utilisation). */
+  capacity: number;
+  /** Day number these stats belong to. */
+  day: number;
+  /** Reputation at closing time. */
+  reputation: number;
+}
+
+export interface PizzaSales {
+  ordered: number;
+  sold: number;
+  revenue: number;
+  cost: number;
 }
 
 export interface Topping {

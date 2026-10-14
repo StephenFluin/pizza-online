@@ -1,48 +1,46 @@
-import { Component, DestroyRef, afterNextRender, computed, inject } from '@angular/core';
+import { Component, DestroyRef, afterNextRender, computed, effect, inject, untracked } from '@angular/core';
 import { GameService } from '../game/game.service';
-import { formatDate } from '../game/model';
 import { UiService } from '../game/ui.service';
-import { CityMapComponent } from '../map/city-map';
+import { ShellSideComponent } from '../shell/shell-side';
+import { CityScreenComponent } from './city-screen';
 import { DialogHostComponent } from './dialog-host';
-import { HudComponent } from './hud';
-import { LotPanelComponent } from './lot-panel';
-import { ToolbarComponent } from './toolbar';
 
-/** Main game screen in the classic layout: status bar, full-screen city, info card and icon toolbar. */
+/**
+ * The classic frame: a wooden surround with the active full-screen view on the
+ * left and the info panel plus 3×3 tool grid on the right. The city view stays
+ * mounted underneath other screens so its map keeps its position and zoom.
+ */
 @Component({
   selector: 'app-game-screen',
-  imports: [HudComponent, CityMapComponent, LotPanelComponent, ToolbarComponent, DialogHostComponent],
+  imports: [CityScreenComponent, DialogHostComponent, ShellSideComponent],
   template: `
-    <app-hud />
-    <div class="stage">
-      <app-city-map class="map" />
-      @if (outcome(); as o) {
-        <div class="outcome" role="alert">
-          {{ o === 'won' ? 'Congratulations! Your chain is the most popular in every city.' : 'Bankrupt! The bank has closed your business.' }}
-        </div>
-      }
-      @if (game.selectedLot()) {
-        <aside class="card" aria-label="Selected location">
-          <app-lot-panel />
-        </aside>
-      }
-      <button type="button" class="ticker" (click)="ui.open({ kind: 'news' })" aria-label="Open the news log">
-        <span class="when">{{ latest()?.when }}</span> {{ latest()?.text }}
-      </button>
+    <div class="frame wood">
+      <main class="viewport">
+        <app-city-screen class="layer" [class.hidden]="!!ui.dialog()" [attr.inert]="ui.dialog() ? '' : null" />
+        @if (ui.dialog()) {
+          <app-dialog-host class="layer" />
+        }
+        @if (outcome(); as o) {
+          <div class="outcome" role="alert">
+            {{ o === 'won' ? 'Congratulations! Your chain is the most popular in every city.' : 'Bankrupt! The bank has closed your business.' }}
+          </div>
+        }
+      </main>
+      <app-shell-side class="side" />
     </div>
-    <app-toolbar />
-    <app-dialog-host />
   `,
   styles: `
-    :host { display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; }
+    :host { display: block; height: 100dvh; }
+    .frame { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) clamp(220px, 26vw, 320px); gap: 14px; padding: 14px; }
+    .viewport { position: relative; min-height: 0; min-width: 0; box-shadow: inset 0 0 0 3px #00000055, 0 0 0 3px var(--wood-dark); }
+    .layer { position: absolute; inset: 0; }
+    /* Hidden but still laid out, so PixiJS keeps the right canvas size. */
+    .hidden { visibility: hidden; }
+    .side { min-height: 0; }
     .outcome { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; background: var(--cream); color: var(--ink); padding: 8px 16px; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 16px #0006; }
-    .stage { position: relative; min-height: 0; }
-    .map { position: absolute; inset: 0; }
-    .card { position: absolute; top: 12px; right: 12px; width: min(380px, calc(100% - 24px)); max-height: calc(100% - 80px); overflow: auto; z-index: 3; box-shadow: 0 6px 24px #0006; border-radius: 10px; }
-    .ticker { position: absolute; left: 12px; bottom: 12px; right: 72px; text-align: left; background: #1d3557e6; color: var(--cream); border: 1px solid #c9a227; font-weight: 400; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
-    .when { color: #f4d58d; font-weight: 700; }
-    @media (max-width: 640px) {
-      .card { top: auto; bottom: 64px; max-height: 55%; }
+    @media (max-width: 760px) {
+      :host { height: auto; }
+      .frame { grid-template-columns: 1fr; grid-template-rows: 70dvh auto; padding: 8px; }
     }
   `,
 })
@@ -50,13 +48,13 @@ export class GameScreenComponent {
   protected readonly game = inject(GameService);
   protected readonly ui = inject(UiService);
   protected readonly outcome = computed(() => this.game.state()?.outcome ?? null);
-  protected readonly latest = computed(() => {
-    const m = this.game.state()?.messages.at(-1);
-    return m ? { when: formatDate(m.day), text: m.text } : null;
-  });
 
   constructor() {
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => destroyRef.onDestroy(this.game.startLoop()));
+    // When a trading day ends, show the full-screen report.
+    effect(() => {
+      if (this.game.dayReport() !== null) untracked(() => this.ui.open({ kind: 'report' }));
+    });
   }
 }

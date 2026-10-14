@@ -1,6 +1,7 @@
 import { CITIES } from './data';
 import { generateCity } from './city-gen';
 import { applyRoom, starterLayout } from './furniture';
+import { emptyStats } from './simulation';
 import { District, GameState, formatDate } from './model';
 
 /**
@@ -57,8 +58,12 @@ export function deserialize(text: string): GameState {
     }
     return city;
   });
-  // Saves from before restaurant interiors existed get a starter fit-out.
+  // Saves from before restaurant interiors existed get a starter fit-out,
+  // and older daily stats are filled out with the newer fields.
   for (const r of st.restaurants) {
+    r.today = { ...emptyStats(st.day), ...r.today };
+    r.lastDay = { ...emptyStats(st.day - 1), ...r.lastDay };
+    r.history ??= [];
     const lot = cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
     if (lot && !Array.isArray(r.layout)) {
       r.layout = starterLayout(lot);

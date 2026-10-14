@@ -15,7 +15,7 @@ export type GameSpeed = 0 | 1 | 2 | 4;
 const AUTOSAVE_INTERVAL_MS = 90_000;
 
 /** Game minutes that pass per real second at 1x speed. */
-const MINUTES_PER_SECOND = 20;
+const MINUTES_PER_SECOND = 5;
 
 export const PLAYER_COLORS = [0xe63946];
 export const START_CASH = 50000;
@@ -38,6 +38,11 @@ export class GameService {
   readonly state = signal<GameState | null>(null, { equal: () => false });
   readonly speed = signal<GameSpeed>(1);
   readonly selectedLotId = signal<number | null>(null);
+  /** Day number whose end-of-day report is waiting for the player; the clock is held until they continue. */
+  readonly dayReport = signal<number | null>(null);
+  /** Stop at the end of every trading day to show the report. */
+  readonly reportEachDay = signal(true);
+  private resumeSpeed: GameSpeed = 1;
 
   readonly city = computed(
     () => {
@@ -102,6 +107,7 @@ export class GameService {
     });
     this.selectedLotId.set(null);
     this.applicantCache.clear();
+    this.dayReport.set(null);
   }
 
   /** Runs `fn` against the live state and notifies readers. */
@@ -151,17 +157,46 @@ export class GameService {
   /** Advances the clock by real elapsed seconds. */
   tick(seconds: number): void {
     const s = this.state();
-    if (!s || this.speed() === 0) return;
+    if (!s || this.speed() === 0 || this.dayReport() !== null) return;
     this.minuteAccumulator += seconds * MINUTES_PER_SECOND * this.speed();
     const minutes = Math.floor(this.minuteAccumulator);
     if (minutes < 1) return;
     this.minuteAccumulator -= minutes;
     this.mutate((st) => {
-      for (let i = 0; i < minutes; i++) this.advanceMinute(st);
+      for (let i = 0; i < minutes; i++) {
+        if (this.advanceMinute(st)) {
+          this.minuteAccumulator = 0;
+          break;
+        }
+      }
     });
   }
 
-  private advanceMinute(st: GameState): void {
+  /** Runs the rest of today's trading hours at once (the classic "end turn"). */
+  endDayNow(): void {
+    if (this.dayReport() !== null) return;
+    this.mutate((st) => {
+      for (let i = 0; i < 24 * 60; i++) if (this.advanceMinute(st)) break;
+    });
+  }
+
+  /** Closes the end-of-day report and starts the next morning. */
+  continueDay(): void {
+    if (this.dayReport() === null) return;
+    this.mutate((st) => this.rollOver(st));
+    this.dayReport.set(null);
+    const st = this.state();
+    this.speed.set(st?.outcome ? 0 : this.resumeSpeed || 1);
+  }
+
+  private rollOver(st: GameState): void {
+    st.day++;
+    st.minute = OPEN_MINUTE - 60;
+    if (st.day % 7 === 0) this.applicantCache.clear();
+  }
+
+  /** Advances one game minute; returns true when the day has just ended. */
+  private advanceMinute(st: GameState): boolean {
     st.minute++;
     if (st.minute === OPEN_MINUTE) startDay(st);
     if (st.minute % 60 === 0 && st.minute > OPEN_MINUTE && st.minute <= CLOSE_MINUTE) simulateHour(st, st.minute / 60 - 1);
@@ -172,14 +207,20 @@ export class GameService {
         checkOutcome(st);
         this.autosave(st);
       }
-      if (st.outcome) this.speed.set(0);
+      const me = st.players.find((p) => p.isHuman);
+      const hasShops = st.restaurants.some((r) => r.ownerId === me?.id);
+      if (st.outcome || (this.reportEachDay() && hasShops)) {
+        // Hold the clock at closing time until the player has read the report.
+        this.resumeSpeed = this.speed() || this.resumeSpeed;
+        this.speed.set(0);
+        this.dayReport.set(st.day);
+      } else {
+        // Nothing to report: skip the closed night hours straight to the next morning.
+        this.rollOver(st);
+      }
+      return true;
     }
-    // Skip the closed night hours so the player isn't waiting for nothing.
-    if (st.minute >= CLOSE_MINUTE + 60) {
-      st.day++;
-      st.minute = OPEN_MINUTE - 60;
-      if (st.day % 7 === 0) this.applicantCache.clear();
-    }
+    return false;
   }
 
   selectLot(id: number | null): void {
@@ -401,6 +442,7 @@ export class GameService {
 
   private replaceState(st: GameState): void {
     this.applicantCache.clear();
+    this.dayReport.set(st.minute >= CLOSE_MINUTE ? st.day : null);
     this.selectedLotId.set(null);
     this.speed.set(st.outcome ? 0 : 1);
     this.state.set(st);

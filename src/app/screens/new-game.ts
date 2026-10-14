@@ -60,7 +60,9 @@ import { DialogHostComponent } from './dialog-host';
           }
         </form>
       </div>
-      <app-dialog-host />
+      @if (ui.dialog()) {
+        <div class="overlay"><app-dialog-host /></div>
+      }
       <p class="credit">An open-source, browser-only homage to the 1994 classic <i>Pizza Tycoon</i>. All characters are original.</p>
     </main>
   `,
@@ -84,6 +86,7 @@ import { DialogHostComponent } from './dialog-host';
     label { font-weight: 600; margin-top: 4px; }
     input, select { font: inherit; padding: 8px; border: 2px solid var(--ink-soft); border-radius: 6px; }
     .credit { color: var(--cream); font-size: 0.85rem; margin-top: 16px; }
+    .overlay { position: fixed; inset: 0; z-index: 10; padding: 16px; background: #000a; display: grid; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
   `,

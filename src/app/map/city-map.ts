@@ -92,6 +92,7 @@ export class CityMapComponent {
       const selected = this.game.selectedLotId();
       const hovered = this.hoveredLot();
       const overlay = this.ui.overlay();
+      this.ui.markers();
       if (this.app && city && state) this.redraw(city, state, selected, hovered, overlay);
     });
   }
@@ -139,7 +140,8 @@ export class CityMapComponent {
       this.tintKey = '';
     }
     drawLots(this.lots, city, state, selected, hovered);
-    const key = `${overlay}|${city.id}|${state.restaurants.length}|${state.day}`;
+    const markers = [...this.ui.markers()].sort().join(',');
+    const key = `${overlay}|${markers}|${city.id}|${state.restaurants.length}|${state.day}`;
     if (key !== this.tintKey) {
       this.tintKey = key;
       this.drawOverlay(city, state, overlay);
@@ -149,25 +151,53 @@ export class CityMapComponent {
   private drawOverlay(city: CityMap, state: GameState, overlay: MapOverlay): void {
     const g = this.tint!;
     g.clear();
-    if (overlay === 'districts' || overlay === 'wealth') {
+    const inCity = state.restaurants.filter((x) => x.cityId === city.id);
+    const colorOf = (ownerId: number) => state.players.find((p) => p.id === ownerId)?.color ?? 0xffffff;
+    const me = state.players.find((p) => p.isHuman)?.id;
+    const control = overlay === 'control' ? districtControl(city, inCity) : null;
+
+    if (overlay === 'districts' || overlay === 'wealth' || control) {
       for (let y = 0; y < city.height; y++) {
         for (let x = 0; x < city.width; x++) {
           const t = city.tiles[y * city.width + x];
           if (t.district < 0) continue;
           const d = city.districts[t.district];
-          const color = overlay === 'districts' ? DISTRICT_TINTS[d.id % DISTRICT_TINTS.length] : wealthColor(d.wealth);
-          g.rect(x * TILE, y * TILE, TILE, TILE).fill({ color, alpha: 0.35 });
+          let color: number | null;
+          if (control) {
+            const leader = control.get(d.id);
+            color = leader === undefined ? null : colorOf(leader);
+          } else {
+            color = overlay === 'districts' ? DISTRICT_TINTS[d.id % DISTRICT_TINTS.length] : wealthColor(d.wealth);
+          }
+          if (color !== null) g.rect(x * TILE, y * TILE, TILE, TILE).fill({ color, alpha: 0.38 });
         }
       }
-    } else if (overlay === 'competition') {
-      for (const r of state.restaurants.filter((x) => x.cityId === city.id)) {
+    }
+
+    const markers = this.ui.markers();
+    if (markers.has('range') || overlay === 'competition') {
+      for (const r of inCity) {
         const lot = city.lots[r.lotId];
-        const color = state.players.find((p) => p.id === r.ownerId)?.color ?? 0xffffff;
         const cx = (lot.x + lot.w / 2) * TILE;
         const cy = (lot.y + lot.h / 2) * TILE;
         // Catchment area shrinks with distance like the customer model does.
-        for (const [radius, alpha] of [[14, 0.12], [8, 0.18], [4, 0.25]] as const) g.circle(cx, cy, radius * TILE).fill({ color, alpha });
+        for (const [radius, alpha] of [[14, 0.1], [8, 0.15], [4, 0.2]] as const) g.circle(cx, cy, radius * TILE).fill({ color: colorOf(r.ownerId), alpha });
       }
+    }
+    if (markers.has('locations')) {
+      for (const lot of city.lots.filter((l) => l.restaurantId === null)) {
+        g.rect(lot.x * TILE - 2, lot.y * TILE - 2, lot.w * TILE + 4, lot.h * TILE + 4).stroke({ width: 3, color: 0xffd166 });
+      }
+    }
+    for (const r of inCity) {
+      const mine = r.ownerId === me;
+      if (!(markers.has('properties') || (mine && markers.has('player')))) continue;
+      const lot = city.lots[r.lotId];
+      const cx = (lot.x + lot.w / 2) * TILE;
+      const cy = lot.y * TILE - 26;
+      // Diamond marker floating over each restaurant, in the owner's colour.
+      const s = mine && markers.has('player') ? 13 : 9;
+      g.poly([cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy]).fill(0xf5e6c8).stroke({ width: 3, color: colorOf(r.ownerId) });
     }
   }
 
@@ -244,6 +274,7 @@ export class CityMapComponent {
       return;
     }
     const district = city.districts[tile.district];
+    this.ui.hoverDistrict.set(district?.name ?? null);
     let text = '';
     if (lot) {
       const r = lot.restaurantId === null ? null : st.restaurants.find((x) => x.id === lot.restaurantId);
@@ -364,4 +395,22 @@ function wealthColor(wealth: number): number {
   const r = Math.round(255 * Math.min(1, 2 - wealth * 2));
   const g = Math.round(255 * Math.min(1, wealth * 2));
   return (r << 16) | (g << 8) | 0x30;
+}
+
+/** For each district, the owner whose restaurants pull the most guests from it. */
+function districtControl(city: CityMap, restaurants: GameState['restaurants']): Map<number, number> {
+  const result = new Map<number, number>();
+  for (const d of city.districts) {
+    const pull = new Map<number, number>();
+    for (const r of restaurants) {
+      const lot = city.lots[r.lotId];
+      const p = (0.5 + r.reputation) * Math.exp(-Math.hypot(lot.x - d.cx, lot.y - d.cy) / 14);
+      pull.set(r.ownerId, (pull.get(r.ownerId) ?? 0) + p);
+    }
+    let best = -1;
+    let bestPull = 0.15;
+    for (const [owner, p] of pull) if (p > bestPull) [best, bestPull] = [owner, p];
+    if (best >= 0) result.set(d.id, best);
+  }
+  return result;
 }

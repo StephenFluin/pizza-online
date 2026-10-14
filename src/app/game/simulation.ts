@@ -2,7 +2,7 @@ import { PerkId, character, firstName } from './characters';
 import { INGREDIENTS, cityDef, ingredient } from './data';
 import { TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Restaurant } from './model';
-import { clamp01, itemAppeal, recipeUsage } from './recipes';
+import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
 const HOURLY_RATE: Record<number, number> = {
@@ -17,8 +17,30 @@ const GUESTS_PER_WAITER_HOUR = 14;
 const MAX_MESSAGES = 60;
 export const OVERDRAFT = 5000;
 
-export function emptyStats(): DayStats {
-  return { customers: 0, turnedAway: 0, revenue: 0, satisfaction: 0, noStaff: 0, noStock: 0 };
+export function emptyStats(day = 0): DayStats {
+  return {
+    customers: 0,
+    turnedAway: 0,
+    revenue: 0,
+    satisfaction: 0,
+    noStaff: 0,
+    noStock: 0,
+    lostKitchen: 0,
+    lostFloor: 0,
+    lostSeats: 0,
+    foodCost: 0,
+    pizzas: {},
+    missing: {},
+    capacity: 0,
+    day,
+    reputation: 0,
+  };
+}
+
+const HISTORY_DAYS = 30;
+
+function pizzaSales(d: DayStats, recipeId: string) {
+  return (d.pizzas[recipeId] ??= { ordered: 0, sold: 0, revenue: 0, cost: 0 });
 }
 
 export function addMessage(state: GameState, text: string): void {
@@ -56,6 +78,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
     const kitchen = Math.min(cooks, room.kitchenCapacity);
     const floor = r.staff.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.6 + s.skill * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
     capacity.set(r.id, { kitchen, floor, seats: room.seats * TURNOVER_PER_SEAT });
+    r.today.capacity += Math.floor(Math.min(kitchen, floor, room.seats * TURNOVER_PER_SEAT));
   }
 
   for (const district of city.districts) {
@@ -79,25 +102,42 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
       const wanted = Math.round((hungry * s.score) / total);
       if (wanted <= 0) continue;
       const cap = capacity.get(s.r.id)!;
-      const servable = Math.floor(Math.min(cap.kitchen, cap.floor, cap.seats));
+      const today = s.r.today;
       let served = 0;
       for (let i = 0; i < wanted; i++) {
-        if (served >= servable) {
-          s.r.today.turnedAway++;
-          s.r.today.noStaff++;
+        // Every guest asks for the pizza they like best here, even if it can't be made.
+        pizzaSales(today, s.best.recipeId).ordered++;
+        const limit = Math.min(cap.kitchen, cap.floor, cap.seats);
+        if (served >= Math.floor(limit)) {
+          today.turnedAway++;
+          today.noStaff++;
+          if (limit === cap.kitchen) today.lostKitchen++;
+          else if (limit === cap.floor) today.lostFloor++;
+          else today.lostSeats++;
           continue;
         }
         const item = serveFromStock(state, s.r, district, col);
+        if (!item || item.recipe.id !== s.best.recipeId) {
+          // The favourite was out of stock: note which ingredients were missing.
+          const fav = state.recipes.find((x) => x.id === s.best.recipeId);
+          if (fav) for (const [id, n] of Object.entries(recipeUsage(fav))) if ((s.r.stock[id] ?? 0) < n) today.missing[id] = (today.missing[id] ?? 0) + 1;
+        }
         if (!item) {
-          s.r.today.turnedAway++;
-          s.r.today.noStock++;
+          today.turnedAway++;
+          today.noStock++;
           continue;
         }
         served++;
-        s.r.today.customers++;
-        s.r.today.revenue += item.price;
+        today.customers++;
+        today.revenue += item.price;
+        const cost = recipeCost(item.recipe) * col * (hasPerk(state, s.r.ownerId, 'thrifty') ? 0.9 : 1);
+        today.foodCost += cost;
+        const sales = pizzaSales(today, item.recipe.id);
+        sales.sold++;
+        sales.revenue += item.price;
+        sales.cost += cost;
         const staffSkill = s.r.staff.length ? s.r.staff.reduce((n, st) => n + st.skill, 0) / s.r.staff.length : 0;
-        s.r.today.satisfaction += clamp01(item.appeal * 0.7 + staffSkill * 0.2 + s.r.decor * 0.05);
+        today.satisfaction += clamp01(item.appeal * 0.7 + staffSkill * 0.2 + s.r.decor * 0.05);
       }
       cap.kitchen -= served;
       cap.floor -= served;
@@ -119,12 +159,12 @@ function adBoost(state: GameState, r: Restaurant): number {
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
-  let best: { price: number; appeal: number } | null = null;
+  let best: { recipeId: string; price: number; appeal: number } | null = null;
   for (const m of r.menu) {
     const recipe = state.recipes.find((x) => x.id === m.recipeId);
     if (!recipe) continue;
     const appeal = itemAppeal(recipe, m.price, district, col) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1);
-    if (!best || appeal > best.appeal) best = { price: m.price, appeal };
+    if (!best || appeal > best.appeal) best = { recipeId: m.recipeId, price: m.price, appeal };
   }
   return best;
 }
@@ -197,12 +237,10 @@ export function endDay(state: GameState): void {
       r.reputation = clamp01(r.reputation + (avg - r.reputation) * 0.08);
     }
     if (r.today.turnedAway > served) r.reputation = clamp01(r.reputation - 0.01);
+    r.today.reputation = r.reputation;
     r.lastDay = r.today;
-    r.today = emptyStats();
-    if (owner?.isHuman && r.lastDay.turnedAway > 10) {
-      const reason = r.lastDay.noStock >= r.lastDay.noStaff ? 'ran out of ingredients' : 'did not have enough staff';
-      addMessage(state, `${r.name} turned away ${r.lastDay.turnedAway} guests because it ${reason}.`);
-    }
+    r.history = [...(r.history ?? []), r.today].slice(-HISTORY_DAYS);
+    r.today = emptyStats(state.day + 1);
   }
   for (const p of state.players) {
     for (const ad of p.ads) ad.daysLeft--;
@@ -279,8 +317,9 @@ export function openRestaurantAt(
     reputation: character(owner.characterId).perk === 'charmer' ? 0.45 : 0.3,
     autoRestock: true,
     restockTarget: 250,
-    today: emptyStats(),
-    lastDay: emptyStats(),
+    today: emptyStats(st.day),
+    lastDay: emptyStats(st.day - 1),
+    history: [],
   };
   applyRoom(r, lot);
   lot.restaurantId = r.id;

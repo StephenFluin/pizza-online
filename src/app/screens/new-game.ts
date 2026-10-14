@@ -144,6 +144,7 @@ const CONTINENTS: number[][] = [
     .bio { margin: 0; color: var(--cream); font-size: 0.9rem; }
     .start { font-size: 1.15rem; padding: 10px 26px; }
     .load { justify-self: center; }
+    button.secondary { background: #fff8ec; border-color: #fff8ec; color: #9b2c1f; }
     h2.lcd-text { margin: 0; background: var(--lcd); padding: 4px 10px; border: 3px solid var(--steel-dark); }
     .slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
     .slot { width: 100%; display: flex; gap: 8px; align-items: center; text-align: left; background: #f5ecd9; color: #2b1d0e; border: 3px solid #8a6a3a; font-weight: 400; padding: 4px 8px; }

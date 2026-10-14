@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { GameService } from '../game/game.service';
 import { Recipe } from '../game/model';
 import { cityTaste, parseRecipe, recipeCost, recipeQuality, tasteLabel } from '../game/recipes';
@@ -64,6 +65,20 @@ export class CookbookComponent {
   protected readonly error = signal<string | null>(null);
 
   protected readonly cityName = computed(() => this.game.city()?.name ?? 'City');
+
+  private readonly lines = computed<LcdLine[]>(() => {
+    const rows = this.rows();
+    return [{ label: 'Cook book' }, { label: 'Classics', value: String(rows.filter((r) => !r.own).length) }, { label: 'Your pizzas', value: String(rows.filter((r) => r.own).length) }];
+  });
+  private readonly tools = computed<Tool[]>(() => [
+    { id: 'new', label: 'New pizza', icon: ICONS.plus, action: () => this.create() },
+    { id: 'research', label: 'Tastes', icon: ICONS.zoom, action: () => this.ui.open({ kind: 'research', page: 'taste' }) },
+    { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
+  ]);
+
+  constructor() {
+    inject(DestroyRef).onDestroy(inject(ShellService).register(this, { lines: this.lines, tools: this.tools }));
+  }
   protected readonly rows = computed(() => {
     const st = this.game.state();
     const me = this.game.human();

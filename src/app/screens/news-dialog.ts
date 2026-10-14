@@ -130,6 +130,10 @@ export class NewsDialogComponent {
     { id: 'front', label: 'Front page', icon: ICONS.news, pressed: this.section() === 'front', action: () => this.section.set('front') },
     { id: 'charts', label: 'Charts', icon: ICONS.chart, pressed: this.section() === 'charts', action: () => this.section.set('charts') },
     { id: 'business', label: 'Business', icon: ICONS.book, pressed: this.section() === 'business', action: () => this.section.set('business') },
+    // The other reports, as on their own screens.
+    { id: 'finances', label: 'Finances', icon: ICONS.chart, action: () => this.ui.open({ kind: 'finances' }) },
+    { id: 'stats', label: 'Statistics', icon: ICONS.up, action: () => this.ui.open({ kind: 'stats' }) },
+    { id: 'research', label: 'Research', icon: ICONS.zoom, action: () => this.ui.open({ kind: 'research' }) },
     { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
   ]);
 

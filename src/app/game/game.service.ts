@@ -120,6 +120,9 @@ export class GameService {
     this.mutate((st) => CITIES.forEach((c) => jobMarket(st, c.id)));
     this.selectedLotId.set(null);
     this.dayReport.set(null);
+    // Start paused so a new owner can look around and set up before the first day begins.
+    this.speed.set(0);
+    this.resumeSpeed = 1;
   }
 
   /** Runs `fn` against the live state and notifies readers. */
@@ -574,6 +577,7 @@ export class GameService {
 
   quit(): void {
     this.state.set(null);
+    this.speed.set(1);
     this.selectedLotId.set(null);
   }
 

@@ -188,7 +188,7 @@ export class DayReportComponent {
       { id: 'continue', label: 'Next day', icon: ICONS.sun, action: () => this.continue() },
       { id: 'prev', label: 'Previous', icon: ICONS.up, disabled: list.length < 2, action: () => this.selectedId.set(list[(i - 1 + list.length) % list.length].id) },
       { id: 'next', label: 'Next', icon: ICONS.down, disabled: list.length < 2, action: () => this.selectedId.set(list[(i + 1) % list.length].id) },
-      { id: 'view', label: 'Restaurant', icon: ICONS.restaurant, disabled: !sel, action: () => sel && this.ui.open({ kind: 'interior', restaurantId: sel.id }) },
+      { id: 'view', label: 'View inside', icon: ICONS.restaurant, disabled: !sel, action: () => sel && this.ui.open({ kind: 'interior', restaurantId: sel.id }) },
       { id: 'staff', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff', restaurantId: sel?.id }) },
       { id: 'capacity', label: 'Capacity', icon: ICONS.zoom, disabled: !sel, action: () => sel && this.ui.open({ kind: 'capacity', restaurantId: sel.id }) },
       { id: 'stock', label: 'Stock', icon: ICONS.box, disabled: !sel, action: () => sel && this.ui.open({ kind: 'stock', restaurantId: sel.id }) },

@@ -1,16 +1,17 @@
 import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { netWorth, rankOf } from '../game/awards';
-import { GameService, GameSpeed } from '../game/game.service';
+import { GameService } from '../game/game.service';
 import { MapMarker, MapOverlay, UiService } from '../game/ui.service';
 import { CityMapComponent } from '../map/city-map';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { LotPanelComponent } from './lot-panel';
+import { GoalsCardComponent } from './goals-card';
 
-const MARKERS: { id: MapMarker; label: string }[] = [
-  { id: 'player', label: 'Player' },
-  { id: 'range', label: 'Range' },
-  { id: 'locations', label: 'Locations' },
-  { id: 'properties', label: 'Properties' },
+const MARKERS: { id: MapMarker; label: string; hint: string }[] = [
+  { id: 'player', label: 'Player', hint: 'Mark your own pizzerias' },
+  { id: 'range', label: 'Range', hint: 'Shade the area each pizzeria draws guests from' },
+  { id: 'locations', label: 'Locations', hint: 'Outline the empty lots you can rent or buy' },
+  { id: 'properties', label: 'Properties', hint: 'Mark every pizzeria in town, in its owner’s colour' },
 ];
 
 const TABS: { id: MapOverlay; label: string }[] = [
@@ -19,17 +20,16 @@ const TABS: { id: MapOverlay; label: string }[] = [
   { id: 'control', label: 'Control' },
 ];
 
-const SPEEDS: GameSpeed[] = [1, 2, 4, 0];
 const SEASONS = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Summer', 'Summer', 'Autumn', 'Autumn', 'Autumn', 'Winter'];
 
 /** The city view: marker buttons and folder tabs over the map, with the info card for the selected lot. */
 @Component({
   selector: 'app-city-screen',
-  imports: [CityMapComponent, LotPanelComponent],
+  imports: [CityMapComponent, LotPanelComponent, GoalsCardComponent],
   template: `
     <div class="markers" role="group" aria-label="Show on map">
       @for (m of markers; track m.id) {
-        <button type="button" class="plate" [attr.aria-pressed]="ui.markers().has(m.id)" (click)="ui.toggleMarker(m.id)">{{ m.label }}</button>
+        <button type="button" class="plate" [attr.aria-pressed]="ui.markers().has(m.id)" [attr.title]="m.hint" (click)="ui.toggleMarker(m.id)"><span class="led" aria-hidden="true"></span>{{ m.label }}</button>
       }
     </div>
     <div class="folder">
@@ -44,8 +44,10 @@ const SEASONS = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Su
           <aside class="card" aria-label="Selected location">
             <app-lot-panel />
           </aside>
+        } @else {
+          <app-goals-card class="goals" />
         }
-        <button type="button" class="ticker" (click)="ui.open({ kind: 'news' })" aria-label="Open the news log">{{ latest() }}</button>
+        <button type="button" class="ticker" (click)="ui.open({ kind: 'news' })" title="Open the newspaper and all messages"><span class="news-tag">News ▸</span> {{ latest() }}</button>
       </div>
     </div>
   `,
@@ -56,6 +58,10 @@ const SEASONS = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Su
     .plate { font-family: var(--font-lcd); font-size: 1.3rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; color: #2b1d0e;
       background: linear-gradient(180deg, #ffe08a, #e0b23c); border: 3px solid; border-color: #b07a2a #5c3a12 #5c3a12 #b07a2a; box-shadow: 0 0 0 3px #7a4a1c; border-radius: 2px; }
     .plate[aria-pressed='true'] { background: linear-gradient(180deg, #fff3c4, #f2c14e); box-shadow: 0 0 0 3px #7a4a1c, inset 0 0 0 2px #fff8; }
+    /* A lamp on each plate shows whether that marker is switched on. */
+    .led { display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%; margin-right: 0.4em; vertical-align: 0.1em; background: #6b4a1a; box-shadow: inset 0 1px 1px #0006; }
+    .plate[aria-pressed='true'] .led { background: #3ddc84; box-shadow: 0 0 6px #3ddc84; }
+    .news-tag { background: var(--lcd-text); color: #1a1a1a; padding: 0 6px; margin-right: 6px; border-radius: 2px; }
     .folder { position: relative; display: grid; grid-template-rows: auto 1fr; min-height: 0; }
     .tabs { display: flex; gap: 0; padding-left: 8px; }
     .tab { font-family: var(--font-lcd); font-size: 1.2rem; text-transform: uppercase; color: #1d1d1d; padding: 2px 18px; margin-right: -6px;
@@ -63,6 +69,7 @@ const SEASONS = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Su
     .tab[aria-selected='true'] { background: #e9e9e9; position: relative; z-index: 1; }
     .sheet { position: relative; min-height: 0; background: #e9e9e9; border: 2px solid #6d6d6d; padding: 10px; box-shadow: 6px 6px 0 #9a9a9a, 12px 12px 0 #7d7d7d; margin-right: 12px; margin-bottom: 12px; }
     .map { position: absolute; inset: 10px; }
+    .goals { position: absolute; top: 18px; left: 64px; z-index: 3; }
     .card { position: absolute; top: 18px; right: 18px; width: min(360px, calc(100% - 36px)); max-height: calc(100% - 80px); overflow: auto; z-index: 3; box-shadow: 0 6px 24px #0008; border-radius: 6px; }
     .ticker { position: absolute; left: 18px; bottom: 18px; right: 72px; text-align: left; font-family: var(--font-lcd); font-size: 1.15rem; background: #0b0b0be0; color: var(--lcd-text);
       border: 2px solid var(--steel-dark); font-weight: 400; padding: 2px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; border-radius: 2px; }
@@ -97,23 +104,16 @@ export class CityScreenComponent {
   });
 
   private readonly tools = computed<Tool[]>(() => {
-    const speed = this.game.speed();
     return [
-      { id: 'world', label: 'Travel', icon: ICONS.plane, action: () => this.ui.open({ kind: 'world' }) },
-      { id: 'restaurants', label: 'Restaurants', icon: ICONS.restaurant, action: () => this.ui.open({ kind: 'restaurants' }) },
-      { id: 'disk', label: 'Disk', icon: ICONS.disk, action: () => this.ui.open({ kind: 'saves' }) },
-      { id: 'phone', label: 'Phone', icon: ICONS.phone, action: () => this.ui.open({ kind: 'phone' }) },
-      { id: 'ads', label: 'Advertise', icon: ICONS.megaphone, action: () => this.ui.open({ kind: 'bank' }) },
-      { id: 'cookbook', label: 'Cook book', icon: ICONS.book, action: () => this.ui.open({ kind: 'cookbook' }) },
-      { id: 'finances', label: 'Finances', icon: ICONS.chart, action: () => this.ui.open({ kind: 'finances' }) },
+      { id: 'restaurants', label: 'Pizzerias', icon: ICONS.restaurant, action: () => this.ui.open({ kind: 'restaurants' }) },
+      { id: 'staff', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff' }) },
       { id: 'stock', label: 'Stock', icon: ICONS.box, action: () => this.ui.open({ kind: 'stock' }) },
-      {
-        id: 'speed',
-        label: speed === 0 ? 'Paused' : `Speed ${speed}x`,
-        icon: speed === 0 ? ICONS.pause : ICONS.clock,
-        pressed: speed === 0,
-        action: () => this.game.speed.set(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]),
-      },
+      { id: 'cookbook', label: 'Cook book', icon: ICONS.book, action: () => this.ui.open({ kind: 'cookbook' }) },
+      { id: 'ads', label: 'Advertise', icon: ICONS.megaphone, action: () => this.ui.open({ kind: 'bank' }) },
+      { id: 'phone', label: 'Phone', icon: ICONS.phone, action: () => this.ui.open({ kind: 'phone' }) },
+      { id: 'reports', label: 'Reports', icon: ICONS.chart, action: () => this.ui.open({ kind: 'finances' }) },
+      { id: 'world', label: 'Travel', icon: ICONS.plane, action: () => this.ui.open({ kind: 'world' }) },
+      { id: 'disk', label: 'Disk', icon: ICONS.disk, action: () => this.ui.open({ kind: 'saves' }) },
     ];
   });
 

@@ -17,6 +17,7 @@ import { UiService } from '../game/ui.service';
   template: `
     @if (lot(); as lot) {
       <section class="panel" aria-label="Selected location">
+        <button type="button" class="x" (click)="game.selectLot(null)" aria-label="Close this card" title="Close">✕</button>
         @if (restaurant(); as r) {
           @if (r.ownerId === game.human()?.id) {
             <app-restaurant-panel [restaurantId]="r.id" />
@@ -65,7 +66,7 @@ import { UiService } from '../game/ui.service';
           </dl>
           <button type="button" class="secondary" (click)="ui.open({ kind: 'research', districtId: d.id })">Market research</button>
         }
-        <button type="button" class="secondary" (click)="game.selectLot(null)">Back to overview</button>
+        <button type="button" class="secondary" (click)="game.selectLot(null)">Close</button>
       </section>
     } @else {
       <section class="panel" aria-labelledby="overview-title">
@@ -87,6 +88,8 @@ import { UiService } from '../game/ui.service';
     }
   `,
   styles: `
+    .panel { position: relative; }
+    .x { position: absolute; top: -4px; right: -4px; padding: 0 8px; background: transparent; color: var(--ink); border: 0; font-size: 1.1rem; z-index: 1; }
     dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 12px; }
     dt { font-weight: 600; }
     dd { margin: 0; }

@@ -34,6 +34,17 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
     <div role="tabpanel" [id]="'tabpanel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()" class="tabpanel">
       @switch (tab()) {
         @case ('overview') {
+          @if (setup(); as s) {
+            <div class="warn" role="status">
+              <p>{{ s.text }}</p>
+              <button type="button" class="small" (click)="s.run()">{{ s.label }}</button>
+            </div>
+          }
+          <div class="buttons">
+            <button type="button" (click)="ui.open({ kind: 'interior', restaurantId: r.id })">View inside</button>
+            <button type="button" class="secondary" (click)="ui.open({ kind: 'capacity', restaurantId: r.id })">Capacity</button>
+            <button type="button" class="secondary" (click)="ui.open({ kind: 'stats', restaurantId: r.id })">Statistics</button>
+          </div>
           <dl>
             <dt>Reputation</dt><dd><meter min="0" max="1" [value]="r.reputation" [attr.aria-label]="'Reputation'"></meter> {{ pct(r.reputation) }} · {{ stars() }}</dd>
             <dt>Popularity</dt><dd><b>{{ signed(r.popularity.total) }}</b> points</dd>
@@ -62,15 +73,7 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
               }
             </tbody>
           </table>
-          @if (warning(); as w) {
-            <p class="warn" role="status">{{ w }}</p>
-          }
-          <div class="buttons">
-            <button type="button" (click)="ui.open({ kind: 'interior', restaurantId: r.id })">View restaurant</button>
-            <button type="button" class="secondary" (click)="ui.open({ kind: 'capacity', restaurantId: r.id })">Capacity</button>
-            <button type="button" class="secondary" (click)="ui.open({ kind: 'stats', restaurantId: r.id })">Statistics</button>
-          </div>
-          <button type="button" class="secondary close" (click)="close()">Close restaurant</button>
+          <button type="button" class="secondary close" (click)="close()">Close this pizzeria down</button>
         }
         @case ('staff') {
           <p>{{ cooks() }} cooks, {{ waiters() }} waiters{{ hasManager() ? ' and a manager' : '' }}. Payroll {{ money(payroll()) }} a month.</p>
@@ -123,7 +126,9 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
     .pop th { text-align: left; font-weight: 400; }
     .pop td { text-align: right; font-variant-numeric: tabular-nums; }
     .pop th, .pop td { border-top: 1px solid var(--line); padding: 2px 0; }
-    .warn { background: #fff0c2; border-left: 4px solid #b7791f; padding: 6px 8px; }
+    .warn { background: #fff0c2; border-left: 4px solid #b7791f; padding: 6px 8px; margin-bottom: 8px; }
+    .warn p { margin: 0 0 4px; }
+    .buttons { margin-bottom: 10px; }
     .close { margin-top: 8px; display: block; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   `,
@@ -153,13 +158,18 @@ export class RestaurantPanelComponent {
   protected readonly decorName = computed(() => DECOR_NAMES[Math.min(3, Math.floor(this.restaurant().decor))]);
   protected readonly hasManager = computed(() => this.restaurant().staff.some((s) => s.role === 'manager'));
   protected readonly payroll = computed(() => this.restaurant().staff.reduce((n, s) => n + s.wagePerMonth, 0));
-  protected readonly warning = computed(() => {
+  /** The first thing stopping the restaurant from serving, with a button that goes to the fix. */
+  protected readonly setup = computed<{ text: string; label: string; run: () => void } | null>(() => {
     const r = this.restaurant();
-    if (this.cooks() === 0 || this.waiters() === 0) return 'You need at least one cook and one waiter to serve guests.';
-    if (r.kitchenCapacity === 0) return 'Your kitchen needs an oven and a prep counter. Open the restaurant view to buy them.';
-    if (r.seats === 0) return 'There are no tables. Open the restaurant view to buy some.';
-    if (r.menu.length === 0) return 'Your menu is empty.';
-    if (!r.autoRestock && Object.keys(r.stock).length === 0) return 'Your pantry is empty. Buy ingredients in the Stock tab.';
+    const staff = () => this.ui.open({ kind: 'staff', restaurantId: r.id });
+    const inside = () => this.ui.open({ kind: 'interior', restaurantId: r.id });
+    if (this.cooks() === 0 && this.waiters() === 0) return { text: 'Hire a cook and a waiter before this pizzeria can serve anyone.', label: 'Hire staff', run: staff };
+    if (this.cooks() === 0) return { text: 'There’s nobody to bake the pizzas. Hire a cook.', label: 'Hire a cook', run: staff };
+    if (this.waiters() === 0) return { text: 'There’s nobody to serve the tables. Hire a waiter.', label: 'Hire a waiter', run: staff };
+    if (r.kitchenCapacity === 0) return { text: 'The kitchen needs an oven and a prep counter.', label: 'Furnish the kitchen', run: inside };
+    if (r.seats === 0) return { text: 'There are no tables and chairs for guests.', label: 'Buy furniture', run: inside };
+    if (r.menu.length === 0) return { text: 'The menu is empty.', label: 'Choose pizzas', run: () => this.tab.set('menu') };
+    if (!r.autoRestock && Object.keys(r.stock).length === 0) return { text: 'The pantry is empty and there’s no standing order.', label: 'Buy stock', run: () => this.ui.open({ kind: 'stock', restaurantId: r.id }) };
     return null;
   });
   protected readonly menuRows = computed(() => {

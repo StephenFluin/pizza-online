@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { GameService } from '../game/game.service';
+import { GameService, GameSpeed } from '../game/game.service';
 import { formatDate, formatMoney, formatTime } from '../game/model';
 import { ShellService } from './shell.service';
 
@@ -15,6 +15,14 @@ import { ShellService } from './shell.service';
       <span class="corner bl" aria-hidden="true"></span><span class="corner br" aria-hidden="true"></span>
       <div class="lcd lcd-text">
         <p class="clock">{{ clock() }}</p>
+        @if (inGame()) {
+          <div class="speed" role="group" aria-label="Game speed">
+            @for (s of speeds; track s) {
+              <button type="button" [attr.aria-pressed]="speed() === s" (click)="game.speed.set(s)" [attr.aria-label]="s === 0 ? 'Pause' : 'Run at ' + s + 'x speed'" [attr.title]="s === 0 ? 'Pause the clock' : 'Run the clock at ' + s + '× speed'">{{ s === 0 ? '❚❚' : '▶' + (s > 1 ? s : '') }}</button>
+            }
+            <span class="state" aria-live="polite">{{ speed() === 0 ? 'Paused' : '' }}</span>
+          </div>
+        }
         @for (l of lines(); track $index) {
           @if (l.value === undefined) {
             <p>{{ l.label }}</p>
@@ -56,6 +64,10 @@ import { ShellService } from './shell.service';
     .lcd { background: var(--lcd); padding: 8px 10px; overflow: auto; display: flex; flex-direction: column; min-height: 0; }
     .lcd p { margin: 0; }
     .clock { text-align: center; margin-bottom: 4px !important; }
+    .speed { display: flex; gap: 4px; align-items: center; justify-content: center; margin-bottom: 6px; }
+    .speed button { font: inherit; font-size: 0.85em; line-height: 1; padding: 2px 6px; min-width: 2.2em; background: #0b0b0b; color: var(--lcd-dim); border: 1px solid #5a4a1a; border-radius: 2px; font-weight: 400; }
+    .speed button[aria-pressed='true'] { background: var(--lcd-text); color: #1a1a1a; border-color: var(--lcd-text); }
+    .speed .state { min-width: 4.5em; font-size: 0.85em; color: #ff9b5b; }
     .pair { display: flex; justify-content: space-between; gap: 8px; min-width: 0; }
     .pair span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pair span:last-child { text-align: right; }
@@ -69,13 +81,16 @@ import { ShellService } from './shell.service';
     .tool:active:not(:disabled), .tool[aria-pressed='true'] { border-color: var(--steel-dark) var(--steel-light) var(--steel-light) var(--steel-dark); filter: brightness(0.92); }
     .tool:disabled { opacity: 0.45; }
     .tool svg { width: 60%; max-width: 34px; fill: none; stroke: #2b3036; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .label { font-size: 0.6rem; line-height: 1; text-align: center; text-transform: uppercase; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .label { font-size: 0.6rem; line-height: 1.05; text-align: center; text-transform: uppercase; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .empty { opacity: 0.6; }
   `,
 })
 export class ShellSideComponent {
   private readonly shell = inject(ShellService);
-  private readonly game = inject(GameService);
+  protected readonly game = inject(GameService);
+  protected readonly speeds: GameSpeed[] = [0, 1, 2, 4];
+  protected readonly speed = this.game.speed;
+  protected readonly inGame = computed(() => !!this.game.state() && !this.game.state()?.outcome);
   protected readonly lines = computed(() => this.shell.active()?.lines() ?? []);
   protected readonly tools = computed(() => (this.shell.active()?.tools() ?? []).slice(0, 9));
   protected readonly filler = computed(() => Array.from({ length: Math.max(0, 9 - this.tools().length) }));

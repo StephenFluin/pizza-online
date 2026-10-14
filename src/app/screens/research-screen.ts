@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal } from '@angular/core';
 import { cityDef, ingredient } from '../game/data';
 import { GameService } from '../game/game.service';
 import { CustomerGroup, District, formatMoney } from '../game/model';
@@ -235,7 +235,8 @@ export class ResearchScreenComponent {
   protected readonly pages = PAGES;
   protected readonly flavours = FLAVOURS;
   protected readonly groups = CUSTOMER_GROUPS;
-  protected readonly page = signal<Page>('area');
+  readonly startPage = input<Page | undefined>(undefined);
+  protected readonly page = linkedSignal<Page>(() => this.startPage() ?? 'area');
   protected readonly districtId = linkedSignal(() => this.startDistrict() ?? 0);
 
   private readonly city = computed(() => this.game.city());

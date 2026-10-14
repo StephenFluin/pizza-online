@@ -186,6 +186,7 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 21 – Polish
 
+- [x] Usability pass: getting-started goals on the map, speed control beside the clock on every screen, a Reports hub (finances, statistics, research, newspaper), clearer map toggles, actionable set-up warnings, title-screen contrast
 - [ ] Balancing pass: mature shops currently earn ~$20k/month, so rivals snowball
 - [ ] Keyboard navigation and screen-reader labels for every panel (WCAG AA)
 - [ ] Sound effects via Web Audio (generated, no samples)

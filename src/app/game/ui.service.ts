@@ -25,7 +25,7 @@ export type Dialog =
   | { kind: 'ending' }
   | { kind: 'highscores' }
   | { kind: 'stats'; restaurantId?: number }
-  | { kind: 'research'; districtId?: number };
+  | { kind: 'research'; districtId?: number; page?: 'area' | 'taste' | 'competitors' | 'trends' };
 
 /** The map's folder tabs: plain map, district boundaries, or which chain controls each district. */
 export type MapOverlay = 'none' | 'districts' | 'control' | 'wealth' | 'competition';
@@ -38,7 +38,7 @@ export type MapMarker = 'player' | 'range' | 'locations' | 'properties';
 export class UiService {
   readonly dialog = signal<Dialog | null>(null);
   readonly overlay = signal<MapOverlay>('none');
-  readonly markers = signal<ReadonlySet<MapMarker>>(new Set(['properties']));
+  readonly markers = signal<ReadonlySet<MapMarker>>(new Set(['locations', 'properties']));
   /** District under the mouse pointer on the city map, for the info panel. */
   readonly hoverDistrict = signal<string | null>(null);
 

@@ -4,20 +4,13 @@ import { RANKS, netWorth, rankOf } from '../game/awards';
 import { cityDef } from '../game/data';
 import { InsuranceType, POLICIES, insured, premium } from '../game/insurance';
 import { DAYS_PER_MONTH, formatMoney } from '../game/model';
-import { UiService } from '../game/ui.service';
 
 /** Income and expenses for the current month, grouped by category. */
 @Component({
   selector: 'app-finance-panel',
   template: `
     <section aria-labelledby="fin-title" class="fin">
-      <div class="head">
-        <h3 id="fin-title">This month</h3>
-        <span class="links">
-          <button type="button" class="secondary small" (click)="ui.open({ kind: 'stats' })">Statistics</button>
-          <button type="button" class="secondary small" (click)="ui.open({ kind: 'research' })">Market research</button>
-        </span>
-      </div>
+      <h3 id="fin-title">This month</h3>
       <table>
         <caption class="sr-only">Income and expenses this month</caption>
         <tbody>
@@ -76,9 +69,6 @@ import { UiService } from '../game/ui.service';
   styles: `
     .fin { min-width: min(360px, 80vw); margin-bottom: 16px; }
     .rank { font-size: 1.1rem; }
-    .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .small { padding: 2px 8px; font-size: 0.85rem; }
-    .links { display: flex; gap: 6px; }
     .awards { margin: 0 0 6px; padding-left: 18px; }
     .hint { margin: 0; font-size: 0.85rem; color: #555; }
     table { width: 100%; border-collapse: collapse; }
@@ -92,7 +82,6 @@ import { UiService } from '../game/ui.service';
 })
 export class FinancePanelComponent {
   private readonly game = inject(GameService);
-  protected readonly ui = inject(UiService);
 
   protected readonly rows = computed(() => {
     const day = this.game.state()?.day ?? 0;

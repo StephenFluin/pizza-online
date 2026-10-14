@@ -372,6 +372,8 @@ export interface GameState {
   difficulty?: DifficultyId;
   /** Set once the finished career is on the high-score table. */
   scoreRecorded?: boolean;
+  /** The owner hid the getting-started goals on the city map. */
+  goalsDismissed?: boolean;
   /** Stock orders waiting for delivery. */
   orders: StockOrder[];
   /** Vendor id -> total the human player has spent there ("so far" on the vendor list). */

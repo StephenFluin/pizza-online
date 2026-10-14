@@ -1,4 +1,5 @@
 import { Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
+import { GameService } from '../game/game.service';
 import { PortraitComponent } from '../characters/portrait';
 import { Contact, ContactKind } from '../game/contacts';
 import { PhoneService } from '../game/phone.service';
@@ -23,7 +24,6 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   template: `
     <div class="phone">
       <nav class="book" aria-label="Phone book">
-        <button type="button" class="streets" (click)="ui.open({ kind: 'underworld' })">Back-street dealings…</button>
         @for (g of groups(); track g.kind) {
           @if (g.label) {<h3>{{ g.label }}</h3>}
           <ul>
@@ -36,6 +36,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
             }
           </ul>
         }
+        <button type="button" class="streets" (click)="ui.open({ kind: 'underworld' })" title="Loan sharks, the fixer, jobs for the boss and sabotage">Back-street dealings…</button>
       </nav>
 
       <section class="call" aria-label="Call">
@@ -69,6 +70,9 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
             @for (o of call.options; track o.id) {
               <button type="button" class="option" (click)="phone.choose(o.id)">{{ o.label }}</button>
             }
+            @if (newShop(); as shop) {
+              <button type="button" (click)="visit(shop.lotId)">Go to {{ shop.name }}</button>
+            }
             <button type="button" class="secondary" (click)="phone.hangUp()">{{ call.ended ? 'Put the phone down' : 'Hang up' }}</button>
           </div>
         } @else {
@@ -79,8 +83,8 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
   `,
   styles: `
     .phone { display: grid; grid-template-columns: 220px minmax(320px, 460px); gap: 16px; }
-    .book { max-height: 65dvh; overflow: auto; border-right: 1px solid var(--line); padding-right: 8px; }
-    .streets { width: 100%; margin-bottom: 6px; background: #2b2d42; border-color: #2b2d42; font-size: 0.85rem; }
+    .book { max-height: calc(100dvh - 150px); overflow: auto; border-right: 1px solid var(--line); padding-right: 8px; }
+    .streets { width: 100%; margin-top: 12px; background: #2b2d42; border-color: #2b2d42; font-size: 0.85rem; }
     .book h3 { margin: 8px 0 4px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; }
     .book ul { list-style: none; margin: 0; padding: 0; }
     .book button[aria-current='true'] { background: var(--cream); }
@@ -105,6 +109,25 @@ export class PhoneDialogComponent {
   protected readonly phone = inject(PhoneService);
   protected readonly ui = inject(UiService);
   private readonly transcript = viewChild<ElementRef<HTMLOListElement>>('transcript');
+
+  private readonly game = inject(GameService);
+
+  /** After renting or buying through a realtor, the pizzeria that call just opened. */
+  protected readonly newShop = computed(() => {
+    const call = this.phone.call();
+    const st = this.game.state();
+    if (!call?.ended || call.contact.kind !== 'realtor' || call.lotId === null || !st) return null;
+    const lot = st.cities.find((c) => c.id === call.contact.cityId)?.lots[call.lotId];
+    const r = lot?.restaurantId != null ? st.restaurants.find((x) => x.id === lot.restaurantId) : null;
+    return r && r.ownerId === this.game.human()?.id ? { lotId: r.lotId, name: r.name } : null;
+  });
+
+  /** Back to the map with the new pizzeria's card open. */
+  protected visit(lotId: number): void {
+    this.phone.hangUp();
+    this.ui.close();
+    this.game.selectLot(lotId);
+  }
 
   protected readonly groups = computed(() => {
     const contacts: Contact[] = this.phone.contacts();

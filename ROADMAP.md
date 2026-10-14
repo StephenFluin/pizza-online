@@ -38,15 +38,45 @@ work can stop after any phase and pick up again at the next unchecked item.
 
 ## Phase 4 – Rivals, world, saving and winning
 
-- [ ] AI competitor chains that open restaurants and compete on price/quality
-- [ ] Multiple cities on a world map; expand by opening in another city
-- [ ] Bank loans with interest
-- [ ] Advertising campaigns
-- [ ] Save/load to `localStorage` plus autosave; export/import save files
-- [ ] Win condition: be the most popular chain in every city
+- [x] AI competitor chains that open restaurants and compete on price/quality
+- [x] Multiple cities on a world map; expand by opening in another city
+- [x] Bank loans with interest
+- [x] Advertising campaigns
+- [x] Save/load to `localStorage` plus autosave; export/import save files
+- [x] Win condition: be the most popular chain in every city (lose on bankruptcy)
 
-## Phase 5 – Polish
+## Phase 5 – Original-style city view and UI shell
 
+Match the original game's screen structure more closely (with original art).
+
+- [ ] Icon toolbar drives the game (phone, restaurant, cook book, finances, world, staff, disk) instead of side panels
+- [ ] City drawn in a 3/4 view: building façades, roofs, windows, shop signs, trees, bridges
+- [ ] Animated traffic on roads and pedestrians on pavements, denser near busy districts
+- [ ] Hover info for buildings and lots; rival and own restaurants marked on the map
+- [ ] Dynamic zoom (no fixed levels) with on-screen zoom controls and bounds-clamped panning
+- [ ] Map overlays: districts, wealth, competitor locations
+
+## Phase 6 – Characters and the phone
+
+- [ ] Character selection screen with a large cast of original procedurally drawn portraits, each with a bio and a starting perk
+- [ ] Rival chains are run by characters from the same cast
+- [ ] Phone system: every lot has a realtor; clicking "Call realtor" connects directly (no dialling)
+- [ ] Realtor calls: ask about the property, negotiate rent or price, sign the lease or purchase
+- [ ] Bank calls (loans), supplier calls (ingredient deals and deliveries), staff agency calls (hiring)
+- [ ] Buying or renting property happens only through the phone, as in the original
+
+## Phase 7 – Restaurant interior
+
+- [ ] "View restaurant" screen: a PixiJS floor plan sized from the property's footprint
+- [ ] Furniture shop: tables, chairs, decorations, lighting, with styles and prices
+- [ ] Cookware shop: ovens, prep counters, fridges, dishwashers
+- [ ] Place, move and sell items on the grid; seats come from placed tables and chairs
+- [ ] Kitchen throughput comes from ovens and counters; ambience from decor replaces the abstract decor level
+- [ ] Menu board in the restaurant view (prices, which pizzas are served)
+
+## Phase 8 – Polish
+
+- [ ] Balancing pass: mature shops currently earn ~$20k/month, so rivals snowball
 - [ ] Keyboard navigation and screen-reader labels for every panel (WCAG AA)
 - [ ] Sound effects via Web Audio (generated, no samples)
 - [ ] Balancing pass and tutorial hints

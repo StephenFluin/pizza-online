@@ -142,6 +142,17 @@ export interface Player {
   cash: number;
   loan: number;
   ledger: LedgerEntry[];
+  ads: AdCampaign[];
+}
+
+export type AdKind = 'flyers' | 'radio' | 'tv';
+
+export interface AdCampaign {
+  cityId: string;
+  kind: AdKind;
+  daysLeft: number;
+  /** Multiplier added to restaurant attraction in that city, e.g. 0.3 = +30%. */
+  boost: number;
 }
 
 export interface GameState {
@@ -158,6 +169,8 @@ export interface GameState {
   recipes: Recipe[];
   nextId: number;
   messages: GameMessage[];
+  /** Set when the game has been decided. */
+  outcome: 'won' | 'lost' | null;
 }
 
 export interface GameMessage {

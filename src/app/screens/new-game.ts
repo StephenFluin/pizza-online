@@ -1,9 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, afterNextRender, inject, signal } from '@angular/core';
 import { CITIES } from '../game/data';
 import { GameService } from '../game/game.service';
+import { UiService } from '../game/ui.service';
+import { DialogHostComponent } from './dialog-host';
+import { listSlots } from '../game/saves';
 
 @Component({
   selector: 'app-new-game',
+  imports: [DialogHostComponent],
   template: `
     <main class="title">
       <h1>Pizza <span>Online</span></h1>
@@ -20,7 +24,11 @@ import { GameService } from '../game/game.service';
         </select>
 
         <button type="submit">Open for business</button>
+        @if (hasSaves()) {
+          <button type="button" class="secondary" (click)="ui.open({ kind: 'saves' })">Load a saved game</button>
+        }
       </form>
+      <app-dialog-host />
       <p class="credit">An open-source, browser-only homage to the 1994 classic <i>Pizza Tycoon</i>.</p>
     </main>
   `,
@@ -37,9 +45,16 @@ import { GameService } from '../game/game.service';
 })
 export class NewGameComponent {
   private readonly game = inject(GameService);
+  protected readonly ui = inject(UiService);
+  /** Read after render: saves live in localStorage, which doesn't exist during prerendering. */
+  protected readonly hasSaves = signal(false);
   protected readonly cities = CITIES;
   protected readonly name = signal('');
   protected readonly cityId = signal('rome');
+
+  constructor() {
+    afterNextRender(() => this.hasSaves.set(listSlots().some((s) => s.savedAt)));
+  }
 
   protected start(ev: Event): void {
     ev.preventDefault();

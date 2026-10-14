@@ -12,7 +12,10 @@ import { formatDate, formatMoney, formatTime } from '../game/model';
       <span aria-live="off">{{ time() }}</span>
       <span class="cash" [class.negative]="(game.human()?.cash ?? 0) < 0">{{ cash() }}</span>
       <nav class="menu" aria-label="Game menu">
+        <button type="button" (click)="ui.open({ kind: 'world' })">World</button>
         <button type="button" (click)="ui.open({ kind: 'cookbook' })">Cook book</button>
+        <button type="button" (click)="ui.open({ kind: 'bank' })">Bank & ads</button>
+        <button type="button" (click)="ui.open({ kind: 'saves' })">Save / load</button>
       </nav>
       <div class="speed" role="group" aria-label="Game speed">
         @for (s of speeds; track s.value) {

@@ -4,6 +4,9 @@ import { Recipe } from '../game/model';
 import { UiService } from '../game/ui.service';
 import { CookbookComponent } from '../pizza/cookbook';
 import { PizzaDesignerComponent } from '../pizza/pizza-designer';
+import { BankDialogComponent } from './bank-dialog';
+import { SavesDialogComponent } from './saves-dialog';
+import { WorldDialogComponent } from './world-dialog';
 
 const TITLES: Record<string, string> = {
   cookbook: 'Cook book',
@@ -16,7 +19,7 @@ const TITLES: Record<string, string> = {
 /** A single native modal dialog that shows whichever screen the UiService asks for. */
 @Component({
   selector: 'app-dialog-host',
-  imports: [CookbookComponent, PizzaDesignerComponent],
+  imports: [CookbookComponent, PizzaDesignerComponent, WorldDialogComponent, BankDialogComponent, SavesDialogComponent],
   template: `
     <dialog #dlg aria-labelledby="dialog-title" (close)="onNativeClose()" (cancel)="onNativeClose()">
       @if (ui.dialog(); as d) {
@@ -27,6 +30,15 @@ const TITLES: Record<string, string> = {
         @switch (d.kind) {
           @case ('cookbook') {
             <app-cookbook />
+          }
+          @case ('world') {
+            <app-world-dialog />
+          }
+          @case ('bank') {
+            <app-bank-dialog />
+          }
+          @case ('saves') {
+            <app-saves-dialog />
           }
           @case ('designer') {
             <app-pizza-designer [recipe]="d.recipe" (saved)="saveRecipe($event)" (cancelled)="ui.open({ kind: 'cookbook' })" />

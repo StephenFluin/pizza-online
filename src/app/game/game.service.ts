@@ -1,8 +1,11 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
-import { CLOSE_MINUTE, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
-import { addLedger, addMessage, buyStock, emptyStats, endDay, restock, simulateHour, startDay } from './simulation';
+import { createRivals, runAiWeek } from './ai';
+import { AdKind, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
+import { deserialize, loadFromSlot, saveToSlot } from './saves';
+import { checkOutcome } from './world';
+import { addLedger, addMessage, buyStock, endDay, openRestaurantAt, simulateHour, startDay } from './simulation';
 
 export type GameSpeed = 0 | 1 | 2 | 4;
 
@@ -10,7 +13,16 @@ export type GameSpeed = 0 | 1 | 2 | 4;
 const MINUTES_PER_SECOND = 20;
 export const DECOR_COST = [0, 4000, 9000, 16000];
 
-export const PLAYER_COLORS = [0xe63946, 0x2a9d8f, 0xf4a261, 0x6a4c93];
+export const PLAYER_COLORS = [0xe63946];
+export const START_CASH = 50000;
+export const MAX_LOAN = 150000;
+export const LOAN_STEP = 10000;
+
+export const AD_OPTIONS: Record<AdKind, { label: string; cost: number; days: number; boost: number }> = {
+  flyers: { label: 'Flyers', cost: 2000, days: 14, boost: 0.25 },
+  radio: { label: 'Radio spots', cost: 6000, days: 30, boost: 0.5 },
+  tv: { label: 'TV commercial', cost: 18000, days: 30, boost: 1 },
+};
 
 /**
  * Owns the game state. The state object is mutated in place for performance
@@ -57,9 +69,10 @@ export class GameService {
       name: playerName.trim() || 'Player',
       color: PLAYER_COLORS[0],
       isHuman: true,
-      cash: 50000,
+      cash: START_CASH,
       loan: 0,
       ledger: [],
+      ads: [],
     };
     this.state.set({
       version: 1,
@@ -68,11 +81,12 @@ export class GameService {
       minute: OPEN_MINUTE - 60,
       currentCityId: cityId,
       cities: CITIES.map((def) => generateCity(def, seed)),
-      players: [human],
+      players: [human, ...createRivals(1, START_CASH)],
       restaurants: [],
       recipes: STANDARD_RECIPES.map((r) => structuredClone(r)),
       nextId: 1,
       messages: [{ day: 0, text: `Welcome to ${cityDef(cityId).name}, ${human.name}! Pick an empty lot to open your first pizzeria.` }],
+      outcome: null,
     });
     this.selectedLotId.set(null);
     this.applicantCache.clear();
@@ -123,7 +137,15 @@ export class GameService {
     st.minute++;
     if (st.minute === OPEN_MINUTE) startDay(st);
     if (st.minute % 60 === 0 && st.minute > OPEN_MINUTE && st.minute <= CLOSE_MINUTE) simulateHour(st, st.minute / 60 - 1);
-    if (st.minute === CLOSE_MINUTE) endDay(st);
+    if (st.minute === CLOSE_MINUTE) {
+      endDay(st);
+      if ((st.day + 1) % 7 === 0) runAiWeek(st);
+      if ((st.day + 1) % DAYS_PER_MONTH === 0) {
+        checkOutcome(st);
+        this.autosave(st);
+      }
+      if (st.outcome) this.speed.set(0);
+    }
     // Skip the closed night hours so the player isn't waiting for nothing.
     if (st.minute >= CLOSE_MINUTE + 60) {
       st.day++;
@@ -136,43 +158,11 @@ export class GameService {
     this.selectedLotId.set(id);
   }
 
-  /** Opens a restaurant on a free lot, either renting (deposit = one month) or buying it. */
-  openRestaurant(lotId: number, buy: boolean, ownerId = 0): Restaurant | null {
+  /** Opens a restaurant on a free lot in the current city, either renting (deposit = one month) or buying it. */
+  openRestaurant(lotId: number, buy: boolean): Restaurant | null {
     let created: Restaurant | null = null;
     this.mutate((st) => {
-      const city = st.cities.find((c) => c.id === st.currentCityId);
-      const lot = city?.lots[lotId];
-      const owner = st.players.find((p) => p.id === ownerId);
-      if (!city || !lot || !owner || lot.restaurantId !== null) return;
-      const price = buy ? lot.purchasePrice : lot.rentPerMonth;
-      if (owner.cash < price) return;
-      addLedger(owner, st.day, buy ? 'Property purchase' : 'Rent deposit', -price);
-      const count = st.restaurants.filter((r) => r.ownerId === ownerId).length;
-      const r: Restaurant = {
-        id: st.nextId++,
-        ownerId,
-        cityId: city.id,
-        lotId,
-        name: `${owner.name}'s Pizzeria${count ? ` #${count + 1}` : ''}`,
-        owned: buy,
-        decor: 0,
-        staff: [],
-        menu: [
-          { recipeId: 'std-margherita', price: 8 },
-          { recipeId: 'std-salami', price: 9 },
-        ],
-        stock: {},
-        reputation: 0.3,
-        autoRestock: true,
-        restockTarget: 250,
-        today: emptyStats(),
-        lastDay: emptyStats(),
-      };
-      lot.restaurantId = r.id;
-      st.restaurants.push(r);
-      if (st.minute >= OPEN_MINUTE) restock(st, r);
-      if (owner.isHuman) addMessage(st, `${r.name} opened in ${city.districts[lot.district].name}. Hire a cook and a waiter to start serving.`);
-      created = r;
+      created = openRestaurantAt(st, st.currentCityId, lotId, this.human()?.id ?? 0, buy);
     });
     return created;
   }
@@ -277,5 +267,85 @@ export class GameService {
       st.recipes = st.recipes.filter((r) => r.id !== recipeId || r.ownerId === null);
       for (const r of st.restaurants) r.menu = r.menu.filter((m) => m.recipeId !== recipeId);
     });
+  }
+
+  /** Switches the map to another city. */
+  travel(cityId: string): void {
+    this.mutate((st) => (st.currentCityId = cityId));
+    this.selectedLotId.set(null);
+  }
+
+  borrow(amount: number): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (!p || p.loan + amount > MAX_LOAN) return;
+      p.loan += amount;
+      addLedger(p, st.day, 'Loan', amount);
+    });
+  }
+
+  repay(amount: number): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (!p) return;
+      const pay = Math.min(amount, p.loan, Math.max(0, p.cash));
+      if (pay <= 0) return;
+      p.loan -= pay;
+      addLedger(p, st.day, 'Loan repayment', -pay);
+    });
+  }
+
+  advertise(kind: AdKind, cityId: string): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      const opt = AD_OPTIONS[kind];
+      const cost = opt.cost * cityDef(cityId).costOfLiving;
+      if (!p || p.cash < cost) return;
+      addLedger(p, st.day, 'Advertising', -cost);
+      p.ads.push({ cityId, kind, daysLeft: opt.days, boost: opt.boost });
+      addMessage(st, `${opt.label} campaign started in ${cityDef(cityId).name}.`);
+    });
+  }
+
+  save(slot: string): boolean {
+    const st = this.state();
+    if (!st) return false;
+    try {
+      saveToSlot(slot, st);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  load(slot: string): boolean {
+    const st = loadFromSlot(slot);
+    if (!st) return false;
+    this.replaceState(st);
+    return true;
+  }
+
+  loadFromText(text: string): void {
+    this.replaceState(deserialize(text));
+  }
+
+  quit(): void {
+    this.state.set(null);
+    this.selectedLotId.set(null);
+  }
+
+  private replaceState(st: GameState): void {
+    this.applicantCache.clear();
+    this.selectedLotId.set(null);
+    this.speed.set(st.outcome ? 0 : 1);
+    this.state.set(st);
+  }
+
+  private autosave(st: GameState): void {
+    try {
+      saveToSlot('auto', st);
+    } catch {
+      addMessage(st, 'Autosave failed: browser storage is full or unavailable.');
+    }
   }
 }

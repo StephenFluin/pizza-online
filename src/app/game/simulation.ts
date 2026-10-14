@@ -1,5 +1,5 @@
 import { INGREDIENTS, cityDef, ingredient } from './data';
-import { CityMap, DAYS_PER_MONTH, DayStats, GameState, Player, Restaurant } from './model';
+import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Restaurant } from './model';
 import { clamp01, itemAppeal, recipeUsage } from './recipes';
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
@@ -65,7 +65,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
         const dist = Math.hypot(lot.x - district.cx, lot.y - district.cy);
         const best = bestItem(state, r, district, col);
         if (!best) return null;
-        const score = best.appeal * (0.5 + r.reputation) * (0.85 + r.decor * 0.12) * Math.exp(-dist / 14);
+        const score = best.appeal * (0.5 + r.reputation) * (0.85 + r.decor * 0.12) * Math.exp(-dist / 14) * adBoost(state, r);
         return { r, best, score };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0);
@@ -100,6 +100,12 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
       cap.seats -= served;
     }
   }
+}
+
+/** Advertising multiplier for a restaurant from its owner's campaigns in that city. */
+function adBoost(state: GameState, r: Restaurant): number {
+  const owner = state.players.find((p) => p.id === r.ownerId);
+  return 1 + (owner?.ads ?? []).filter((a) => a.cityId === r.cityId).reduce((n, a) => n + a.boost, 0);
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
@@ -184,6 +190,10 @@ export function endDay(state: GameState): void {
       addMessage(state, `${r.name} turned away ${r.lastDay.turnedAway} guests because it ${reason}.`);
     }
   }
+  for (const p of state.players) {
+    for (const ad of p.ads) ad.daysLeft--;
+    p.ads = p.ads.filter((a) => a.daysLeft > 0);
+  }
   if ((state.day + 1) % DAYS_PER_MONTH === 0) endMonth(state);
 }
 
@@ -214,4 +224,44 @@ function endMonth(state: GameState): void {
       addMessage(state, `Month closed. Net result: ${net >= 0 ? '+' : '-'}$${Math.abs(Math.round(net)).toLocaleString('en-US')}.`);
     }
   }
+}
+
+/** Opens a restaurant for any player. Returns null when the lot is taken or the owner can't pay. */
+export function openRestaurantAt(st: GameState, cityId: string, lotId: number, ownerId: number, buy: boolean): Restaurant | null {
+  const city = st.cities.find((c) => c.id === cityId);
+  const lot = city?.lots[lotId];
+  const owner = st.players.find((p) => p.id === ownerId);
+  if (!city || !lot || !owner || lot.restaurantId !== null) return null;
+  const price = buy ? lot.purchasePrice : lot.rentPerMonth;
+  if (owner.cash < price) return null;
+  addLedger(owner, st.day, buy ? 'Property purchase' : 'Rent deposit', -price);
+  const count = st.restaurants.filter((r) => r.ownerId === ownerId).length;
+  const r: Restaurant = {
+    id: st.nextId++,
+    ownerId,
+    cityId: city.id,
+    lotId,
+    name: `${owner.name}'s Pizzeria${count ? ` #${count + 1}` : ''}`,
+    owned: buy,
+    decor: 0,
+    staff: [],
+    menu: [
+      { recipeId: 'std-margherita', price: Math.round(8 * cityDef(city.id).costOfLiving) },
+      { recipeId: 'std-salami', price: Math.round(9 * cityDef(city.id).costOfLiving) },
+    ],
+    stock: {},
+    reputation: 0.3,
+    autoRestock: true,
+    restockTarget: 250,
+    today: emptyStats(),
+    lastDay: emptyStats(),
+  };
+  lot.restaurantId = r.id;
+  st.restaurants.push(r);
+  if (st.minute >= OPEN_MINUTE) restock(st, r);
+  if (owner.isHuman) addMessage(st, `${r.name} opened in ${city.districts[lot.district].name}, ${city.name}. Hire a cook and a waiter to start serving.`);
+  else if (st.restaurants.some((x) => x.cityId === city.id && st.players.find((p) => p.id === x.ownerId)?.isHuman)) {
+    addMessage(st, `Competition! ${owner.name} opened a pizzeria in ${city.districts[lot.district].name}, ${city.name}.`);
+  }
+  return r;
 }

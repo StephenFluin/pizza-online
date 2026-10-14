@@ -11,6 +11,11 @@ import { LotPanelComponent } from './lot-panel';
   imports: [HudComponent, CityMapComponent, LotPanelComponent, FinancePanelComponent, DialogHostComponent],
   template: `
     <app-hud />
+    @if (outcome(); as o) {
+      <div class="outcome" role="alert">
+        {{ o === 'won' ? 'Congratulations! Your chain is the most popular in every city.' : 'Bankrupt! The bank has closed your business.' }}
+      </div>
+    }
     <div class="body">
       <app-city-map class="map" />
       <aside class="side">
@@ -27,7 +32,8 @@ import { LotPanelComponent } from './lot-panel';
     <app-dialog-host />
   `,
   styles: `
-    :host { display: grid; grid-template-rows: auto 1fr; height: 100dvh; }
+    :host { display: grid; grid-template-rows: auto auto 1fr; height: 100dvh; }
+    .outcome { background: var(--cream); color: var(--ink); padding: 8px 16px; font-weight: 700; text-align: center; }
     .body { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
     .map { min-height: 0; }
     .side { overflow: auto; background: var(--paper); padding: 12px; display: grid; gap: 12px; align-content: start; }
@@ -41,6 +47,7 @@ import { LotPanelComponent } from './lot-panel';
 })
 export class GameScreenComponent {
   private readonly game = inject(GameService);
+  protected readonly outcome = () => this.game.state()?.outcome ?? null;
   protected readonly messages = () => (this.game.state()?.messages ?? []).slice(-6).reverse();
 
   constructor() {

@@ -9,6 +9,7 @@ import { InsuranceType, repayLoan, takeLoan } from './insurance';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
 import { Course, jobMarket, managerSettings, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
 import { vendorById, vendorPrice } from './vendors';
+import { Terms, cancelContract, relation, signContract } from './contracts';
 import { BULK_DISCOUNT, BULK_UNITS, Warehouse, WarehouseSize, ship, syncPriority, warehouseIn, warehouseRent } from './warehouse';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
@@ -628,6 +629,42 @@ export class GameService {
       error = null;
     });
     return error;
+  }
+
+  /** Signs a negotiated supply contract for one of the player's restaurants. */
+  signContract(restaurantId: number, vendorId: string, items: Record<string, number>, terms: Terms): string | null {
+    let error: string | null = 'Could not sign.';
+    this.mutate((st) => {
+      const me = st.players.find((p) => p.isHuman);
+      const r = st.restaurants.find((x) => x.id === restaurantId && x.ownerId === me?.id);
+      const v = vendorById(st, vendorId);
+      if (!me || !r || !v) return;
+      if ((me.contracts ?? []).some((c) => c.vendorId === v.id && c.restaurantId === r.id)) {
+        error = `${r.name} already has a contract with ${v.name}.`;
+        return;
+      }
+      signContract(st, me, v, r, items, terms);
+      error = null;
+    });
+    return error;
+  }
+
+  /** Ends a contract early, paying the penalty. */
+  cancelContract(contractId: number): void {
+    this.mutate((st) => {
+      const me = st.players.find((p) => p.isHuman);
+      if (!me) return;
+      const text = cancelContract(st, me, contractId, (amount) => addLedger(me, st.day, 'Contract penalties', -amount));
+      if (text) addMessage(st, text);
+    });
+  }
+
+  /** A sales rep who has lost patience won't take calls until tomorrow. */
+  sulk(vendorId: string): void {
+    this.mutate((st) => {
+      const me = st.players.find((p) => p.isHuman);
+      if (me) relation(me, vendorId).sulkUntil = st.day + 1;
+    });
   }
 
   cancelOrder(orderId: number): void {

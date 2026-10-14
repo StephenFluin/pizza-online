@@ -12,6 +12,7 @@ import { CUSTOMER_GROUPS } from './pizza-stats';
 import { activeManager, effectiveSkill, isAvailable, managerSettings, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { storeInWarehouse, warehouseIn, warehouseMorning, warehouseRent } from './warehouse';
+import { contractsMorning } from './contracts';
 import { clamp01, groupAppeal, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
@@ -388,6 +389,12 @@ export function startDay(state: GameState): void {
     }
   }
   deliverOrders(state);
+  contractsMorning(state, {
+    addStock,
+    charge: (p, amount, label) => addLedger(p, state.day, label, -amount),
+    message: (text) => addMessage(state, text),
+    canPay: (p, amount) => p.cash - amount >= -OVERDRAFT,
+  });
   // Warehouses supply restaurants first; vendors only fill what is still missing.
   warehouseMorning(state, addStock);
   // Managers do the shopping even without a standing order, unless told not to.

@@ -179,7 +179,7 @@ describes the systems being reproduced (in our own code, text and art).
 
 - [x] Market research reports (area, customers, competitors, trends)
 - [x] Click guests in the restaurant view to hear what they think
-- [ ] Supplier contracts with discounts, delivery amounts and penalties
+- [x] Supplier contracts with discounts, delivery amounts and penalties
 - [x] Difficulty levels
 - [x] Restaurant statistics (week's takings, sales curve) and a chain comparison
 - [x] Game-over and win screens with high scores

@@ -5,6 +5,7 @@ import type { Shipment, Warehouse } from './warehouse';
 import type { InsuranceType, Loan } from './insurance';
 import type { ActiveJob, JobOffer, SabotageKind, SharkLoan } from './underworld';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
+import type { SupplierRelation, SupplyContract } from './contracts';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
 
 export type TileKind = 'grass' | 'road' | 'water' | 'park' | 'building' | 'lot';
@@ -326,6 +327,9 @@ export interface Player {
   job?: ActiveJob;
   /** City id -> the player's warehouse there. */
   warehouses?: Record<string, Warehouse>;
+  /** Standing supply contracts, and the history with each vendor (by vendor id). */
+  contracts?: SupplyContract[];
+  suppliers?: Record<string, SupplierRelation>;
   /** Loans with repayment schedules; `loan` holds their total. */
   loans?: Loan[];
   insurance?: Partial<Record<InsuranceType, boolean>>;

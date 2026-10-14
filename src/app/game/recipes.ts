@@ -1,5 +1,5 @@
 import { BASE_COST, INGREDIENTS, ingredient } from './data';
-import { Cut, District, Recipe, Topping } from './model';
+import { CustomerGroup, Cut, District, Recipe, Topping } from './model';
 import { cachedPizzaStats, districtGroupScore, toppingWeights } from './pizza-stats';
 
 /** Stock is counted in units of 100 g. */
@@ -67,6 +67,18 @@ export function itemAppeal(recipe: Recipe, price: number, district: District, co
   const ratio = fairPrice(district, costOfLiving) / Math.max(0.5, price);
   const priceSensitivity = 1.6 - district.wealth;
   return food * trend * Math.pow(ratio, priceSensitivity);
+}
+
+/**
+ * Appeal of a menu item to one customer group in a district: how much that
+ * group likes it, its craft quality, the city trend and its price.
+ */
+export function groupAppeal(recipe: Recipe, price: number, district: District, costOfLiving: number, group: CustomerGroup, cityDistricts?: District[]): number {
+  const stats = cachedPizzaStats(recipe, cityDistricts);
+  const food = (stats.groups[group] / 100) * 0.6 + recipeQuality(recipe) * 0.4;
+  const trend = 1 + stats.trend / 300;
+  const ratio = fairPrice(district, costOfLiving) / Math.max(0.5, price);
+  return food * trend * Math.pow(ratio, 1.6 - district.wealth);
 }
 
 export function clamp01(v: number): number {

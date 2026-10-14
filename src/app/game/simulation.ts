@@ -2,13 +2,14 @@ import { firstName } from './characters';
 import { adBonus, cookingBonus, ingredientPriceFactor, ownerStats, startReputation, statsOf, supervisable } from './owner-stats';
 import { cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
-import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
+import { CityMap, CustomerGroup, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { cityLifeMorning, cityPrestige } from './awards';
 import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
+import { CUSTOMER_GROUPS } from './pizza-stats';
 import { activeManager, effectiveSkill, isAvailable, managerSettings, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
-import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
+import { clamp01, groupAppeal, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
 const HOURLY_RATE: Record<number, number> = {
@@ -101,10 +102,15 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
       if (wanted <= 0) continue;
       const cap = capacity.get(s.r.id)!;
       const today = s.r.today;
+      const menu = menuChoices(state, s.r, district, col);
+      if (menu.length === 0) continue;
       let served = 0;
       for (let i = 0; i < wanted; i++) {
-        // Every guest asks for the pizza they like best here, even if it can't be made.
-        pizzaSales(today, s.best.recipeId).ordered++;
+        // Each guest belongs to one of the district's customer groups and picks a pizza
+        // by how much their group likes it: favourites win most orders, not all of them.
+        const group = pickGroup(district);
+        const favourite = pickWeighted(menu, (o) => o.weights[group]);
+        pizzaSales(today, favourite.recipe.id).ordered++;
         const limit = Math.min(cap.kitchen, cap.floor, cap.seats);
         if (served >= Math.floor(limit)) {
           today.turnedAway++;
@@ -114,17 +120,19 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
           else today.lostSeats++;
           continue;
         }
-        const item = serveFromStock(state, s.r, district, col);
-        if (!item || item.recipe.id !== s.best.recipeId) {
-          // The favourite was out of stock: note which ingredients were missing.
-          const fav = state.recipes.find((x) => x.id === s.best.recipeId);
-          if (fav) for (const [id, n] of Object.entries(recipeUsage(fav))) if ((s.r.stock[id] ?? 0) < n) today.missing[id] = (today.missing[id] ?? 0) + 1;
+        // If the favourite can't be made, the guest settles for the next one their group likes that can.
+        const canMake = (o: MenuChoice) => Object.entries(o.usage).every(([id, n]) => (s.r.stock[id] ?? 0) >= n);
+        let item: MenuChoice | undefined = favourite;
+        if (!canMake(favourite)) {
+          for (const [id, n] of Object.entries(favourite.usage)) if ((s.r.stock[id] ?? 0) < n) today.missing[id] = (today.missing[id] ?? 0) + 1;
+          item = menu.filter((o) => o !== favourite && canMake(o)).sort((a, b) => b.appeal[group] - a.appeal[group])[0];
         }
         if (!item) {
           today.turnedAway++;
           today.noStock++;
           continue;
         }
+        for (const [id, n] of Object.entries(item.usage)) s.r.stock[id] -= n;
         served++;
         today.customers++;
         today.revenue += item.price;
@@ -136,7 +144,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
         sales.cost += cost;
         const team = s.r.staff.filter(isAvailable);
         const staffSkill = team.length ? team.reduce((n, st) => n + effectiveSkill(st), 0) / team.length : 0;
-        today.satisfaction += clamp01(item.appeal * 0.7 + staffSkill * 0.2 + s.r.decor * 0.05);
+        today.satisfaction += clamp01(item.appeal[group] * 0.7 + staffSkill * 0.2 + s.r.decor * 0.05);
       }
       cap.kitchen -= served;
       cap.floor -= served;
@@ -282,24 +290,55 @@ function cityDistricts(state: GameState, r: Restaurant) {
   return state.cities.find((c) => c.id === r.cityId)?.districts;
 }
 
-/** Picks the most appealing pizza that is in stock and deducts its ingredients. */
-function serveFromStock(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
-  const options = r.menu
-    .map((m) => {
-      const recipe = state.recipes.find((x) => x.id === m.recipeId);
-      const chef = cookingBonus(ownerStats(state, r.ownerId));
-      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col, cityDistricts(state, r)) * chef * stockQualityFactor(r, recipe) } : null;
-    })
-    .filter((o): o is NonNullable<typeof o> => o !== null)
-    .sort((a, b) => b.appeal - a.appeal);
-  for (const o of options) {
-    const usage = recipeUsage(o.recipe);
-    if (Object.entries(usage).every(([id, n]) => (r.stock[id] ?? 0) >= n)) {
-      for (const [id, n] of Object.entries(usage)) r.stock[id] -= n;
-      return o;
+interface MenuChoice {
+  recipe: Recipe;
+  price: number;
+  usage: Record<string, number>;
+  /** Appeal to each customer group, and the matching choice weight. */
+  appeal: Record<CustomerGroup, number>;
+  weights: Record<CustomerGroup, number>;
+}
+
+/** How appealing each pizza on the menu is to each customer group in a district. */
+function menuChoices(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number): MenuChoice[] {
+  const chef = cookingBonus(ownerStats(state, r.ownerId));
+  const districts = cityDistricts(state, r);
+  const choices: MenuChoice[] = [];
+  for (const m of r.menu) {
+    const recipe = state.recipes.find((x) => x.id === m.recipeId);
+    if (!recipe) continue;
+    const quality = stockQualityFactor(r, recipe);
+    const appeal = {} as Record<CustomerGroup, number>;
+    const weights = {} as Record<CustomerGroup, number>;
+    for (const g of CUSTOMER_GROUPS) {
+      appeal[g.id] = groupAppeal(recipe, m.price, district, col, g.id, districts) * chef * quality;
+      // Cubing sharpens preferences: a clearly better pizza wins most orders.
+      weights[g.id] = appeal[g.id] ** 3;
     }
+    choices.push({ recipe, price: m.price, usage: recipeUsage(recipe), appeal, weights });
   }
-  return null;
+  return choices;
+}
+
+function pickGroup(district: CityMap['districts'][number]): CustomerGroup {
+  const mix = district.groupMix;
+  if (!mix) return CUSTOMER_GROUPS[Math.floor(Math.random() * CUSTOMER_GROUPS.length)].id;
+  let roll = Math.random();
+  for (const g of CUSTOMER_GROUPS) {
+    roll -= mix[g.id] ?? 0;
+    if (roll <= 0) return g.id;
+  }
+  return CUSTOMER_GROUPS[CUSTOMER_GROUPS.length - 1].id;
+}
+
+function pickWeighted<T>(items: T[], weight: (item: T) => number): T {
+  const total = items.reduce((n, x) => n + weight(x), 0);
+  let roll = Math.random() * total;
+  for (const x of items) {
+    roll -= weight(x);
+    if (roll <= 0) return x;
+  }
+  return items[items.length - 1];
 }
 
 /** Morning routine: spoilage, deliveries and automatic restocking. */

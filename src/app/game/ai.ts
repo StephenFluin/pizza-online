@@ -1,8 +1,8 @@
 import { POSTERS, campaignCost, flyerRate } from './advertising';
 import { CHARACTERS, character } from './characters';
 import { CITIES, FIRST_NAMES, LAST_NAMES, cityDef } from './data';
-import { GameState, Player, Restaurant, StaffRole } from './model';
-import { CATALOG, applyRoom, autoFurnish, catalogItem } from './furniture';
+import { GameState, PlacedItem, Player, Restaurant, StaffRole } from './model';
+import { applyRoom, autoPlace, catalogItem, placeDiningSet } from './furniture';
 import { cityTaste, fairPrice } from './recipes';
 import { addLedger, openRestaurantAt } from './simulation';
 
@@ -68,7 +68,7 @@ function expand(st: GameState, p: Player, own: Restaurant[]): void {
   if (!r) return;
   hire(st, r, 'cook');
   hire(st, r, 'waiter');
-  buyItems(st, p, r, ['table4'], 4);
+  furnish(st, p, r, 'tables', 3);
   // Pick the three recipes the city likes most and price them fairly.
   const avgWealth = city.districts.reduce((n, d) => n + d.wealth, 0) / city.districts.length;
   const fair = fairPrice({ ...city.districts[0], wealth: avgWealth }, cityDef(cityId).costOfLiving);
@@ -88,9 +88,9 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
   const factor = d.turnedAway > d.customers * 0.3 ? 1.05 : d.customers < 25 ? 0.95 : 1;
   for (const m of r.menu) m.price = Math.max(3, Math.round(m.price * factor * 2) / 2);
   // Fit out the room: more tables when full, a better oven when the kitchen is the bottleneck, decor when rich.
-  if (d.turnedAway > d.customers * 0.2 && p.cash > 8000) buyItems(st, p, r, ['table4', 'table2'], 2);
-  if (d.noStaff > 10 && r.kitchenCapacity < 30 && p.cash > 12000) buyItems(st, p, r, ['counter', 'oven'], 2);
-  if (p.cash > 40000 && r.decor < 2.5 && Math.random() < 0.3) buyItems(st, p, r, ['plant', 'painting', 'lamp', 'jukebox'], 3);
+  if (d.lostSeats > 0 && p.cash > 8000) furnish(st, p, r, 'tables', 2);
+  if (d.lostKitchen > 10 && p.cash > 12000) furnish(st, p, r, 'kitchen', 1);
+  if (p.cash > 40000 && r.decor < 2.5 && Math.random() < 0.3) furnish(st, p, r, 'decor', 3);
   // Rivals run flyer or poster campaigns when they can afford them.
   if (p.cash > 30000 && Math.random() < 0.08 && !p.ads.some((a) => a.cityId === r.cityId)) {
     const posters = Math.random() < 0.5;
@@ -120,16 +120,19 @@ function closeFor(st: GameState, r: Restaurant): void {
   st.restaurants = st.restaurants.filter((x) => x.id !== r.id);
 }
 
-function buyItems(st: GameState, p: Player, r: Restaurant, itemIds: string[], count: number): void {
+/** Rivals buy and place pieces directly from a store matching their budget. */
+function furnish(st: GameState, p: Player, r: Restaurant, what: 'tables' | 'kitchen' | 'decor', count: number): void {
   const lot = st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
   if (!lot) return;
   const col = cityDef(r.cityId).costOfLiving;
-  const before = r.layout.length;
-  autoFurnish(r.layout, lot, itemIds, count);
-  const cost = r.layout.slice(before).reduce((n, it) => n + catalogItem(it.itemId).price * col, 0);
+  const line = p.cash > 60000 ? 'nordlicht' : p.cash > 25000 ? 'bistro' : 'timber';
+  const placed: PlacedItem[] = [];
+  for (let i = 0; i < count; i++) {
+    if (what === 'tables') placed.push(...placeDiningSet(r.layout, lot, `${line}:table-large`, `${line}:chair`, 4));
+    else if (what === 'kitchen') placed.push(...autoPlace(r.layout, lot, 'chefline:counter', 1), ...autoPlace(r.layout, lot, 'chefline:oven', 1));
+    else placed.push(...autoPlace(r.layout, lot, ['greenthumb:plant', 'greenthumb:lamp', 'gallery:painting', 'arcade:jukebox'][i % 4], 1));
+  }
+  const cost = placed.reduce((n, it) => n + catalogItem(it.itemId).price * col, 0);
   if (cost > 0) addLedger(p, st.day, 'Furniture', -cost);
   applyRoom(r, lot);
 }
-
-/** Exposed for tests: every catalogue id the AI may buy exists. */
-export const AI_ITEMS_VALID = ['table4', 'table2', 'counter', 'oven', 'plant', 'painting', 'lamp', 'jukebox'].every((id) => CATALOG.some((c) => c.id === id));

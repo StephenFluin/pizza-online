@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { StoreKind } from './furniture';
 import { Recipe } from './model';
 
 export type Dialog =
@@ -13,7 +14,8 @@ export type Dialog =
   | { kind: 'phone' }
   | { kind: 'interior'; restaurantId: number }
   | { kind: 'report' }
-  | { kind: 'stock'; restaurantId?: number };
+  | { kind: 'stock'; restaurantId?: number }
+  | { kind: 'shop'; restaurantId: number; storeKind?: StoreKind };
 
 /** The map's folder tabs: plain map, district boundaries, or which chain controls each district. */
 export type MapOverlay = 'none' | 'districts' | 'control' | 'wealth' | 'competition';

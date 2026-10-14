@@ -1,6 +1,6 @@
 import { CITIES } from './data';
 import { generateCity } from './city-gen';
-import { applyRoom, starterLayout } from './furniture';
+import { DEFAULT_FLOOR, applyRoom, layoutIsCurrent, starterLayout } from './furniture';
 import { emptyPopularity, emptyStats } from './simulation';
 import { District, GameState, formatDate } from './model';
 
@@ -69,7 +69,10 @@ export function deserialize(text: string): GameState {
     r.popularity ??= emptyPopularity();
     r.preferredVendors ??= {};
     const lot = cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
-    if (lot && !Array.isArray(r.layout)) {
+    r.storage ??= [];
+    r.floorId ??= DEFAULT_FLOOR;
+    // Layouts from older catalogues (or none at all) are replaced with a starter fit-out.
+    if (lot && (!Array.isArray(r.layout) || !layoutIsCurrent(r.layout))) {
       r.layout = starterLayout(lot);
       applyRoom(r, lot);
     }

@@ -3,9 +3,9 @@ import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './da
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
 import { vendorById, vendorPrice } from './vendors';
-import { SELL_BACK, applyRoom, canPlace, catalogItem } from './furniture';
+import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
-import { AdCampaign, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
+import { AdCampaign, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, Lot, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
 import { deserialize, loadFromSlot, saveToSlot } from './saves';
 import { checkOutcome } from './world';
 import { addLedger, addMessage, buyStock, endDay, openRestaurantAt, simulateHour, startDay } from './simulation';
@@ -303,19 +303,73 @@ export class GameService {
     });
   }
 
-  /** Buys a catalogue item and places it in the restaurant at (x, y). */
-  placeItem(restaurantId: number, itemId: string, x: number, y: number): boolean {
-    let ok = false;
+  /** Runs `fn` on one restaurant, its owner and its lot, then refreshes the room's cached stats. */
+  private withRoom(restaurantId: number, fn: (r: Restaurant, owner: Player, lot: Lot, st: GameState) => void): void {
     this.mutate((st) => {
-      const r = st.restaurants.find((x2) => x2.id === restaurantId);
+      const r = st.restaurants.find((x) => x.id === restaurantId);
       const owner = st.players.find((p) => p.id === r?.ownerId);
       const lot = r ? st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] : undefined;
-      if (!r || !owner || !lot || !canPlace(r.layout, lot, itemId, x, y)) return;
-      const cost = catalogItem(itemId).price * cityDef(r.cityId).costOfLiving;
-      if (owner.cash < cost) return;
-      addLedger(owner, st.day, 'Furniture', -cost);
-      r.layout.push({ itemId, x, y });
+      if (!r || !owner || !lot) return;
+      fn(r, owner, lot, st);
       applyRoom(r, lot);
+    });
+  }
+
+  /** Buys pieces from a store into the restaurant's storage. */
+  buyToStorage(restaurantId: number, itemId: string, quantity: number): boolean {
+    let ok = false;
+    this.withRoom(restaurantId, (r, owner, _lot, st) => {
+      const cost = catalogItem(itemId).price * cityDef(r.cityId).costOfLiving * quantity;
+      if (quantity <= 0 || owner.cash < cost) return;
+      addLedger(owner, st.day, 'Furniture', -cost);
+      for (let i = 0; i < quantity; i++) r.storage.push(itemId);
+      ok = true;
+    });
+    return ok;
+  }
+
+  /** Moves a piece from storage onto the floor plan when it fits. */
+  placeFromStorage(restaurantId: number, storageIndex: number, x: number, y: number): boolean {
+    let ok = false;
+    this.withRoom(restaurantId, (r, _owner, lot) => {
+      const itemId = r.storage[storageIndex];
+      if (!itemId || !canPlace(r.layout, lot, itemId, x, y)) return;
+      r.storage.splice(storageIndex, 1);
+      r.layout.push({ itemId, x, y });
+      ok = true;
+    });
+    return ok;
+  }
+
+  /** Takes a placed piece off the floor and puts it back into storage. */
+  putAway(restaurantId: number, index: number): void {
+    this.withRoom(restaurantId, (r) => {
+      const item = r.layout[index];
+      if (!item) return;
+      r.layout.splice(index, 1);
+      r.storage.push(item.itemId);
+    });
+  }
+
+  /** Sells a piece from storage for half its price. */
+  sellStored(restaurantId: number, storageIndex: number): void {
+    this.withRoom(restaurantId, (r, owner, _lot, st) => {
+      const itemId = r.storage[storageIndex];
+      if (!itemId) return;
+      addLedger(owner, st.day, 'Furniture sold', catalogItem(itemId).price * cityDef(r.cityId).costOfLiving * SELL_BACK);
+      r.storage.splice(storageIndex, 1);
+    });
+  }
+
+  /** Lays a new floor across the dining room, priced per cell. */
+  layFloor(restaurantId: number, floorId: string): boolean {
+    let ok = false;
+    this.withRoom(restaurantId, (r, owner, lot, st) => {
+      const floor = floorType(floorId);
+      const cost = floor.pricePerCell * diningCells(lot) * cityDef(r.cityId).costOfLiving;
+      if (r.floorId === floor.id || owner.cash < cost) return;
+      addLedger(owner, st.day, 'Flooring', -cost);
+      r.floorId = floor.id;
       ok = true;
     });
     return ok;

@@ -137,10 +137,10 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 15 – Restaurant interior rebuild
 
-- [ ] Full-screen restaurant view on a much finer grid with detailed furniture
-- [ ] Dedicated furniture store screen with vendors (quality, price, appeal per customer group) and storage
-- [ ] Flooring
-- [ ] Guests walking in, sitting and eating
+- [x] Full-screen restaurant view on a much finer grid with detailed furniture
+- [x] Dedicated furniture store screen with vendors (quality, price, appeal per customer group) and storage
+- [x] Flooring
+- [x] Guests seated at tables while open, with a waiter and a cook at work
 
 ### Phase 16 – City life
 

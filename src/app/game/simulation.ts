@@ -1,6 +1,6 @@
 import { PerkId, character, firstName } from './characters';
 import { INGREDIENTS, cityDef, ingredient } from './data';
-import { TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
+import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { invalidatePizzaStats } from './pizza-stats';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
@@ -73,8 +73,10 @@ export function simulateHour(state: GameState, hour: number): void {
 function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaurant[], rate: number): void {
   const col = cityDef(city.id).costOfLiving;
   const capacity = new Map<number, { kitchen: number; floor: number; seats: number }>();
+  const rooms = new Map<number, RoomStats>();
   for (const r of restaurants) {
-    const room = roomStats(r.layout, city.lots[r.lotId]);
+    const room = roomStats(r.layout, city.lots[r.lotId], r.floorId);
+    rooms.set(r.id, room);
     // Cooks can only bake as fast as the ovens allow; dishwashers free up waiters.
     const cooks = r.staff.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.6 + s.skill * 0.8), 0);
     const kitchen = Math.min(cooks, room.kitchenCapacity);
@@ -95,7 +97,9 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
         const dist = Math.hypot(lot.x - district.cx, lot.y - district.cy);
         const best = bestItem(state, r, district, col);
         if (!best) return null;
-        const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * Math.exp(-dist / 14);
+        // Atmosphere, and whether this district's groups like the furniture's style.
+        const look = districtLookAppeal(rooms.get(r.id)!, district);
+        const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * (0.9 + look * 0.2) * Math.exp(-dist / 14);
         return { r, best, score };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0);
@@ -158,6 +162,13 @@ export function hasPerk(state: GameState, ownerId: number, perk: PerkId): boolea
 export function adEffectiveness(state: GameState, ownerId: number, cityId: string): number {
   const owner = state.players.find((p) => p.id === ownerId);
   return (owner?.ads ?? []).filter((a) => a.cityId === cityId).reduce((n, a) => n + a.effectiveness, 0);
+}
+
+/** How much a district's customer groups like a room's style, 0..1. */
+function districtLookAppeal(room: RoomStats, district: CityMap['districts'][number]): number {
+  let v = 0;
+  for (const [g, share] of Object.entries(district.groupMix ?? {})) v += share * (room.groupAppeal[g as keyof RoomStats['groupAppeal']] ?? 4.5);
+  return v / 9;
 }
 
 export function emptyPopularity(): Popularity {
@@ -418,6 +429,8 @@ export function openRestaurantAt(
     owned: buy,
     decor: 0,
     layout: starterLayout(lot),
+    storage: [],
+    floorId: DEFAULT_FLOOR,
     seats: 0,
     kitchenCapacity: 0,
     rentPerMonth: buy ? 0 : price,

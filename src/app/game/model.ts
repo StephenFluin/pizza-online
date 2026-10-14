@@ -93,6 +93,10 @@ export interface Restaurant {
   /** 0..3 atmosphere level, derived from the furniture in `layout`. */
   decor: number;
   layout: PlacedItem[];
+  /** Bought pieces waiting in storage to be placed (catalogue ids). */
+  storage: string[];
+  /** Dining-room floor (a flooring id from the catalogue). */
+  floorId: string;
   /** Cached from `layout`: seats and pizzas per hour the kitchen can bake. */
   seats: number;
   kitchenCapacity: number;

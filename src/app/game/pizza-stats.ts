@@ -261,3 +261,54 @@ export function districtGroupScore(stats: PizzaStats, district: District): numbe
   for (const g of CUSTOMER_GROUPS) score += (district.groupMix?.[g.id] ?? 1 / 6) * stats.groups[g.id];
   return score / 100;
 }
+
+export interface QualityTip {
+  /** Which score the tip improves. */
+  area: 'appearance' | 'normality' | 'refinement' | 'base' | 'taste' | 'trend' | 'calories';
+  text: string;
+}
+
+const FLAVOURS = ['fat', 'sweet', 'salty', 'hot'] as const;
+
+/** Plain-language advice for the weakest parts of a pizza, most useful first. */
+export function qualityTips(recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>, s: PizzaStats): QualityTip[] {
+  const tips: QualityTip[] = [];
+  const n = recipe.toppings.length;
+  if (n === 0) return [{ area: 'appearance', text: 'Pick an ingredient from the tray and click the pizza to place it.' }];
+
+  if (s.appearance < 70) {
+    const off = recipe.toppings.filter((t) => Math.hypot(t.x, t.y) > 0.92).length;
+    const quads = [0, 0, 0, 0];
+    for (const t of recipe.toppings) quads[(t.x >= 0 ? 1 : 0) + (t.y >= 0 ? 2 : 0)]++;
+    const inner = recipe.toppings.filter((t) => Math.hypot(t.x, t.y) < 0.5).length / n;
+    if (off) tips.push({ area: 'appearance', text: `${off} piece${off === 1 ? ' hangs' : 's hang'} off the base. Keep everything on the sauce.` });
+    if (Math.max(...quads) - Math.min(...quads) > Math.max(2, n / 4)) tips.push({ area: 'appearance', text: 'The toppings bunch up on one side. Spread them across all four quarters.' });
+    if (inner > 0.5) tips.push({ area: 'appearance', text: 'Too much is piled in the middle. Move some pieces out towards the rim.' });
+    else if (inner < 0.15) tips.push({ area: 'appearance', text: 'The middle is bare. About a third of the pieces should sit near the centre.' });
+    if (n < 14) tips.push({ area: 'appearance', text: `Only ${n} pieces. Around 14 or more covers the base properly.` });
+  }
+
+  const kinds = new Set(recipe.toppings.map((t) => t.ingredient)).size;
+  if (s.toppingGrams < 120) tips.push({ area: 'normality', text: `Only ${s.toppingGrams} g of toppings. Aim for 120–450 g (chopped and minced pieces weigh less, so you need more of them).` });
+  else if (s.toppingGrams > 450) tips.push({ area: 'normality', text: `${s.toppingGrams} g of toppings is a lot. Under 450 g scores best.` });
+  if (kinds > 5) tips.push({ area: 'normality', text: `${kinds} different toppings is too many. Two to five works best.` });
+  else if (kinds === 1) tips.push({ area: 'normality', text: 'Just one topping. A second or third ingredient makes a more rounded pizza.' });
+
+  const choppable = recipe.toppings.filter((t) => maxCut(t.ingredient) > 0);
+  if (choppable.length && s.refinement < 30) tips.push({ area: 'refinement', text: 'Nothing is chopped. Use the knife on some pieces: refinement impresses business people, office workers and the contest chef.' });
+
+  if (!recipe.sauce) tips.push({ area: 'base', text: 'No tomato sauce: that costs about 10% of the quality.' });
+  if (!recipe.cheese) tips.push({ area: 'base', text: 'No mozzarella: that costs about 10% of the quality.' });
+
+  // The group that likes it least, and the flavour that puts them off most.
+  const worst = CUSTOMER_GROUPS.reduce((a, b) => (s.groups[b.id] < s.groups[a.id] ? b : a));
+  if (s.groups[worst.id] < 60) {
+    const taste = GROUP_TASTES[worst.id];
+    const flavour = FLAVOURS.reduce((a, b) => (Math.abs(s[b] - taste[b]) > Math.abs(s[a] - taste[a]) ? b : a));
+    const more = s[flavour] < taste[flavour];
+    tips.push({ area: 'taste', text: `${worst.label} like it least (${s.groups[worst.id]}): they'd want it ${more ? 'more' : 'less'} ${flavour === 'fat' ? 'rich' : flavour} (${s[flavour]}% now, they like about ${taste[flavour]}%).` });
+  }
+  if (s.trend < -15) tips.push({ area: 'trend', text: 'Some of its main ingredients are out of fashion in this city right now. Check the newspaper.' });
+  if (s.calories > 1300) tips.push({ area: 'calories', text: `${s.calories} calories is heavy. The contest's food scientist marks down anything over 1,300.` });
+  return tips;
+}

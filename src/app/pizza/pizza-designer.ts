@@ -3,8 +3,8 @@ import type { Application, Graphics } from 'pixi.js';
 import { INGREDIENTS, INGREDIENT_CATEGORIES, cityDef, ingredient } from '../game/data';
 import { GameService } from '../game/game.service';
 import { Cut, IngredientCategory, Recipe, Topping } from '../game/model';
-import { CUSTOMER_GROUPS, CUT_NAMES, maxCut, pizzaStats } from '../game/pizza-stats';
-import { MAX_TOPPINGS, recipeCost } from '../game/recipes';
+import { CUSTOMER_GROUPS, CUT_NAMES, maxCut, pizzaStats, qualityTips } from '../game/pizza-stats';
+import { MAX_TOPPINGS, recipeCost, recipeQuality } from '../game/recipes';
 import { ArtCacheService } from '../shell/art-cache.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { drawPizza, drawTopping } from './pizza-art';
@@ -74,6 +74,17 @@ type Mode = 'place' | 'knife' | 'rotate' | 'remove';
         <input id="pizza-name" maxlength="32" [value]="draft().name" (input)="rename($any($event.target).value)" />
         <label class="check"><input type="checkbox" [checked]="draft().sauce" (change)="toggle('sauce')" /> Tomato sauce</label>
         <label class="check"><input type="checkbox" [checked]="draft().cheese" (change)="toggle('cheese')" /> Mozzarella</label>
+        <p class="quality">Craft quality <b>{{ pct(quality()) }}</b></p>
+        <h3>Tips for this pizza</h3>
+        <ul class="tips">
+          @for (t of tips(); track $index) {<li>{{ t.text }}</li>} @empty {<li>Nicely made: no obvious weak spots.</li>}
+        </ul>
+        <details class="how">
+          <summary>How pizzas are judged</summary>
+          <p><b>Craft quality</b> is the same for every customer: appearance (45%: an even spread, about a third of pieces near the middle, enough pieces, nothing off the base), normality (40%: 120–450 g of toppings and two to five kinds) and refinement (15%: how finely you chop). Leaving out sauce or cheese costs about 10% each.</p>
+          <p><b>Who likes it</b> depends on the flavour mix (fat, sweet, salty, hot from each ingredient's weight and intensity) against each customer group's taste, plus what each group cares about: business people notice looks and fine chopping, young people follow trends, seniors like classics.</p>
+          <p>In a restaurant, appeal is about 60% the group's liking and 40% craft quality, adjusted for the ingredient fashion in the city, price, your cooking skill and the quality of your stock.</p>
+        </details>
         <h3>Who will love it</h3>
         <ul class="groups">
           @for (g of groups(); track g.id) {
@@ -113,6 +124,11 @@ type Mode = 'place' | 'knife' | 'rotate' | 'remove';
     .side input:not([type]) { font: inherit; padding: 6px; }
     .check { display: flex; gap: 6px; align-items: center; }
     h3 { margin: 8px 0 0; font-size: 0.95rem; }
+    .quality { margin: 6px 0 0; }
+    .tips { margin: 0; padding-left: 18px; font-size: 0.85rem; display: grid; gap: 3px; }
+    .how { font-size: 0.85rem; background: #fffaf0; border: 1px solid var(--line); padding: 4px 8px; }
+    .how summary { cursor: pointer; font-weight: 600; }
+    .how p { margin: 6px 0; }
     .groups { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; font-size: 0.85rem; }
     .groups li { display: grid; grid-template-columns: 1fr 60px 26px; gap: 6px; align-items: center; }
     .groups meter { width: 60px; }
@@ -158,6 +174,8 @@ export class PizzaDesignerComponent {
   protected readonly trayItems = computed(() => INGREDIENTS.filter((i) => i.category === this.category()));
   protected readonly maxPlaceCut = computed(() => maxCut(this.selected()));
   protected readonly stats = computed(() => pizzaStats(this.draft(), this.game.city()?.districts ?? []));
+  protected readonly quality = computed(() => recipeQuality(this.draft()));
+  protected readonly tips = computed(() => qualityTips(this.draft(), this.stats()));
   protected readonly cost = computed(() => recipeCost(this.draft()) * cityDef(this.game.state()?.currentCityId ?? 'rome').costOfLiving);
   protected readonly groups = computed(() => CUSTOMER_GROUPS.map((g) => ({ ...g, value: this.stats().groups[g.id] })));
   protected readonly summary = computed(() => {
@@ -367,4 +385,8 @@ export class PizzaDesignerComponent {
   }
 
   protected readonly cutName = (c: Cut) => CUT_NAMES[c];
+
+  protected pct(v: number): string {
+    return `${Math.round(v * 100)}%`;
+  }
 }

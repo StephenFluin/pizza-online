@@ -123,11 +123,11 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 13 – Staff depth
 
-- [ ] Staff are characters with stats; wages follow their skills
-- [ ] Job market pool that rotates weekly
-- [ ] Training courses for cooking, serving and management
-- [ ] Staff events with three-choice dialogs (late, sick, raise, quitting, theft)
-- [ ] Managers who run a daily routine (shopping, prices, staff morale, alerts)
+- [x] Staff are characters with stats; wages follow their skills
+- [x] Job market pool that rotates weekly
+- [x] Training courses for cooking, serving and management
+- [x] Staff events with three-choice dialogs (late, sick, raise, quitting, theft)
+- [x] Managers who run a daily routine (shopping, prices, staff morale, alerts)
 
 ### Phase 14 – Characters
 

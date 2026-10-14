@@ -1,8 +1,9 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
+import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
-import { applicantSkillBonus, ingredientPriceFactor, statsOf } from './owner-stats';
+import { ingredientPriceFactor, statsOf } from './owner-stats';
+import { Course, jobMarket, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
 import { vendorById, vendorPrice } from './vendors';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
@@ -72,8 +73,6 @@ export class GameService {
     if (document.visibilityState === 'hidden') this.autosaveNow();
   };
   private readonly saveOnExit = () => this.autosaveNow();
-  /** Job applicants per restaurant id, refreshed weekly. Plain cache: read inside computeds. */
-  private readonly applicantCache = new Map<number, Staff[]>();
 
   newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31), rivalIds: string[] = []): void {
     const hero = character(characterId);
@@ -103,9 +102,11 @@ export class GameService {
       outcome: null,
       orders: [],
       vendorSpend: {},
+      jobMarket: {},
+      staffEvents: [],
     });
+    this.mutate((st) => CITIES.forEach((c) => jobMarket(st, c.id)));
     this.selectedLotId.set(null);
-    this.applicantCache.clear();
     this.dayReport.set(null);
   }
 
@@ -191,13 +192,21 @@ export class GameService {
   private rollOver(st: GameState): void {
     st.day++;
     st.minute = OPEN_MINUTE - 60;
-    if (st.day % 7 === 0) this.applicantCache.clear();
+    if (st.day % 7 === 0) rotateJobMarkets(st);
   }
 
   /** Advances one game minute; returns true when the day has just ended. */
   private advanceMinute(st: GameState): boolean {
     st.minute++;
-    if (st.minute === OPEN_MINUTE) startDay(st);
+    if (st.minute === OPEN_MINUTE) {
+      startDay(st);
+      // Staff incidents need the owner's answer before the day gets going.
+      if (st.staffEvents.length > 0) {
+        this.resumeSpeed = this.speed() || this.resumeSpeed;
+        this.speed.set(0);
+        return true;
+      }
+    }
     if (st.minute % 60 === 0 && st.minute > OPEN_MINUTE && st.minute <= CLOSE_MINUTE) simulateHour(st, st.minute / 60 - 1);
     if (st.minute === CLOSE_MINUTE) {
       endDay(st);
@@ -251,33 +260,69 @@ export class GameService {
     });
   }
 
+  /** Job seekers in the restaurant's city (the job market is created with the game). */
   applicantsFor(r: Restaurant): Staff[] {
-    const existing = this.applicantCache.get(r.id);
-    if (existing) return existing;
-    const col = cityDef(r.cityId).costOfLiving;
-    const bonus = applicantSkillBonus(statsOf(this.human()));
-    const list: Staff[] = [];
-    for (const role of ['cook', 'cook', 'waiter', 'waiter', 'cook', 'waiter'] as StaffRole[]) {
-      const skill = Math.round(Math.max(0.05, Math.min(1, Math.random() + bonus)) * 100) / 100;
-      list.push({
-        id: Math.floor(Math.random() * 1e9),
-        name: `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]}`,
-        role,
-        skill,
-        wagePerMonth: Math.round(((role === 'cook' ? 1400 : 1100) + skill * 1600) * col / 10) * 10,
-      });
-    }
-    this.applicantCache.set(r.id, list);
-    return list;
+    return this.state()?.jobMarket[r.cityId] ?? [];
   }
 
-  hire(restaurantId: number, staff: Staff): void {
-    this.applicantCache.set(restaurantId, (this.applicantCache.get(restaurantId) ?? []).filter((s) => s.id !== staff.id));
+  /** Hires someone from the city's job market. One manager per restaurant, twelve staff at most. */
+  hire(restaurantId: number, staff: Staff): string | null {
+    let error: string | null = 'Could not hire.';
     this.mutate((st) => {
       const r = st.restaurants.find((x) => x.id === restaurantId);
-      if (!r || r.staff.length >= 12) return;
-      r.staff.push(staff);
+      if (!r) return;
+      if (r.staff.length >= 12) {
+        error = 'There is no room for more staff.';
+        return;
+      }
+      if (staff.role === 'manager' && r.staff.some((s) => s.role === 'manager')) {
+        error = `${r.name} already has a manager.`;
+        return;
+      }
+      const market = st.jobMarket[r.cityId] ?? [];
+      const person = market.find((s) => s.id === staff.id) ?? staff;
+      st.jobMarket[r.cityId] = market.filter((s) => s.id !== staff.id);
+      r.staff.push(person);
+      error = null;
     });
+    return error;
+  }
+
+  /** Sends a staff member on a training course. */
+  train(restaurantId: number, staffId: number, course: Course): boolean {
+    let ok = false;
+    this.mutate((st) => {
+      const r = st.restaurants.find((x) => x.id === restaurantId);
+      const s = r?.staff.find((x) => x.id === staffId);
+      const owner = st.players.find((p) => p.id === r?.ownerId);
+      const cost = course.cost * cityDef(r?.cityId ?? 'rome').costOfLiving;
+      if (!r || !s || !owner || s.course || owner.cash < cost || s[course.stat] >= course.maxStat) return;
+      addLedger(owner, st.day, 'Training', -cost);
+      startCourse(s, course);
+      ok = true;
+    });
+    return ok;
+  }
+
+  /** Gives a raise (e.g. 0.1 for 10%), which lifts motivation. */
+  raise(restaurantId: number, staffId: number, pct: number): void {
+    this.mutate((st) => {
+      const s = st.restaurants.find((x) => x.id === restaurantId)?.staff.find((x) => x.id === staffId);
+      if (!s) return;
+      s.wagePerMonth = Math.round((s.wagePerMonth * (1 + pct)) / 10) * 10;
+      s.motivation = Math.min(100, Math.round(s.motivation + pct * 150));
+    });
+  }
+
+  /** Answers the oldest staff incident; returns what happened. Resumes the clock when none are left. */
+  resolveIncident(choice: number): string {
+    let result = '';
+    this.mutate((st) => {
+      const event = st.staffEvents[0];
+      if (event) result = resolveStaffEvent(st, event, choice);
+    });
+    if ((this.state()?.staffEvents.length ?? 0) === 0 && this.speed() === 0 && this.dayReport() === null) this.speed.set(this.resumeSpeed || 1);
+    return result;
   }
 
   fire(restaurantId: number, staffId: number): void {
@@ -497,7 +542,6 @@ export class GameService {
   }
 
   private replaceState(st: GameState): void {
-    this.applicantCache.clear();
     this.dayReport.set(st.minute >= CLOSE_MINUTE ? st.day : null);
     this.selectedLotId.set(null);
     this.speed.set(st.outcome ? 0 : 1);

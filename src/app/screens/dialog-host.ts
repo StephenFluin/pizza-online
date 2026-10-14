@@ -4,6 +4,8 @@ import { Recipe } from '../game/model';
 import { UiService } from '../game/ui.service';
 import { InteriorViewComponent } from '../interior/interior-view';
 import { StoreScreenComponent } from '../interior/store-screen';
+import { IncidentScreenComponent } from '../staff/incident-screen';
+import { StaffScreenComponent } from '../staff/staff-screen';
 import { CookbookComponent } from '../pizza/cookbook';
 import { PizzaDesignerComponent } from '../pizza/pizza-designer';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
@@ -30,6 +32,8 @@ const TITLES: Record<string, string> = {
   report: 'End of day',
   stock: 'Stock',
   shop: 'Stores',
+  staff: 'Staff',
+  incident: 'A staff matter',
 };
 
 /**
@@ -52,6 +56,8 @@ const TITLES: Record<string, string> = {
     PhoneDialogComponent,
     InteriorViewComponent,
     StoreScreenComponent,
+    StaffScreenComponent,
+    IncidentScreenComponent,
     DayReportComponent,
   ],
   template: `
@@ -74,6 +80,8 @@ const TITLES: Record<string, string> = {
               @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" /> }
               @case ('phone') { <app-phone-dialog /> }
               @case ('news') { <app-news-dialog /> }
+              @case ('staff') { <app-staff-screen [restaurantId]="d.restaurantId" /> }
+              @case ('incident') { <app-incident-screen /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }
               @case ('stock') { <app-stock-screen [restaurantId]="d.restaurantId" /> }
               @case ('saves') { <app-saves-dialog /> }

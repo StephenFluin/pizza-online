@@ -26,7 +26,7 @@ const FACIAL: FacialHair[] = ['none', 'none', 'moustache', 'beard', 'stubble'];
 const SHIRTS = [0x1d3557, 0x6d597a, 0x2a9d8f, 0x8d99ae, 0x264653, 0x9d0208, 0x3a5a40];
 const REALTOR_SUFFIXES = ['Estates', 'Property Group', 'Realty', '& Partners', 'Lettings'];
 
-function randomLook(rng: Rng): Look {
+export function randomLook(rng: Rng): Look {
   return {
     skin: rng.pick(SKINS),
     hair: rng.pick(HAIRS),

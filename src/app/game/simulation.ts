@@ -4,6 +4,7 @@ import { INGREDIENTS, cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { invalidatePizzaStats } from './pizza-stats';
+import { effectiveSkill, isAvailable, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
@@ -79,9 +80,11 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
     const room = roomStats(r.layout, city.lots[r.lotId], r.floorId);
     rooms.set(r.id, room);
     // Cooks can only bake as fast as the ovens allow; dishwashers free up waiters.
-    const cooks = r.staff.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.6 + s.skill * 0.8), 0);
+    // Only staff at work count; skill shows through motivation, and fast cooks turn out more pizzas.
+    const working = r.staff.filter(isAvailable);
+    const cooks = working.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.5 + effectiveSkill(s) * 0.8) * (0.8 + s.pizzasPerDay / 500), 0);
     const kitchen = Math.min(cooks, room.kitchenCapacity);
-    const floor = r.staff.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.6 + s.skill * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
+    const floor = working.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.5 + effectiveSkill(s) * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
     capacity.set(r.id, { kitchen, floor, seats: room.seats * TURNOVER_PER_SEAT });
     r.popularity = computePopularity(state, r, city);
     r.today.capacity += Math.floor(Math.min(kitchen, floor, room.seats * TURNOVER_PER_SEAT));
@@ -144,7 +147,8 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
         sales.sold++;
         sales.revenue += item.price;
         sales.cost += cost;
-        const staffSkill = s.r.staff.length ? s.r.staff.reduce((n, st) => n + st.skill, 0) / s.r.staff.length : 0;
+        const team = s.r.staff.filter(isAvailable);
+        const staffSkill = team.length ? team.reduce((n, st) => n + effectiveSkill(st), 0) / team.length : 0;
         today.satisfaction += clamp01(item.appeal * 0.7 + staffSkill * 0.2 + s.r.decor * 0.05);
       }
       cap.kitchen -= served;
@@ -213,7 +217,9 @@ export function computePopularity(state: GameState, r: Restaurant, city: CityMap
 
   // The owner can only keep an eye on so many restaurants; the rest lose a little popularity.
   const own = state.restaurants.filter((x) => x.ownerId === r.ownerId).map((x) => x.id).sort((a, b) => a - b);
-  const supervision = own.indexOf(r.id) >= supervisable(ownerStats(state, r.ownerId)) ? -10 : 0;
+  // A manager supervises in the owner's place.
+  const managed = r.staff.some((s) => s.role === 'manager' && isAvailable(s));
+  const supervision = !managed && own.indexOf(r.id) >= supervisable(ownerStats(state, r.ownerId)) ? -10 : 0;
 
   const total = waiting + menu + advertising + stars + fulfilment + events + supervision;
   return { waiting, menu, advertising, stars, fulfilment, events, supervision, total, waitMinutes, expectedMinutes, starCount };
@@ -268,7 +274,9 @@ export function startDay(state: GameState): void {
     }
   }
   deliverOrders(state);
-  for (const r of state.restaurants) if (r.autoRestock) restock(state, r);
+  // Managers do the shopping even without a standing order.
+  for (const r of state.restaurants) if (r.autoRestock || r.staff.some((s) => s.role === 'manager' && isAvailable(s))) restock(state, r);
+  staffMorning(state);
 }
 
 /** Adds units to a restaurant's stock, blending their quality into what is already there. */

@@ -2,6 +2,7 @@ import { CITIES } from './data';
 import { generateCity } from './city-gen';
 import { DEFAULT_FLOOR, applyRoom, layoutIsCurrent, starterLayout } from './furniture';
 import { emptyPopularity, emptyStats } from './simulation';
+import { jobMarket, upgradeStaff } from './staff';
 import { District, GameState, formatDate } from './model';
 
 /**
@@ -65,6 +66,7 @@ export function deserialize(text: string): GameState {
     r.today = { ...emptyStats(st.day), ...r.today };
     r.lastDay = { ...emptyStats(st.day - 1), ...r.lastDay };
     r.history ??= [];
+    r.staff = r.staff.map((x) => (typeof x.cooking === 'number' ? x : upgradeStaff(x)));
     r.stockQuality ??= {};
     r.popularity ??= emptyPopularity();
     r.preferredVendors ??= {};
@@ -79,7 +81,9 @@ export function deserialize(text: string): GameState {
   }
   // Campaigns from before the advertising channels existed are dropped.
   for (const p of st.players) p.ads = (p.ads ?? []).filter((a) => typeof a.channel === 'string' && typeof a.effectiveness === 'number');
-  return { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {} };
+  const loaded: GameState = { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {}, jobMarket: st.jobMarket ?? {}, staffEvents: st.staffEvents ?? [] };
+  for (const c of CITIES) jobMarket(loaded, c.id);
+  return loaded;
 }
 
 export function saveToSlot(slot: string, st: GameState): void {

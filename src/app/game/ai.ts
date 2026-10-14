@@ -1,7 +1,8 @@
 import { POSTERS, campaignCost, flyerRate } from './advertising';
 import { CHARACTERS } from './characters';
 import { applicantSkillBonus, ownerStats } from './owner-stats';
-import { CITIES, FIRST_NAMES, LAST_NAMES, cityDef } from './data';
+import { CITIES, cityDef } from './data';
+import { generateCandidate } from './staff';
 import { GameState, PlacedItem, Player, Restaurant, StaffRole } from './model';
 import { applyRoom, autoPlace, catalogItem, placeDiningSet } from './furniture';
 import { cityTaste, fairPrice } from './recipes';
@@ -104,15 +105,8 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
 }
 
 function hire(st: GameState, r: Restaurant, role: StaffRole): void {
-  const bonus = applicantSkillBonus(ownerStats(st, r.ownerId));
-  const skill = Math.max(0.1, Math.min(1, 0.3 + Math.random() * 0.5 + bonus));
-  r.staff.push({
-    id: st.nextId++,
-    name: `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]}`,
-    role,
-    skill,
-    wagePerMonth: Math.round(((role === 'cook' ? 1400 : 1100) + skill * 1600) * cityDef(r.cityId).costOfLiving / 10) * 10,
-  });
+  // Rivals hire straight from the agency rather than the public job market.
+  r.staff.push(generateCandidate(st.nextId++, role, cityDef(r.cityId).costOfLiving, applicantSkillBonus(ownerStats(st, r.ownerId))));
 }
 
 function closeFor(st: GameState, r: Restaurant): void {

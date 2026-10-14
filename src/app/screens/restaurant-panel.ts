@@ -66,29 +66,8 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
           <button type="button" class="secondary close" (click)="close()">Close restaurant</button>
         }
         @case ('staff') {
-          <h3>Employees</h3>
-          @if (r.staff.length === 0) {
-            <p>Nobody works here yet.</p>
-          }
-          <ul class="rows">
-            @for (s of r.staff; track s.id) {
-              <li>
-                <span><b>{{ s.name }}</b> · {{ s.role }} · skill {{ pct(s.skill) }} · {{ money(s.wagePerMonth) }}/mo</span>
-                <button type="button" class="secondary small" (click)="game.fire(r.id, s.id)" [attr.aria-label]="'Fire ' + s.name">Fire</button>
-              </li>
-            }
-          </ul>
-          <h3>Applicants</h3>
-          <ul class="rows">
-            @for (s of applicants(); track s.id) {
-              <li>
-                <span><b>{{ s.name }}</b> · {{ s.role }} · skill {{ pct(s.skill) }} · {{ money(s.wagePerMonth) }}/mo</span>
-                <button type="button" class="small" (click)="game.hire(r.id, s)" [attr.aria-label]="'Hire ' + s.name">Hire</button>
-              </li>
-            } @empty {
-              <li>No applicants this week.</li>
-            }
-          </ul>
+          <p>{{ cooks() }} cooks, {{ waiters() }} waiters{{ hasManager() ? ' and a manager' : '' }}. Payroll {{ money(payroll()) }} a month.</p>
+          <button type="button" (click)="ui.open({ kind: 'staff', restaurantId: r.id })">Manage staff</button>
         }
         @case ('menu') {
           <ul class="rows">
@@ -164,7 +143,8 @@ export class RestaurantPanelComponent {
   protected readonly waiters = computed(() => this.restaurant().staff.filter((s) => s.role === 'waiter').length);
   protected readonly ui = inject(UiService);
   protected readonly decorName = computed(() => DECOR_NAMES[Math.min(3, Math.floor(this.restaurant().decor))]);
-  protected readonly applicants = computed(() => this.game.applicantsFor(this.restaurant()));
+  protected readonly hasManager = computed(() => this.restaurant().staff.some((s) => s.role === 'manager'));
+  protected readonly payroll = computed(() => this.restaurant().staff.reduce((n, s) => n + s.wagePerMonth, 0));
   protected readonly warning = computed(() => {
     const r = this.restaurant();
     if (this.cooks() === 0 || this.waiters() === 0) return 'You need at least one cook and one waiter to serve guests.';

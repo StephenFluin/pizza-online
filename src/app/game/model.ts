@@ -60,15 +60,44 @@ export interface CityMap {
   lots: Lot[];
 }
 
-export type StaffRole = 'cook' | 'waiter';
+export type StaffRole = 'cook' | 'waiter' | 'manager';
 
 export interface Staff {
   id: number;
   name: string;
   role: StaffRole;
-  /** 0..1 */
+  /** 0..1, the stat that matters for the role (cooking, serving or management) / 100. */
   skill: number;
   wagePerMonth: number;
+  /** Character stats, 0–100 (pizzas per day is a count). */
+  cooking: number;
+  serving: number;
+  management: number;
+  intelligence: number;
+  trustworthiness: number;
+  honesty: number;
+  personality: number;
+  health: number;
+  motivation: number;
+  pizzasPerDay: number;
+  /** A training course in progress; the trainee is away until it ends. */
+  course?: { stat: 'cooking' | 'serving' | 'management'; level: number; daysLeft: number };
+  /** Days away sick. */
+  daysAway?: number;
+}
+
+/** A staff incident waiting for the owner's decision (three possible responses). */
+export interface StaffEvent {
+  id: number;
+  restaurantId: number;
+  staffId: number;
+  kind: 'late' | 'sick' | 'raise' | 'quit' | 'theft';
+  text: string;
+  options: [string, string, string];
+  /** Money involved (stolen amount), when relevant. */
+  amount?: number;
+  /** Days of absence, for sickness. */
+  days?: number;
 }
 
 /** A piece of furniture or kitchen equipment placed on the restaurant's floor grid. */
@@ -282,6 +311,10 @@ export interface GameState {
   orders: StockOrder[];
   /** Vendor id -> total the human player has spent there ("so far" on the vendor list). */
   vendorSpend: Record<string, number>;
+  /** City id -> people looking for work there; refreshed weekly. */
+  jobMarket: Record<string, Staff[]>;
+  /** Staff incidents waiting for the player. */
+  staffEvents: StaffEvent[];
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */

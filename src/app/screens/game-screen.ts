@@ -53,6 +53,13 @@ export class GameScreenComponent {
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => destroyRef.onDestroy(this.game.startLoop()));
     // When a trading day ends, show the full-screen report.
+    // Staff matters waiting for an answer take over the screen.
+    effect(() => {
+      const waiting = (this.game.state()?.staffEvents.length ?? 0) > 0;
+      untracked(() => {
+        if (waiting && this.ui.dialog()?.kind !== 'incident' && this.game.speed() === 0 && this.game.dayReport() === null) this.ui.open({ kind: 'incident' });
+      });
+    });
     effect(() => {
       const pending = this.game.dayReport() !== null;
       untracked(() => {

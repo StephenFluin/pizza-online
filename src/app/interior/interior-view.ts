@@ -195,7 +195,7 @@ export class InteriorViewComponent {
       { id: 'move', label: 'Move', icon: ICONS.right, disabled: !sel, pressed: this.mode().kind === 'move', action: () => this.startMove() },
       { id: 'putaway', label: 'Put away', icon: ICONS.down, disabled: !sel, action: () => this.putAway() },
       { id: 'stock', label: 'Stock', icon: ICONS.box, action: () => this.ui.open({ kind: 'stock', restaurantId: id }) },
-      { id: 'manage', label: 'Manage', icon: ICONS.staff, action: () => this.ui.open({ kind: 'restaurants' }) },
+      { id: 'manage', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff', restaurantId: id }) },
       { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
     ];
   });

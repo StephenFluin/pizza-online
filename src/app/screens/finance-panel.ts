@@ -6,8 +6,8 @@ import { DAYS_PER_MONTH, formatMoney } from '../game/model';
 @Component({
   selector: 'app-finance-panel',
   template: `
-    <section class="panel" aria-labelledby="fin-title">
-      <h2 id="fin-title">This month</h2>
+    <section aria-labelledby="fin-title" class="fin">
+      <h3 id="fin-title">This month</h3>
       <table>
         <caption class="sr-only">Income and expenses this month</caption>
         <tbody>
@@ -27,6 +27,7 @@ import { DAYS_PER_MONTH, formatMoney } from '../game/model';
     </section>
   `,
   styles: `
+    .fin { min-width: min(360px, 80vw); }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; font-weight: 400; }
     td { text-align: right; font-variant-numeric: tabular-nums; }

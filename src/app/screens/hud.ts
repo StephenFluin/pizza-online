@@ -1,6 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
 import { GameService, GameSpeed } from '../game/game.service';
-import { UiService } from '../game/ui.service';
 import { formatDate, formatMoney, formatTime } from '../game/model';
 
 @Component({
@@ -11,12 +10,6 @@ import { formatDate, formatMoney, formatTime } from '../game/model';
       <span>{{ date() }}</span>
       <span aria-live="off">{{ time() }}</span>
       <span class="cash" [class.negative]="(game.human()?.cash ?? 0) < 0">{{ cash() }}</span>
-      <nav class="menu" aria-label="Game menu">
-        <button type="button" (click)="ui.open({ kind: 'world' })">World</button>
-        <button type="button" (click)="ui.open({ kind: 'cookbook' })">Cook book</button>
-        <button type="button" (click)="ui.open({ kind: 'bank' })">Bank & ads</button>
-        <button type="button" (click)="ui.open({ kind: 'saves' })">Save / load</button>
-      </nav>
       <div class="speed" role="group" aria-label="Game speed">
         @for (s of speeds; track s.value) {
           <button type="button" [attr.aria-pressed]="game.speed() === s.value" (click)="game.speed.set(s.value)" [attr.aria-label]="s.label">
@@ -31,16 +24,13 @@ import { formatDate, formatMoney, formatTime } from '../game/model';
     .city { font-size: 1.1rem; }
     .cash { font-variant-numeric: tabular-nums; font-weight: 700; color: #b7efc5; }
     .cash.negative { color: #ffb3b3; }
-    .menu { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
-    .menu button { padding: 4px 10px; background: transparent; color: var(--cream); border-color: var(--cream); }
-    .speed { display: flex; gap: 4px; }
+    .speed { margin-left: auto; display: flex; gap: 4px; }
     .speed button { min-width: 40px; padding: 4px 8px; background: transparent; color: var(--cream); border: 1px solid var(--cream); }
     .speed button[aria-pressed='true'] { background: var(--cream); color: var(--ink); }
   `,
 })
 export class HudComponent {
   protected readonly game = inject(GameService);
-  protected readonly ui = inject(UiService);
   protected readonly speeds: { value: GameSpeed; icon: string; label: string }[] = [
     { value: 0, icon: '❚❚', label: 'Pause' },
     { value: 1, icon: '▶', label: 'Normal speed' },

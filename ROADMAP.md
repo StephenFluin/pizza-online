@@ -49,12 +49,12 @@ work can stop after any phase and pick up again at the next unchecked item.
 
 Match the original game's screen structure more closely (with original art).
 
-- [ ] Icon toolbar drives the game (phone, restaurant, cook book, finances, world, staff, disk) instead of side panels
-- [ ] City drawn in a 3/4 view: building façades, roofs, windows, shop signs, trees, bridges
-- [ ] Animated traffic on roads and pedestrians on pavements, denser near busy districts
-- [ ] Hover info for buildings and lots; rival and own restaurants marked on the map
-- [ ] Dynamic zoom (no fixed levels) with on-screen zoom controls and bounds-clamped panning
-- [ ] Map overlays: districts, wealth, competitor locations
+- [x] Icon toolbar drives the game (phone, restaurant, cook book, finances, world, staff, disk) instead of side panels
+- [x] City drawn in a 3/4 view: building façades, roofs, windows, shop signs, trees, bridges
+- [x] Animated traffic on roads and pedestrians on pavements, denser near busy districts
+- [x] Hover info for buildings and lots; rival and own restaurants marked on the map
+- [x] Dynamic zoom (no fixed levels) with on-screen zoom controls and bounds-clamped panning
+- [x] Map overlays: districts, wealth, competitor locations
 
 ## Phase 6 – Characters and the phone
 

@@ -1,59 +1,50 @@
-# PizzaOnline
+# Pizza Online
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.2.
+A browser-only, open-source pizza restaurant tycoon game built with **Angular** and **PixiJS**.
+It is a homage to the 1994 DOS classic _Pizza Tycoon_ and the
+[Pizza Legacy](https://codeberg.org/cowomaly/pizzalegacy) reimplementation, written from
+scratch: no original code, graphics, sounds or characters are used. Everything you see
+is drawn procedurally with PixiJS.
 
-## Development server
+## Playing
 
-To start a local development server, run:
+1. Pick a character. Each has a bio and a perk (better haggling, cheaper ingredients, family money, …).
+2. Explore the city. Drag to scroll, zoom smoothly with the wheel, pinch or the on-screen buttons, and hover for details.
+3. Click a lot with a sign and **call the realtor** to rent or buy it. Haggling is allowed, within reason.
+4. Open the **Phone** to call the bank (loans), the wholesaler (weekly deals) and the staff agency (hiring).
+5. **View restaurant** to buy tables, decorations, ovens, prep counters, fridges and dishwashers.
+   Seats, kitchen output and atmosphere all come from what you place.
+6. Design pizzas in the **Cook book**, put them on the menu and set prices for the local tastes.
+7. Beat three rival chains by being the most popular pizza chain in all ten cities. Go bankrupt and you lose.
 
-```bash
-ng serve
-```
+Saves live in browser storage (with a monthly autosave) and can be exported or imported as files.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Development
 
 ```bash
-ng build
+npm install
+npm start
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Open http://localhost:4200. In dev builds the game service is exposed as `window.pizza`
+for debugging, e.g. `pizza.state()`.
 
 ```bash
-ng test
+npm run build
 ```
 
-## Running end-to-end tests
+### Code map
 
-For end-to-end (e2e) testing, run:
+- `src/app/game/`: framework-free simulation (city generation, customers, AI rivals,
+  furniture, phone contacts, saves) plus the Angular services that hold state.
+- `src/app/map/`: PixiJS city renderer and traffic.
+- `src/app/interior/`: PixiJS restaurant floor plan.
+- `src/app/pizza/`: PixiJS pizza designer and cook book.
+- `src/app/characters/`: procedural portraits rendered once and cached as images.
+- `src/app/screens/`: title screen, HUD, toolbar, dialogs and panels.
 
-```bash
-ng e2e
-```
+See [ROADMAP.md](ROADMAP.md) for what's done and what's next.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## License
 
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+[MIT](LICENSE)

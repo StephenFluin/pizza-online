@@ -81,4 +81,4 @@ Match the original game's screen structure more closely (with original art).
 - [ ] Sound effects via Web Audio (generated, no samples)
 - [ ] Balancing pass and tutorial hints
 - [ ] Settings screen (game speed, autosave interval, reduced motion)
-- [ ] README with screenshots and contribution guide
+- [ ] README screenshots and contribution guide (basic README done)

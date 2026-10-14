@@ -12,7 +12,7 @@ export type Dialog =
   | { kind: 'finances' }
   | { kind: 'news' }
   | { kind: 'phone' }
-  | { kind: 'interior'; restaurantId: number }
+  | { kind: 'interior'; restaurantId: number; placeItemId?: string }
   | { kind: 'report' }
   | { kind: 'stock'; restaurantId?: number }
   | { kind: 'shop'; restaurantId: number; storeKind?: StoreKind }

@@ -83,7 +83,7 @@ const TITLES: Record<string, string> = {
               @case ('bank') { <app-advertising-screen /> }
               @case ('restaurants') { <app-restaurants-dialog /> }
               @case ('finances') { <app-finance-panel /> }
-              @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" /> }
+              @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" [placeItemId]="d.placeItemId" /> }
               @case ('phone') { <app-phone-dialog /> }
               @case ('news') { <app-news-dialog /> }
               @case ('staff') { <app-staff-screen [restaurantId]="d.restaurantId" /> }

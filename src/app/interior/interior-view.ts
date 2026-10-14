@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, linkedSignal, signal, viewChild } from '@angular/core';
 import type { Application, Container, Graphics } from 'pixi.js';
 import { cityDef } from '../game/data';
 import { CUSTOMER_GROUPS } from '../game/pizza-stats';
@@ -109,8 +109,14 @@ export class InteriorViewComponent {
   private readonly art = inject(ArtCacheService);
   private readonly shell = inject(ShellService);
   readonly restaurantId = input.required<number>();
+  /** Opens with this piece from storage picked up, ready to place (from the store's "Place now"). */
+  readonly placeItemId = input<string | undefined>(undefined);
 
-  protected readonly mode = signal<Mode>({ kind: 'select' });
+  // Depends only on the requested piece, so game ticks don't reset the current tool.
+  protected readonly mode = linkedSignal<Mode>(() => {
+    const id = this.placeItemId();
+    return id ? { kind: 'place', itemId: id } : { kind: 'select' };
+  });
   protected readonly cursor = signal<{ x: number; y: number } | null>(null);
   protected readonly selectedIndex = signal<number | null>(null);
   protected readonly message = signal('');

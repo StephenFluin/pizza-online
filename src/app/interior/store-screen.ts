@@ -84,7 +84,13 @@ const PREVIEW = 2;
             </ul>
           }
         }
-        <p role="status" class="msg">{{ message() }}</p>
+        <div class="foot">
+          <p role="status" class="msg">{{ message() }}</p>
+          @if (lastBought(); as id) {
+            <button type="button" (click)="placeNow(id)">Place them now</button>
+          }
+          <button type="button" class="secondary" (click)="openRoom()">Go to the restaurant to place furniture ({{ r.storage.length }} in storage)</button>
+        </div>
       </div>
     }
   `,
@@ -109,7 +115,8 @@ const PREVIEW = 2;
     .tiny { padding: 0 8px; }
     .buy { margin-left: auto; padding: 4px 10px; }
     .tag { justify-self: start; background: var(--basil); color: #fff; font-size: 0.8rem; padding: 1px 6px; border-radius: 3px; }
-    .msg { margin: 0; min-height: 1.3em; }
+    .foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; position: sticky; bottom: 0; background: #f3efe6; padding: 6px 0; }
+    .msg { margin: 0 auto 0 0; min-height: 1.3em; }
   `,
 })
 export class StoreScreenComponent {
@@ -124,6 +131,8 @@ export class StoreScreenComponent {
   protected readonly kind = linkedSignal(() => this.storeKind());
   protected readonly storeId = linkedSignal(() => STORES.find((s) => s.kind === this.kind())?.id ?? '');
   protected readonly message = signal('');
+  /** The last piece bought, for the "Place them now" link. */
+  protected readonly lastBought = signal<string | null>(null);
   private readonly quantities = signal<Record<string, number>>({});
 
   protected readonly restaurant = computed(
@@ -160,7 +169,7 @@ export class StoreScreenComponent {
       ...KINDS.map((k) => ({ id: k.id, label: k.label, icon: { furniture: ICONS.shop, flooring: ICONS.box, extras: ICONS.sun, kitchen: ICONS.pizza }[k.id], pressed: this.kind() === k.id, action: () => this.selectKind(k.id) })),
       { id: 'prev', label: 'Prev store', icon: ICONS.left, disabled: list.length < 2, action: () => this.storeId.set(list[(i - 1 + list.length) % list.length].id) },
       { id: 'next', label: 'Next store', icon: ICONS.right, disabled: list.length < 2, action: () => this.storeId.set(list[(i + 1) % list.length].id) },
-      { id: 'room', label: 'Restaurant', icon: ICONS.restaurant, action: () => this.ui.open({ kind: 'interior', restaurantId: this.restaurantId() }) },
+      { id: 'room', label: 'Place items', icon: ICONS.restaurant, action: () => (this.lastBought() ? this.placeNow(this.lastBought()!) : this.openRoom()) },
     ];
   });
 
@@ -220,8 +229,21 @@ export class StoreScreenComponent {
 
   protected buy(it: CatalogItem): void {
     const n = this.qty(it.id);
-    if (this.game.buyToStorage(this.restaurantId(), it.id, n)) this.message.set(`${n} × ${it.name} delivered to storage. Place them in the restaurant view.`);
-    else this.message.set('Not enough cash.');
+    if (this.game.buyToStorage(this.restaurantId(), it.id, n)) {
+      this.message.set(`${n} × ${it.name} delivered to storage.`);
+      this.lastBought.set(it.id);
+    } else {
+      this.message.set('Not enough cash.');
+    }
+  }
+
+  /** Opens the restaurant view with the piece just bought picked up, ready to place. */
+  protected placeNow(itemId: string): void {
+    this.ui.open({ kind: 'interior', restaurantId: this.restaurantId(), placeItemId: itemId });
+  }
+
+  protected openRoom(): void {
+    this.ui.open({ kind: 'interior', restaurantId: this.restaurantId() });
   }
 
   protected layFloor(id: string): void {

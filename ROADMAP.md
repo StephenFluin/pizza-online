@@ -128,6 +128,7 @@ describes the systems being reproduced (in our own code, text and art).
 - [x] Training courses for cooking, serving and management
 - [x] Staff events with three-choice dialogs (late, sick, raise, quitting, theft)
 - [x] Managers who run a daily routine (shopping, prices, staff morale, alerts)
+- [x] Manager settings: hiring (minimum cooks and waiters, wage limit), shopping, pricing, incidents
 
 ### Phase 14 – Characters
 

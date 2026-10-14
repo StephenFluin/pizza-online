@@ -2,8 +2,8 @@ import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } 
 import { PortraitComponent } from '../characters/portrait';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
-import { Staff, StaffRole, formatMoney } from '../game/model';
-import { COURSES, Course, ROLE_LABEL, ROLE_STAT, effectiveSkill, staffLook } from '../game/staff';
+import { ManagerSettings, Staff, StaffRole, formatMoney } from '../game/model';
+import { COURSES, Course, ROLE_LABEL, ROLE_STAT, activeManager, defaultManagerSettings, effectiveSkill, staffLook } from '../game/staff';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 
@@ -28,6 +28,29 @@ type Filter = StaffRole | 'all';
             }
           </div>
         </header>
+
+        <section class="manager" aria-labelledby="manager-title">
+          <h3 id="manager-title">Manager</h3>
+          @if (manager(); as mgr) {
+            @let ms = settings()!;
+            <p><b>{{ mgr.name }}</b> runs {{ r.name }} for you (management {{ mgr.management }}).</p>
+            <div class="settings">
+              <label class="check"><input type="checkbox" [checked]="ms.hire" (change)="set({ hire: $any($event.target).checked })" /> Hire cooks and waiters when we're short</label>
+              <div class="sub" [class.off]="!ms.hire">
+                <label>At least <input type="number" min="0" max="6" [value]="ms.minCooks" (change)="setNumber('minCooks', $any($event.target).valueAsNumber, 0, 6)" [disabled]="!ms.hire" aria-label="Minimum cooks" /> cooks</label>
+                <label>and <input type="number" min="0" max="6" [value]="ms.minWaiters" (change)="setNumber('minWaiters', $any($event.target).valueAsNumber, 0, 6)" [disabled]="!ms.hire" aria-label="Minimum waiters" /> waiters</label>
+                <label>paying up to <input class="wide" type="number" min="500" max="20000" step="100" [value]="ms.maxWage" (change)="setNumber('maxWage', $any($event.target).valueAsNumber, 500, 20000)" [disabled]="!ms.hire" aria-label="Highest monthly wage" /> a month</label>
+              </div>
+              <label class="check"><input type="checkbox" [checked]="ms.shopping" (change)="set({ shopping: $any($event.target).checked })" /> Do the shopping (top up menu ingredients each morning)</label>
+              <label class="check"><input type="checkbox" [checked]="ms.prices" (change)="set({ prices: $any($event.target).checked })" /> Adjust prices (up when busy, down when quiet)</label>
+              <label class="check"><input type="checkbox" [checked]="ms.incidents" (change)="set({ incidents: $any($event.target).checked })" /> Handle late arrivals, sick days and petty theft without asking me</label>
+            </div>
+          } @else if (managerAway()) {
+            <p>Your manager is away at the moment, so nothing is delegated until they're back.</p>
+          } @else {
+            <p>No manager. Hire one from the job market below to delegate hiring, shopping, pricing and day-to-day staff matters.</p>
+          }
+        </section>
 
         <div class="cols">
           <section aria-labelledby="team-title">
@@ -103,6 +126,14 @@ type Filter = StaffRole | 'all';
     .plate { font-family: var(--font-lcd); font-size: 1.2rem; text-transform: uppercase; padding: 2px 10px; color: #2b1d0e; font-weight: 400;
       background: linear-gradient(180deg, #ffe08a, #e0b23c); border: 3px solid; border-color: #b07a2a #5c3a12 #5c3a12 #b07a2a; border-radius: 2px; }
     .plate[aria-checked='true'] { background: linear-gradient(180deg, #fff3c4, #f2c14e); outline: 2px solid #7a4a1c; }
+    .manager { background: #fffaf0; border: 2px solid var(--line); padding: 8px 10px; }
+    .manager p { margin: 0 0 6px; }
+    .settings { display: grid; gap: 4px; }
+    .check { display: flex; gap: 6px; align-items: center; }
+    .sub { display: flex; flex-wrap: wrap; gap: 4px 10px; padding-left: 24px; font-size: 0.9rem; }
+    .sub.off { opacity: 0.5; }
+    .sub input { width: 52px; font: inherit; padding: 0 4px; }
+    .sub input.wide { width: 80px; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
     h3 { margin: 0 0 6px; }
     .people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -149,6 +180,15 @@ export class StaffScreenComponent {
     const list = this.mine();
     return list.find((r) => r.id === this.chosenId()) ?? list[0] ?? null;
   }, { equal: () => false });
+  protected readonly manager = computed(() => {
+    const r = this.restaurant();
+    return r ? (activeManager(r) ?? null) : null;
+  });
+  protected readonly managerAway = computed(() => !!this.restaurant()?.staff.some((s) => s.role === 'manager'));
+  protected readonly settings = computed(() => {
+    const r = this.restaurant();
+    return r && this.manager() ? { ...defaultManagerSettings(cityDef(r.cityId).costOfLiving), ...r.managerSettings } : null;
+  });
   protected readonly cityName = computed(() => cityDef(this.restaurant()?.cityId ?? 'rome').name);
   private readonly col = computed(() => cityDef(this.restaurant()?.cityId ?? 'rome').costOfLiving);
   protected readonly cash = computed(() => this.game.human()?.cash ?? 0);
@@ -193,6 +233,15 @@ export class StaffScreenComponent {
 
   constructor() {
     inject(DestroyRef).onDestroy(this.shell.register(this, { lines: this.lines, tools: this.tools }));
+  }
+
+  protected set(change: Partial<ManagerSettings>): void {
+    const r = this.restaurant();
+    if (r) this.game.updateManagerSettings(r.id, change);
+  }
+
+  protected setNumber(key: 'minCooks' | 'minWaiters' | 'maxWage', value: number, min: number, max: number): void {
+    if (Number.isFinite(value)) this.set({ [key]: Math.max(min, Math.min(max, Math.round(value))) });
   }
 
   protected look(s: Staff) {

@@ -1,7 +1,8 @@
 import { Look } from './characters';
 import { randomLook } from './contacts';
 import { CITIES, FIRST_NAMES, LAST_NAMES, cityDef } from './data';
-import { GameState, Restaurant, Staff, StaffEvent, StaffRole } from './model';
+import { GameState, ManagerSettings, Restaurant, Staff, StaffEvent, StaffRole } from './model';
+import { fairPrice, recipeCost } from './recipes';
 import { statsOf } from './owner-stats';
 import { Rng } from './rng';
 
@@ -162,6 +163,86 @@ export function startCourse(s: Staff, course: Course): void {
   s.course = { stat: course.stat, level: course.level, daysLeft: course.days };
 }
 
+// ---- Managers ----------------------------------------------------------------------
+
+export function defaultManagerSettings(costOfLiving: number): ManagerSettings {
+  return { hire: true, minCooks: 1, minWaiters: 1, maxWage: Math.round((3000 * costOfLiving) / 100) * 100, shopping: true, prices: false, incidents: true };
+}
+
+export function managerSettings(r: Restaurant): ManagerSettings {
+  return (r.managerSettings ??= defaultManagerSettings(cityDef(r.cityId).costOfLiving));
+}
+
+/** The working manager of a restaurant, if any. */
+export function activeManager(r: Restaurant): Staff | undefined {
+  return r.staff.find((s) => s.role === 'manager' && isAvailable(s));
+}
+
+const MAX_PER_ROLE = 6;
+
+/**
+ * A manager's morning: hire cooks and waiters when the team is below the
+ * owner's minimum or guests were lost to slow service, and every few days
+ * nudge prices up when busy and down when quiet.
+ */
+function managerRoutine(st: GameState, r: Restaurant, manager: Staff): void {
+  const settings = managerSettings(r);
+  const col = cityDef(r.cityId).costOfLiving;
+  const y = r.lastDay;
+
+  if (settings.hire) {
+    for (const role of ['cook', 'waiter'] as const) {
+      const have = r.staff.filter((s) => s.role === role).length;
+      const lost = role === 'cook' ? y.lostKitchen : y.lostFloor;
+      const minimum = role === 'cook' ? settings.minCooks : settings.minWaiters;
+      const wanted = Math.min(MAX_PER_ROLE, Math.max(minimum, have + (lost > 10 ? 1 : 0)));
+      if (have >= wanted || r.staff.length >= 12) continue;
+      const hire = pickCandidate(jobMarket(st, r.cityId), role, settings.maxWage, manager.management);
+      if (!hire) {
+        addNews(st, `${manager.name} couldn't find a ${role} at ${r.name} for under $${settings.maxWage} a month.`);
+        continue;
+      }
+      st.jobMarket[r.cityId] = st.jobMarket[r.cityId].filter((s) => s.id !== hire.id);
+      r.staff.push(hire);
+      addNews(st, `${manager.name} hired ${hire.name} as a ${role} at ${r.name} for $${hire.wagePerMonth} a month.`);
+    }
+  }
+
+  if (settings.prices && st.day % 3 === 0 && y.capacity > 0) {
+    const city = st.cities.find((c) => c.id === r.cityId);
+    const district = city?.districts[city.lots[r.lotId].district];
+    if (!district) return;
+    const fair = fairPrice(district, col);
+    const busy = y.turnedAway > y.customers * 0.25;
+    const quiet = y.turnedAway === 0 && y.customers / y.capacity < 0.35;
+    if (!busy && !quiet) return;
+    for (const m of r.menu) {
+      const recipe = st.recipes.find((x) => x.id === m.recipeId);
+      const floor = Math.max(fair * 0.6, recipe ? recipeCost(recipe) * col * 1.5 : 0);
+      const next = m.price * (busy ? 1.05 : 0.95);
+      m.price = Math.round(Math.max(floor, Math.min(fair * 1.5, next)) * 2) / 2;
+    }
+    addNews(st, `${manager.name} ${busy ? 'raised' : 'lowered'} prices at ${r.name} a little.`);
+  }
+}
+
+/** The best value candidate within budget; less skilled managers judge people less reliably. */
+function pickCandidate(market: Staff[], role: StaffRole, maxWage: number, management: number): Staff | null {
+  const noise = ((100 - management) / 100) * 0.6;
+  let best: Staff | null = null;
+  let bestScore = -Infinity;
+  for (const s of market) {
+    if (s.role !== role || s.wagePerMonth > maxWage) continue;
+    const value = (effectiveSkill(s) * 1000) / s.wagePerMonth;
+    const score = value * (1 + (Math.random() - 0.5) * noise);
+    if (score > bestScore) {
+      bestScore = score;
+      best = s;
+    }
+  }
+  return best;
+}
+
 // ---- Daily routine and incidents ------------------------------------------------
 
 const EVENT_TEXT = {
@@ -176,7 +257,8 @@ const EVENT_TEXT = {
 export function staffMorning(st: GameState): void {
   for (const r of st.restaurants) {
     const owner = st.players.find((p) => p.id === r.ownerId);
-    const manager = r.staff.find((s) => s.role === 'manager' && isAvailable(s));
+    const manager = activeManager(r);
+    const delegate = !!manager && managerSettings(r).incidents;
     const y = r.lastDay;
     const overloaded = y.lostKitchen + y.lostFloor > Math.max(5, y.customers * 0.15);
     for (const s of [...r.staff]) {
@@ -203,12 +285,14 @@ export function staffMorning(st: GameState): void {
       if (manager && s !== manager) m += manager.personality / 60;
       s.motivation = clampStat(m);
       s.health = clampStat(s.health + (Math.random() - 0.45) * 2);
-      if (owner?.isHuman) maybeIncident(st, r, s, !!manager && s !== manager);
+      if (owner?.isHuman) maybeIncident(st, r, s, delegate && s !== manager);
     }
+    if (owner?.isHuman && manager) managerRoutine(st, r, manager);
   }
 }
 
 function addNews(st: GameState, text: string): void {
+  if (st.messages.at(-1)?.text === text) return;
   st.messages.push({ day: st.day, text });
 }
 

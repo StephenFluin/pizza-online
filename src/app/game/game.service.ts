@@ -5,11 +5,11 @@ import { createRivals, runAiWeek } from './ai';
 import { Contest, donate, judgeContest } from './awards';
 import { InsuranceType, repayLoan, takeLoan } from './insurance';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
-import { Course, jobMarket, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
+import { Course, jobMarket, managerSettings, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
 import { vendorById, vendorPrice } from './vendors';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
-import { AdCampaign, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, Lot, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
+import { AdCampaign, CLOSE_MINUTE, ManagerSettings, DAYS_PER_MONTH, GameState, Lot, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
 import { deserialize, loadFromSlot, saveToSlot } from './saves';
 import { checkOutcome } from './world';
 import { addLedger, addMessage, buyStock, endDay, openRestaurantAt, simulateHour, startDay } from './simulation';
@@ -289,9 +289,18 @@ export class GameService {
       const person = market.find((s) => s.id === staff.id) ?? staff;
       st.jobMarket[r.cityId] = market.filter((s) => s.id !== staff.id);
       r.staff.push(person);
+      if (person.role === 'manager') managerSettings(r);
       error = null;
     });
     return error;
+  }
+
+  /** Changes what a restaurant's manager may do. */
+  updateManagerSettings(restaurantId: number, change: Partial<ManagerSettings>): void {
+    this.mutate((st) => {
+      const r = st.restaurants.find((x) => x.id === restaurantId);
+      if (r) r.managerSettings = { ...managerSettings(r), ...change };
+    });
   }
 
   /** Sends a staff member on a training course. */

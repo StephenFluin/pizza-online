@@ -6,7 +6,7 @@ import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popu
 import { cityLifeMorning, cityPrestige } from './awards';
 import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
-import { effectiveSkill, isAvailable, staffMorning } from './staff';
+import { activeManager, effectiveSkill, isAvailable, managerSettings, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
@@ -280,8 +280,8 @@ export function startDay(state: GameState): void {
     }
   }
   deliverOrders(state);
-  // Managers do the shopping even without a standing order.
-  for (const r of state.restaurants) if (r.autoRestock || r.staff.some((s) => s.role === 'manager' && isAvailable(s))) restock(state, r);
+  // Managers do the shopping even without a standing order, unless told not to.
+  for (const r of state.restaurants) if (r.autoRestock || (activeManager(r) && managerSettings(r).shopping)) restock(state, r);
   staffMorning(state);
   morningRisks(state);
   morningNews(state);

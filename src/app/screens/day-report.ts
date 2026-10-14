@@ -96,7 +96,7 @@ import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 
       <footer class="foot">
         <label class="check"><input type="checkbox" [checked]="game.reportEachDay()" (change)="game.reportEachDay.set($any($event.target).checked)" /> Show this report every evening</label>
-        <button type="button" class="continue" (click)="continue()">Open tomorrow</button>
+        <button type="button" class="continue" (click)="continue()">Next day</button>
       </footer>
     </div>
   `,

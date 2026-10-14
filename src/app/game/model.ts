@@ -89,6 +89,22 @@ export interface Staff {
   daysAway?: number;
 }
 
+/** Tasks the owner delegates to a restaurant's manager. */
+export interface ManagerSettings {
+  /** Hire cooks and waiters from the job market when short-staffed. */
+  hire: boolean;
+  minCooks: number;
+  minWaiters: number;
+  /** Highest monthly wage the manager may offer a new hire. */
+  maxWage: number;
+  /** Keep menu ingredients stocked from the preferred vendor. */
+  shopping: boolean;
+  /** Raise prices when busy and lower them when quiet. */
+  prices: boolean;
+  /** Deal with late arrivals, sick days and petty theft without asking. */
+  incidents: boolean;
+}
+
 /** A staff incident waiting for the owner's decision (three possible responses). */
 export interface StaffEvent {
   id: number;
@@ -151,6 +167,8 @@ export interface Restaurant {
   popularity: Popularity;
   /** Days the restaurant stays shut (after a fire). */
   closedDays?: number;
+  /** What the restaurant's manager may do on the owner's behalf. */
+  managerSettings?: ManagerSettings;
   /** Stats for the day in progress and the last finished day. */
   today: DayStats;
   lastDay: DayStats;

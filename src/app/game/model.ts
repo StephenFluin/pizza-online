@@ -10,9 +10,19 @@ export interface Tile {
   variant: number;
 }
 
+/** The six customer groups every district is made of. */
+export type CustomerGroup = 'children' | 'young' | 'blueCollar' | 'whiteCollar' | 'business' | 'seniors';
+
 export interface District {
   id: number;
   name: string;
+  /** Share of residents in each customer group (sums to 1). */
+  groupMix: Record<CustomerGroup, number>;
+  /** Minutes guests here are prepared to wait for their pizza. */
+  serviceMinutes: number;
+  /** How many classic pizzas, and how many house creations, locals like to see on a menu. */
+  desiredStandard: number;
+  desiredOwn: number;
   /** Residents living in the district. */
   population: number;
   /** 0 (poor) .. 1 (rich). Rich districts pay more and expect better food. */
@@ -101,11 +111,29 @@ export interface Restaurant {
   /** Top stock up to `restockTarget` portions per used ingredient each morning. */
   autoRestock: boolean;
   restockTarget: number;
+  /** Popularity components, refreshed every hour while open. */
+  popularity: Popularity;
   /** Stats for the day in progress and the last finished day. */
   today: DayStats;
   lastDay: DayStats;
   /** Finished days, newest last, for trends in the end-of-day report. */
   history: DayStats[];
+}
+
+/** A restaurant's popularity, built from the same components as the original (in points). */
+export interface Popularity {
+  waiting: number;
+  menu: number;
+  advertising: number;
+  stars: number;
+  fulfilment: number;
+  events: number;
+  total: number;
+  /** Estimated wait in minutes, and what the district expects. */
+  waitMinutes: number;
+  expectedMinutes: number;
+  /** 0–5 stars from reputation. */
+  starCount: number;
 }
 
 export interface DayStats {

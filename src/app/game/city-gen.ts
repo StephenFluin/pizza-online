@@ -1,5 +1,5 @@
 import { CityDef, INGREDIENTS, districtNames } from './data';
-import { CityMap, District, Lot, Tile } from './model';
+import { CityMap, CustomerGroup, District, Lot, Tile } from './model';
 import { Rng, hashString } from './rng';
 
 export const CITY_WIDTH = 64;
@@ -98,7 +98,32 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
     for (const ing of INGREDIENTS) {
       tastes[ing.id] = def.favourites.includes(ing.id) ? rng.range(0.4, 0.9) : rng.range(-0.5, 0.4);
     }
-    return { id: i, name: names[i], population: 0, wealth: rng.range(0.1, 1), tastes, cx: c.x, cy: c.y };
+    const wealth = rng.range(0.1, 1);
+    // Wealthier districts have more business and office workers, poorer ones more families and manual workers.
+    const raw: Record<CustomerGroup, number> = {
+      children: rng.range(0.6, 1.4) * (1.3 - wealth * 0.6),
+      young: rng.range(0.6, 1.6),
+      blueCollar: rng.range(0.5, 1.3) * (1.6 - wealth * 1.2),
+      whiteCollar: rng.range(0.5, 1.3) * (0.6 + wealth),
+      business: rng.range(0.3, 1.2) * (0.2 + wealth * 1.6),
+      seniors: rng.range(0.5, 1.5),
+    };
+    const sum = Object.values(raw).reduce((n, v) => n + v, 0);
+    const groupMix = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, Math.round((v / sum) * 1000) / 1000])) as Record<CustomerGroup, number>;
+    return {
+      id: i,
+      name: names[i],
+      population: 0,
+      wealth,
+      groupMix,
+      // Busy, business-heavy districts are less patient.
+      serviceMinutes: Math.round(20 - groupMix.business * 25 - rng.range(0, 4)),
+      desiredStandard: rng.int(2, 5),
+      desiredOwn: rng.int(0, 3),
+      tastes,
+      cx: c.x,
+      cy: c.y,
+    };
   });
   for (const t of tiles) {
     if (t.kind === 'building') districts[t.district].population += rng.int(60, 140) * (t.variant + 1);

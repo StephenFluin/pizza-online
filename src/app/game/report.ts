@@ -85,6 +85,15 @@ export function reviewRestaurant(st: GameState, r: Restaurant): RestaurantReview
     findings.push({ tone: 'bad', text: `Lost ${money(profit)} after ingredients (${money(d.foodCost)}), rent and wages (${money(overhead)} a day).` });
   }
 
+  const pop = r.popularity;
+  if (pop && pop.waiting < -5) {
+    findings.push({ tone: 'bad', text: `Guests waited about ${pop.waitMinutes} minutes but locals expect ${pop.expectedMinutes}. More staff, ovens or tables would speed things up.` });
+  } else if (pop && pop.waiting > 10) {
+    findings.push({ tone: 'good', text: `Quick service: about ${pop.waitMinutes} minutes against an expected ${pop.expectedMinutes}.` });
+  }
+  if (pop && pop.menu < -5) {
+    findings.push({ tone: 'bad', text: 'Locals want more choice: keep at least three classic pizzas on the menu, plus some house creations.' });
+  }
   if (d.lostKitchen > 0) {
     const cookRate = cooks.reduce((n, s) => n + COOK_RATE * (0.6 + s.skill * 0.8), 0);
     const advice = cookRate < r.kitchenCapacity ? 'Hire another cook.' : 'Buy another oven, and a prep counter for every two ovens.';

@@ -35,7 +35,8 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
       @switch (tab()) {
         @case ('overview') {
           <dl>
-            <dt>Reputation</dt><dd><meter min="0" max="1" [value]="r.reputation" [attr.aria-label]="'Reputation'"></meter> {{ pct(r.reputation) }}</dd>
+            <dt>Reputation</dt><dd><meter min="0" max="1" [value]="r.reputation" [attr.aria-label]="'Reputation'"></meter> {{ pct(r.reputation) }} · {{ stars() }}</dd>
+            <dt>Popularity</dt><dd><b>{{ signed(r.popularity.total) }}</b> points</dd>
             <dt>Yesterday</dt><dd>{{ r.lastDay.customers }} guests · {{ money(r.lastDay.revenue) }}</dd>
             <dt>Turned away</dt><dd>{{ r.lastDay.turnedAway }}</dd>
             <dt>Today so far</dt><dd>{{ r.today.customers }} guests · {{ money(r.today.revenue) }}</dd>
@@ -45,6 +46,16 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
             <dt>Atmosphere</dt><dd>{{ decorName() }}</dd>
             <dt>Premises</dt><dd>{{ r.owned ? 'Owned' : 'Rented' }}</dd>
           </dl>
+          <table class="pop">
+            <caption>Popularity breakdown</caption>
+            <tbody>
+              <tr><th scope="row">Waiting time ({{ r.popularity.waitMinutes }} of {{ r.popularity.expectedMinutes }} min)</th><td>{{ signed(r.popularity.waiting) }}</td></tr>
+              <tr><th scope="row">Menu choice</th><td>{{ signed(r.popularity.menu) }}</td></tr>
+              <tr><th scope="row">Advertising</th><td>{{ signed(r.popularity.advertising) }}</td></tr>
+              <tr><th scope="row">Star rating</th><td>{{ signed(r.popularity.stars) }}</td></tr>
+              <tr><th scope="row">Demand met</th><td>{{ signed(r.popularity.fulfilment) }}</td></tr>
+            </tbody>
+          </table>
           @if (warning(); as w) {
             <p class="warn" role="status">{{ w }}</p>
           }
@@ -117,6 +128,11 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
     .price input, .qty { width: 64px; font: inherit; padding: 2px 4px; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
     th, td { text-align: left; padding: 3px 4px; border-top: 1px solid var(--line); }
+    .pop { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 0.9rem; }
+    .pop caption { text-align: left; font-weight: 600; }
+    .pop th { text-align: left; font-weight: 400; }
+    .pop td { text-align: right; font-variant-numeric: tabular-nums; }
+    .pop th, .pop td { border-top: 1px solid var(--line); padding: 2px 0; }
     .warn { background: #fff0c2; border-left: 4px solid #b7791f; padding: 6px 8px; }
     .close { margin-top: 8px; display: block; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -202,6 +218,15 @@ export class RestaurantPanelComponent {
     this.tab.set(t.id);
     (ev.currentTarget as HTMLElement).parentElement?.querySelector<HTMLElement>(`#tab-${t.id}`)?.focus();
     ev.preventDefault();
+  }
+
+  protected readonly stars = computed(() => {
+    const n = this.restaurant().popularity.starCount;
+    return n ? '★'.repeat(n) + '☆'.repeat(5 - n) : 'no stars yet';
+  });
+
+  protected signed(n: number): string {
+    return n > 0 ? `+${n}` : String(n);
   }
 
   protected pct(v: number): string {

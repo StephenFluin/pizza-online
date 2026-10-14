@@ -1,8 +1,7 @@
 import { STANDARD_RECIPES, ingredient } from './data';
-import { Cut, District, Recipe, Topping } from './model';
+import { CustomerGroup, Cut, District, Recipe, Topping } from './model';
 
-/** The six customer groups every district is made of. */
-export type CustomerGroup = 'children' | 'young' | 'blueCollar' | 'whiteCollar' | 'business' | 'seniors';
+export type { CustomerGroup } from './model';
 
 export const CUSTOMER_GROUPS: { id: CustomerGroup; label: string }[] = [
   { id: 'children', label: 'Children' },
@@ -234,4 +233,31 @@ function groupPopularity(s: Omit<PizzaStats, 'groups'>, t: GroupTaste): number {
   const quality =
     s.appearance * t.appearance + s.refinement * t.refinement + s.normality * t.normality + ((s.trend + 100) / 2) * t.trend + s.imitation * t.imitation;
   return Math.round(flavour * (1 - qualityWeight) + quality);
+}
+
+/** Bumped when district tastes shift, so cached stats (and their trend) are recomputed. */
+let statsEpoch = 0;
+export function invalidatePizzaStats(): void {
+  statsEpoch++;
+}
+
+const statsCache = new WeakMap<object, WeakMap<object, { epoch: number; stats: PizzaStats }>>();
+const NO_CITY: District[] = [];
+
+/** pizzaStats with caching per recipe object and city; recipes are replaced (not mutated) when edited. */
+export function cachedPizzaStats(recipe: Recipe, districts: District[] = NO_CITY): PizzaStats {
+  let perCity = statsCache.get(recipe);
+  if (!perCity) statsCache.set(recipe, (perCity = new WeakMap()));
+  const hit = perCity.get(districts);
+  if (hit && hit.epoch === statsEpoch) return hit.stats;
+  const stats = pizzaStats(recipe, districts);
+  perCity.set(districts, { epoch: statsEpoch, stats });
+  return stats;
+}
+
+/** How much a district's mix of customer groups likes a recipe, 0..1. */
+export function districtGroupScore(stats: PizzaStats, district: District): number {
+  let score = 0;
+  for (const g of CUSTOMER_GROUPS) score += (district.groupMix?.[g.id] ?? 1 / 6) * stats.groups[g.id];
+  return score / 100;
 }

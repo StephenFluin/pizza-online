@@ -1,6 +1,6 @@
 import { BASE_COST, INGREDIENTS, ingredient } from './data';
 import { Cut, District, Recipe, Topping } from './model';
-import { pizzaStats, toppingWeights } from './pizza-stats';
+import { cachedPizzaStats, districtGroupScore, toppingWeights } from './pizza-stats';
 
 /** Stock is counted in units of 100 g. */
 export const GRAMS_PER_UNIT = 100;
@@ -29,7 +29,7 @@ export function recipeCost(recipe: Recipe): number {
  * finely they're cut and whether it's a sensible pizza, plus sauce and cheese.
  */
 export function recipeQuality(recipe: Recipe): number {
-  const s = pizzaStats(recipe);
+  const s = cachedPizzaStats(recipe);
   const craft = (s.appearance * 0.45 + s.refinement * 0.15 + s.normality * 0.4) / 100;
   const base = 0.8 + (recipe.sauce ? 0.1 : 0) + (recipe.cheese ? 0.1 : 0);
   return clamp01(craft * base);
@@ -53,17 +53,20 @@ export function fairPrice(district: District, costOfLiving: number): number {
 }
 
 /**
- * Appeal of one menu item to a district, 0..~1.5. Rich districts care more about
- * quality, poorer districts more about price.
+ * Appeal of one menu item to a district, 0..~1.5: how much the district's
+ * customer groups like it, its craft quality, how fashionable its main
+ * ingredients are in the city, and its price against local incomes (poorer
+ * districts are more price sensitive).
  */
-export function itemAppeal(recipe: Recipe, price: number, district: District, costOfLiving: number): number {
+export function itemAppeal(recipe: Recipe, price: number, district: District, costOfLiving: number, cityDistricts?: District[]): number {
+  const stats = cachedPizzaStats(recipe, cityDistricts);
+  const groups = districtGroupScore(stats, district);
   const quality = recipeQuality(recipe);
-  const taste = (recipeTaste(recipe, district) + 1) / 2;
-  const qWeight = 0.3 + district.wealth * 0.3;
-  const food = quality * qWeight + taste * (1 - qWeight);
+  const food = groups * 0.6 + quality * 0.4;
+  const trend = 1 + stats.trend / 300;
   const ratio = fairPrice(district, costOfLiving) / Math.max(0.5, price);
   const priceSensitivity = 1.6 - district.wealth;
-  return food * Math.pow(ratio, priceSensitivity);
+  return food * trend * Math.pow(ratio, priceSensitivity);
 }
 
 export function clamp01(v: number): number {

@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { ingredient } from '../game/data';
+import { CUSTOMER_GROUPS } from '../game/pizza-stats';
 import { GameService } from '../game/game.service';
 import { formatMoney } from '../game/model';
 import { RestaurantPanelComponent } from './restaurant-panel';
@@ -56,6 +57,9 @@ import { UiService } from '../game/ui.service';
           <dl>
             <dt>Residents</dt><dd>{{ d.population.toLocaleString('en-US') }}</dd>
             <dt>Wealth</dt><dd>{{ wealthLabel() }}</dd>
+            <dt>Mostly</dt><dd>{{ groupMix() }}</dd>
+            <dt>Patience</dt><dd>{{ d.serviceMinutes }} minutes</dd>
+            <dt>Menu</dt><dd>wants {{ d.desiredStandard }} classics, {{ d.desiredOwn }} house pizzas</dd>
             <dt>Loves</dt><dd>{{ favourites() }}</dd>
             <dt>Dislikes</dt><dd>{{ dislikes() }}</dd>
           </dl>
@@ -110,6 +114,15 @@ export class LotPanelComponent {
       .sort((a, b) => b[1] - a[1])
       .map(([id]) => ingredient(id).name),
   );
+  protected readonly groupMix = computed(() => {
+    const mix = this.district()?.groupMix;
+    if (!mix) return '';
+    return CUSTOMER_GROUPS.map((g) => ({ label: g.label.toLowerCase(), v: mix[g.id] }))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 3)
+      .map((g) => `${g.label} ${Math.round(g.v * 100)}%`)
+      .join(', ');
+  });
   protected readonly favourites = computed(() => this.rankedTastes().slice(0, 3).join(', '));
   protected readonly dislikes = computed(() => this.rankedTastes().slice(-2).join(', '));
   protected readonly freeLots = computed(() => (this.game.city()?.lots ?? []).filter((l) => l.restaurantId === null));

@@ -54,7 +54,11 @@ export class GameScreenComponent {
     afterNextRender(() => destroyRef.onDestroy(this.game.startLoop()));
     // When a trading day ends, show the full-screen report.
     effect(() => {
-      if (this.game.dayReport() !== null) untracked(() => this.ui.open({ kind: 'report' }));
+      const pending = this.game.dayReport() !== null;
+      untracked(() => {
+        if (pending) this.ui.open({ kind: 'report' });
+        else if (this.ui.dialog()?.kind === 'report') this.ui.close();
+      });
     });
   }
 }

@@ -1,7 +1,7 @@
 import { CITIES } from './data';
 import { generateCity } from './city-gen';
 import { applyRoom, starterLayout } from './furniture';
-import { emptyStats } from './simulation';
+import { emptyPopularity, emptyStats } from './simulation';
 import { District, GameState, formatDate } from './model';
 
 /**
@@ -51,7 +51,8 @@ export function deserialize(text: string): GameState {
     const city = generateCity(def, st.seed);
     const saved = st.cities.find((c) => c.id === def.id);
     if (saved) {
-      city.districts = saved.districts;
+      // Older saves lack the customer-group fields; take them from the regenerated city.
+      city.districts = saved.districts.map((d, i) => ({ ...city.districts[i], ...d, groupMix: d.groupMix ?? city.districts[i].groupMix, serviceMinutes: d.serviceMinutes ?? city.districts[i].serviceMinutes, desiredStandard: d.desiredStandard ?? city.districts[i].desiredStandard, desiredOwn: d.desiredOwn ?? city.districts[i].desiredOwn }));
       saved.lotRestaurants.forEach((rid, i) => {
         if (city.lots[i]) city.lots[i].restaurantId = rid;
       });
@@ -65,6 +66,7 @@ export function deserialize(text: string): GameState {
     r.lastDay = { ...emptyStats(st.day - 1), ...r.lastDay };
     r.history ??= [];
     r.stockQuality ??= {};
+    r.popularity ??= emptyPopularity();
     r.preferredVendors ??= {};
     const lot = cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
     if (lot && !Array.isArray(r.layout)) {

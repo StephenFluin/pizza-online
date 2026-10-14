@@ -1,7 +1,8 @@
 import { PerkId, character, firstName } from './characters';
 import { INGREDIENTS, cityDef, ingredient } from './data';
 import { TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
-import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, formatMoney } from './model';
+import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
+import { invalidatePizzaStats } from './pizza-stats';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
@@ -79,6 +80,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
     const kitchen = Math.min(cooks, room.kitchenCapacity);
     const floor = r.staff.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.6 + s.skill * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
     capacity.set(r.id, { kitchen, floor, seats: room.seats * TURNOVER_PER_SEAT });
+    r.popularity = computePopularity(state, r, city);
     r.today.capacity += Math.floor(Math.min(kitchen, floor, room.seats * TURNOVER_PER_SEAT));
   }
 
@@ -93,7 +95,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
         const dist = Math.hypot(lot.x - district.cx, lot.y - district.cy);
         const best = bestItem(state, r, district, col);
         if (!best) return null;
-        const score = best.appeal * (0.5 + r.reputation) * (0.85 + r.decor * 0.12) * Math.exp(-dist / 14) * adBoost(state, r);
+        const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * Math.exp(-dist / 14);
         return { r, best, score };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0);
@@ -158,13 +160,50 @@ export function adEffectiveness(state: GameState, ownerId: number, cityId: strin
   return (owner?.ads ?? []).filter((a) => a.cityId === cityId).reduce((n, a) => n + a.effectiveness, 0);
 }
 
+export function emptyPopularity(): Popularity {
+  return { waiting: 0, menu: 0, advertising: 0, stars: 0, fulfilment: 0, events: 0, total: 0, waitMinutes: 0, expectedMinutes: 15, starCount: 0 };
+}
+
+/** Turns popularity points into a demand multiplier (100 points doubles demand). */
+export function popularityMultiplier(p: Popularity): number {
+  return Math.max(0.25, 1 + p.total / 100);
+}
+
 /**
- * Advertising multiplier for a restaurant. As in the original, half the summed
- * effectiveness of the owner's campaigns in the city counts towards popularity.
+ * A restaurant's popularity from the original's components, in our own numbers:
+ * waiting time against the district's patience, menu composition, advertising
+ * (half the campaigns' effectiveness), star rating and how much demand was met.
  */
-function adBoost(state: GameState, r: Restaurant): number {
-  const points = adEffectiveness(state, r.ownerId, r.cityId) / 2;
-  return 1 + (points / 100) * (hasPerk(state, r.ownerId, 'showman') ? 1.25 : 1);
+export function computePopularity(state: GameState, r: Restaurant, city: CityMap): Popularity {
+  const district = city.districts[city.lots[r.lotId].district];
+  const y = r.lastDay;
+  const wanted = y.customers + y.turnedAway;
+
+  // Waiting time grows steeply as the restaurant fills up.
+  const load = y.capacity > 0 ? wanted / y.capacity : 0.5;
+  const waitMinutes = Math.round(6 + 10 * Math.min(3, load) ** 2);
+  const expectedMinutes = district.serviceMinutes ?? 15;
+  const waiting = Math.round(Math.max(-30, Math.min(30, (expectedMinutes - waitMinutes) * 1.5)));
+
+  // Locals want a few classics, plus house creations beyond what they take for granted.
+  const standard = r.menu.filter((m) => state.recipes.find((x) => x.id === m.recipeId)?.ownerId === null).length;
+  const own = r.menu.length - standard;
+  let menu = standard < 3 ? -(3 - standard) * 12 : 0;
+  menu += Math.max(0, own - (district.desiredOwn ?? 1)) * 3;
+  menu += (standard - (district.desiredStandard ?? 3)) * 2;
+  menu = Math.max(-40, Math.min(20, menu));
+
+  const advertising = Math.round((adEffectiveness(state, r.ownerId, r.cityId) / 2) * (hasPerk(state, r.ownerId, 'showman') ? 1.25 : 1));
+
+  const starCount = Math.min(5, Math.floor(r.reputation * 5 + 1e-9));
+  const stars = starCount * starCount + (starCount > 0 ? 4 : 0);
+
+  const fulfilled = wanted > 0 ? (100 * y.customers) / wanted : 100;
+  const fulfilment = -Math.round((100 - fulfilled) / 6);
+
+  const events = r.popularity?.events ?? 0;
+  const total = waiting + menu + advertising + stars + fulfilment + events;
+  return { waiting, menu, advertising, stars, fulfilment, events, total, waitMinutes, expectedMinutes, starCount };
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
@@ -172,10 +211,14 @@ function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'
   for (const m of r.menu) {
     const recipe = state.recipes.find((x) => x.id === m.recipeId);
     if (!recipe) continue;
-    const appeal = itemAppeal(recipe, m.price, district, col) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1) * stockQualityFactor(r, recipe);
+    const appeal = itemAppeal(recipe, m.price, district, col, cityDistricts(state, r)) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1) * stockQualityFactor(r, recipe);
     if (!best || appeal > best.appeal) best = { recipeId: m.recipeId, price: m.price, appeal };
   }
   return best;
+}
+
+function cityDistricts(state: GameState, r: Restaurant) {
+  return state.cities.find((c) => c.id === r.cityId)?.districts;
 }
 
 /** Picks the most appealing pizza that is in stock and deducts its ingredients. */
@@ -184,7 +227,7 @@ function serveFromStock(state: GameState, r: Restaurant, district: CityMap['dist
     .map((m) => {
       const recipe = state.recipes.find((x) => x.id === m.recipeId);
       const chef = hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1;
-      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col) * chef * stockQualityFactor(r, recipe) } : null;
+      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col, cityDistricts(state, r)) * chef * stockQualityFactor(r, recipe) } : null;
     })
     .filter((o): o is NonNullable<typeof o> => o !== null)
     .sort((a, b) => b.appeal - a.appeal);
@@ -306,7 +349,9 @@ export function endDay(state: GameState): void {
     if (r.today.turnedAway > served) r.reputation = clamp01(r.reputation - 0.01);
     r.today.reputation = r.reputation;
     r.lastDay = r.today;
-    r.history = [...(r.history ?? []), r.today].slice(-HISTORY_DAYS);
+    // History keeps only the numbers (no per-pizza detail) to keep saves small; rivals keep a week.
+    const compact: DayStats = { ...r.today, pizzas: {}, missing: {} };
+    r.history = [...(r.history ?? []), compact].slice(owner?.isHuman ? -HISTORY_DAYS : -7);
     r.today = emptyStats(state.day + 1);
   }
   for (const p of state.players) {
@@ -326,6 +371,7 @@ function endMonth(state: GameState): void {
       d.tastes[up.id] = Math.min(1, d.tastes[up.id] + 0.12);
       d.tastes[down.id] = Math.max(-1, d.tastes[down.id] - 0.08);
     }
+    invalidatePizzaStats();
     if (city.id === state.currentCityId) addMessage(state, `Food trend in ${city.name}: ${up.name} is in fashion, ${down.name} is falling out of favour.`);
   }
   for (const player of state.players) {
@@ -379,11 +425,13 @@ export function openRestaurantAt(
     menu: [
       { recipeId: 'std-margherita', price: Math.round(8 * cityDef(city.id).costOfLiving) },
       { recipeId: 'std-salami', price: Math.round(9 * cityDef(city.id).costOfLiving) },
+      { recipeId: 'std-funghi', price: Math.round(9 * cityDef(city.id).costOfLiving) },
     ],
     stock: {},
     stockQuality: {},
     preferredVendors: {},
     reputation: character(owner.characterId).perk === 'charmer' ? 0.45 : 0.3,
+    popularity: emptyPopularity(),
     autoRestock: true,
     restockTarget: 250,
     today: emptyStats(st.day),

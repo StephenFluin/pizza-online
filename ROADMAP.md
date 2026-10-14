@@ -117,10 +117,9 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 12 – Demand and popularity model
 
-- [ ] Districts with a mix of the six groups, income, price and rent levels, service expectation, desired menu sizes
-- [ ] Per-pizza demand from group popularity, ingredient trends, economy and price versus income
-- [ ] Restaurant popularity components: waiting time, menu composition, advertising, stars, fulfilment, events
-- [ ] Newspaper events that start ingredient trends
+- [x] Districts with a mix of the six groups, income, price and rent levels, service expectation, desired menu sizes
+- [x] Per-pizza demand from group popularity, ingredient trends, economy and price versus income
+- [x] Restaurant popularity components: waiting time, menu composition, advertising, stars, fulfilment, events
 
 ### Phase 13 – Staff depth
 
@@ -145,7 +144,7 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 16 – City life
 
-- [ ] Daily newspaper
+- [ ] Daily newspaper, with events that start ingredient trends
 - [ ] Mayor awards and favour, pizza charts, annual pizza competition with judges
 - [ ] Social status ranks and awards
 - [ ] Economic trend per city, loan schedules, insurance

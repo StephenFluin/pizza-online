@@ -95,7 +95,6 @@ export class CityMapComponent {
     app.stage.hitArea = app.screen;
 
     this.bindInput(app);
-    app.ticker.add((ticker) => this.game.tick(ticker.deltaMS / 1000));
 
     const city = this.game.city();
     const state = this.game.state();

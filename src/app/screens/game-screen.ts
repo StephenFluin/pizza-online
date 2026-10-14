@@ -1,18 +1,20 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, afterNextRender, inject } from '@angular/core';
 import { GameService } from '../game/game.service';
 import { CityMapComponent } from '../map/city-map';
 import { HudComponent } from './hud';
+import { FinancePanelComponent } from './finance-panel';
 import { LotPanelComponent } from './lot-panel';
 
 @Component({
   selector: 'app-game-screen',
-  imports: [HudComponent, CityMapComponent, LotPanelComponent],
+  imports: [HudComponent, CityMapComponent, LotPanelComponent, FinancePanelComponent],
   template: `
     <app-hud />
     <div class="body">
       <app-city-map class="map" />
       <aside class="side">
         <app-lot-panel />
+        <app-finance-panel />
         <section class="panel news" aria-live="polite" aria-labelledby="news-title">
           <h2 id="news-title">News</h2>
           @for (m of messages(); track $index) {
@@ -38,4 +40,9 @@ import { LotPanelComponent } from './lot-panel';
 export class GameScreenComponent {
   private readonly game = inject(GameService);
   protected readonly messages = () => (this.game.state()?.messages ?? []).slice(-6).reverse();
+
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => destroyRef.onDestroy(this.game.startLoop()));
+  }
 }

@@ -1,4 +1,4 @@
-import { CityDef, INGREDIENTS, districtName } from './data';
+import { CityDef, INGREDIENTS, districtNames } from './data';
 import { CityMap, District, Lot, Tile } from './model';
 import { Rng, hashString } from './rng';
 
@@ -92,12 +92,13 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
     }
   }
 
+  const names = districtNames(districtCount, () => rng.next());
   const districts: District[] = centres.map((c, i) => {
     const tastes: Record<string, number> = {};
     for (const ing of INGREDIENTS) {
       tastes[ing.id] = def.favourites.includes(ing.id) ? rng.range(0.4, 0.9) : rng.range(-0.5, 0.4);
     }
-    return { id: i, name: districtName(i, seed % 10), population: 0, wealth: rng.range(0.1, 1), tastes, cx: c.x, cy: c.y };
+    return { id: i, name: names[i], population: 0, wealth: rng.range(0.1, 1), tastes, cx: c.x, cy: c.y };
   });
   for (const t of tiles) {
     if (t.kind === 'building') districts[t.district].population += rng.int(60, 140) * (t.variant + 1);

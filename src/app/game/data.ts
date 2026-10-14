@@ -58,10 +58,15 @@ export function cityDef(id: string): CityDef {
 const DISTRICT_PREFIXES = ['Old', 'North', 'South', 'East', 'West', 'Upper', 'Lower', 'New', 'Little', 'Market'];
 const DISTRICT_SUFFIXES = ['Town', 'Harbour', 'Hill', 'Park', 'Square', 'Quarter', 'Gardens', 'Heights', 'Side', 'Village'];
 
-export function districtName(index: number, salt: number): string {
-  const p = DISTRICT_PREFIXES[(index * 7 + salt) % DISTRICT_PREFIXES.length];
-  const s = DISTRICT_SUFFIXES[(index * 3 + salt * 5) % DISTRICT_SUFFIXES.length];
-  return `${p} ${s}`;
+/** Picks `count` distinct district names using the supplied random source. */
+export function districtNames(count: number, random: () => number): string[] {
+  const names = new Set<string>();
+  while (names.size < count) {
+    const p = DISTRICT_PREFIXES[Math.floor(random() * DISTRICT_PREFIXES.length)];
+    const s = DISTRICT_SUFFIXES[Math.floor(random() * DISTRICT_SUFFIXES.length)];
+    names.add(`${p} ${s}`);
+  }
+  return [...names];
 }
 
 export const FIRST_NAMES = ['Ada', 'Bruno', 'Carla', 'Dario', 'Elena', 'Fabio', 'Gina', 'Hugo', 'Ines', 'Jonas', 'Kira', 'Luca', 'Mia', 'Nico', 'Olga', 'Paolo', 'Rosa', 'Sven', 'Tina', 'Umberto', 'Vera', 'Wim', 'Yara', 'Zeno'];

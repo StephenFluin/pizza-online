@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, afterNextRender, inject, isDevMode } from '@angular/core';
 import { GameService } from './game/game.service';
 import { GameScreenComponent } from './screens/game-screen';
 import { NewGameComponent } from './screens/new-game';
@@ -16,4 +16,11 @@ import { NewGameComponent } from './screens/new-game';
 })
 export class App {
   protected readonly game = inject(GameService);
+
+  constructor() {
+    // Expose the game in dev builds for debugging from the console: `pizza.state()`.
+    afterNextRender(() => {
+      if (isDevMode()) (globalThis as unknown as { pizza: GameService }).pizza = this.game;
+    });
+  }
 }

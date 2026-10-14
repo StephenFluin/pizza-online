@@ -20,13 +20,13 @@ work can stop after any phase and pick up again at the next unchecked item.
 
 ## Phase 2 – Restaurants and the customer simulation
 
-- [ ] Rent or buy a lot and open a restaurant (rent, purchase price, size)
-- [ ] Restaurant panel: seating, decor level, opening hours
-- [ ] Hire and fire staff (cooks, waiters) with skill and wage
-- [ ] Ingredient stock: buy from the market, spoilage over time
-- [ ] Menu: pick recipes and set prices
-- [ ] Daily customer simulation by district (population, wealth, taste)
-- [ ] Finances ledger and a monthly report
+- [x] Rent or buy a lot and open a restaurant (rent, purchase price, size)
+- [x] Restaurant panel: reputation, daily stats, decor upgrades
+- [x] Hire and fire staff (cooks, waiters) with skill and wage
+- [x] Ingredient stock: buy from the market, spoilage over time
+- [x] Menu: pick recipes and set prices
+- [x] Daily customer simulation by district (population, wealth, taste)
+- [x] Finances ledger and a monthly report
 
 ## Phase 3 – Pizza designer and recipes
 

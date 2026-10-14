@@ -81,6 +81,11 @@ export interface Restaurant {
   stock: Record<string, number>;
   /** 0..1 reputation, rises with satisfied customers. */
   reputation: number;
+  /** Top stock up to `restockTarget` portions per used ingredient each morning. */
+  autoRestock: boolean;
+  restockTarget: number;
+  /** Stats for the day in progress and the last finished day. */
+  today: DayStats;
   lastDay: DayStats;
 }
 
@@ -88,7 +93,11 @@ export interface DayStats {
   customers: number;
   turnedAway: number;
   revenue: number;
+  /** Sum of satisfaction (0..1) over served customers. */
   satisfaction: number;
+  /** Why customers were turned away, for player feedback. */
+  noStaff: number;
+  noStock: number;
 }
 
 export interface Topping {

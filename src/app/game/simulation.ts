@@ -1,3 +1,4 @@
+import { PerkId, character, firstName } from './characters';
 import { INGREDIENTS, cityDef, ingredient } from './data';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Restaurant } from './model';
 import { clamp01, itemAppeal, recipeUsage } from './recipes';
@@ -102,10 +103,16 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
   }
 }
 
+export function hasPerk(state: GameState, ownerId: number, perk: PerkId): boolean {
+  const owner = state.players.find((p) => p.id === ownerId);
+  return !!owner && character(owner.characterId).perk === perk;
+}
+
 /** Advertising multiplier for a restaurant from its owner's campaigns in that city. */
 function adBoost(state: GameState, r: Restaurant): number {
   const owner = state.players.find((p) => p.id === r.ownerId);
-  return 1 + (owner?.ads ?? []).filter((a) => a.cityId === r.cityId).reduce((n, a) => n + a.boost, 0);
+  const boost = (owner?.ads ?? []).filter((a) => a.cityId === r.cityId).reduce((n, a) => n + a.boost, 0);
+  return 1 + boost * (hasPerk(state, r.ownerId, 'showman') ? 1.25 : 1);
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
@@ -113,7 +120,7 @@ function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'
   for (const m of r.menu) {
     const recipe = state.recipes.find((x) => x.id === m.recipeId);
     if (!recipe) continue;
-    const appeal = itemAppeal(recipe, m.price, district, col);
+    const appeal = itemAppeal(recipe, m.price, district, col) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1);
     if (!best || appeal > best.appeal) best = { price: m.price, appeal };
   }
   return best;
@@ -124,7 +131,8 @@ function serveFromStock(state: GameState, r: Restaurant, district: CityMap['dist
   const options = r.menu
     .map((m) => {
       const recipe = state.recipes.find((x) => x.id === m.recipeId);
-      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col) } : null;
+      const chef = hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1;
+      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col) * chef } : null;
     })
     .filter((o): o is NonNullable<typeof o> => o !== null)
     .sort((a, b) => b.appeal - a.appeal);
@@ -164,7 +172,8 @@ export function restock(state: GameState, r: Restaurant): void {
 }
 
 export function buyStock(state: GameState, owner: Player, r: Restaurant, id: string, portions: number): boolean {
-  const cost = ingredient(id).cost * portions * cityDef(r.cityId).costOfLiving;
+  const thrifty = character(owner.characterId).perk === 'thrifty' ? 0.9 : 1;
+  const cost = ingredient(id).cost * portions * cityDef(r.cityId).costOfLiving * thrifty;
   // Suppliers extend a small overdraft before refusing to deliver.
   if (owner.cash - cost < -OVERDRAFT) return false;
   r.stock[id] = (r.stock[id] ?? 0) + portions;
@@ -212,12 +221,12 @@ function endMonth(state: GameState): void {
   for (const player of state.players) {
     const own = state.restaurants.filter((r) => r.ownerId === player.id);
     for (const r of own) {
-      const lot = state.cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
-      if (lot && !r.owned) addLedger(player, state.day, 'Rent', -lot.rentPerMonth);
+      if (!r.owned && r.rentPerMonth > 0) addLedger(player, state.day, 'Rent', -r.rentPerMonth);
       const wages = r.staff.reduce((n, s) => n + s.wagePerMonth, 0);
       if (wages > 0) addLedger(player, state.day, 'Wages', -wages);
     }
-    if (player.loan > 0) addLedger(player, state.day, 'Loan interest', -Math.round(player.loan * 0.01));
+    const rate = character(player.characterId).perk === 'banker' ? 0.005 : 0.01;
+    if (player.loan > 0) addLedger(player, state.day, 'Loan interest', -Math.round(player.loan * rate));
     if (player.isHuman) {
       const month = player.ledger.filter((e) => e.day > state.day - DAYS_PER_MONTH);
       const net = month.reduce((n, e) => n + e.amount, 0);
@@ -227,12 +236,20 @@ function endMonth(state: GameState): void {
 }
 
 /** Opens a restaurant for any player. Returns null when the lot is taken or the owner can't pay. */
-export function openRestaurantAt(st: GameState, cityId: string, lotId: number, ownerId: number, buy: boolean): Restaurant | null {
+export function openRestaurantAt(
+  st: GameState,
+  cityId: string,
+  lotId: number,
+  ownerId: number,
+  buy: boolean,
+  /** Negotiated monthly rent or purchase price; defaults to the asking price. */
+  agreedPrice?: number,
+): Restaurant | null {
   const city = st.cities.find((c) => c.id === cityId);
   const lot = city?.lots[lotId];
   const owner = st.players.find((p) => p.id === ownerId);
   if (!city || !lot || !owner || lot.restaurantId !== null) return null;
-  const price = buy ? lot.purchasePrice : lot.rentPerMonth;
+  const price = agreedPrice ?? (buy ? lot.purchasePrice : lot.rentPerMonth);
   if (owner.cash < price) return null;
   addLedger(owner, st.day, buy ? 'Property purchase' : 'Rent deposit', -price);
   const count = st.restaurants.filter((r) => r.ownerId === ownerId).length;
@@ -241,16 +258,17 @@ export function openRestaurantAt(st: GameState, cityId: string, lotId: number, o
     ownerId,
     cityId: city.id,
     lotId,
-    name: `${owner.name}'s Pizzeria${count ? ` #${count + 1}` : ''}`,
+    name: `${firstName(owner.name)}'s Pizzeria${count ? ` #${count + 1}` : ''}`,
     owned: buy,
     decor: 0,
+    rentPerMonth: buy ? 0 : price,
     staff: [],
     menu: [
       { recipeId: 'std-margherita', price: Math.round(8 * cityDef(city.id).costOfLiving) },
       { recipeId: 'std-salami', price: Math.round(9 * cityDef(city.id).costOfLiving) },
     ],
     stock: {},
-    reputation: 0.3,
+    reputation: character(owner.characterId).perk === 'charmer' ? 0.45 : 0.3,
     autoRestock: true,
     restockTarget: 250,
     today: emptyStats(),

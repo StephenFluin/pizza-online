@@ -1,21 +1,24 @@
+import { CHARACTERS, character } from './characters';
 import { CITIES, FIRST_NAMES, LAST_NAMES, cityDef } from './data';
 import { GameState, Player, Restaurant, StaffRole } from './model';
 import { cityTaste, fairPrice } from './recipes';
 import { addLedger, openRestaurantAt } from './simulation';
 
-export const RIVALS: { name: string; color: number }[] = [
-  { name: 'Crusty Corp', color: 0x2a9d8f },
-  { name: 'Slice Brothers', color: 0xf4a261 },
-  { name: 'Nonna Lucia', color: 0x8e5bd6 },
-];
-
-export function createRivals(firstId: number, startCash: number): Player[] {
-  return RIVALS.map((r, i) => ({
+/** Picks three rival characters from the cast, never the player's own. */
+export function createRivals(firstId: number, startCash: number, exclude: string): Player[] {
+  const pool = CHARACTERS.filter((c) => c.id !== exclude);
+  const picked: typeof pool = [];
+  while (picked.length < 3) {
+    const c = pool[Math.floor(Math.random() * pool.length)];
+    if (!picked.includes(c)) picked.push(c);
+  }
+  return picked.map((c, i) => ({
     id: firstId + i,
-    name: r.name,
-    color: r.color,
+    name: c.name,
+    characterId: c.id,
+    color: c.color,
     isHuman: false,
-    cash: startCash,
+    cash: startCash + (c.perk === 'heir' ? 25000 : 0),
     loan: 0,
     ledger: [],
     ads: [],
@@ -93,7 +96,8 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
 }
 
 function hire(st: GameState, r: Restaurant, role: StaffRole): void {
-  const skill = 0.3 + Math.random() * 0.5;
+  const boss = character(st.players.find((p) => p.id === r.ownerId)?.characterId).perk === 'boss';
+  const skill = Math.min(1, 0.3 + Math.random() * 0.5 + (boss ? 0.15 : 0));
   r.staff.push({
     id: st.nextId++,
     name: `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]}`,

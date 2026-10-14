@@ -9,7 +9,8 @@ export type Dialog =
   | { kind: 'saves' }
   | { kind: 'restaurants' }
   | { kind: 'finances' }
-  | { kind: 'news' };
+  | { kind: 'news' }
+  | { kind: 'phone' };
 
 export type MapOverlay = 'none' | 'districts' | 'wealth' | 'competition';
 

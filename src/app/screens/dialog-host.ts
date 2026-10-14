@@ -7,6 +7,7 @@ import { PizzaDesignerComponent } from '../pizza/pizza-designer';
 import { BankDialogComponent } from './bank-dialog';
 import { FinancePanelComponent } from './finance-panel';
 import { NewsDialogComponent } from './news-dialog';
+import { PhoneDialogComponent } from './phone-dialog';
 import { RestaurantsDialogComponent } from './restaurants-dialog';
 import { SavesDialogComponent } from './saves-dialog';
 import { WorldDialogComponent } from './world-dialog';
@@ -15,17 +16,18 @@ const TITLES: Record<string, string> = {
   cookbook: 'Cook book',
   designer: 'Pizza designer',
   world: 'World',
-  bank: 'Bank',
+  bank: 'Advertising',
   saves: 'Save & load',
   restaurants: 'Your restaurants',
   finances: 'Finances',
   news: 'News',
+  phone: 'Telephone',
 };
 
 /** A single native modal dialog that shows whichever screen the UiService asks for. */
 @Component({
   selector: 'app-dialog-host',
-  imports: [CookbookComponent, PizzaDesignerComponent, WorldDialogComponent, BankDialogComponent, SavesDialogComponent, RestaurantsDialogComponent, FinancePanelComponent, NewsDialogComponent],
+  imports: [CookbookComponent, PizzaDesignerComponent, WorldDialogComponent, BankDialogComponent, SavesDialogComponent, RestaurantsDialogComponent, FinancePanelComponent, NewsDialogComponent, PhoneDialogComponent],
   template: `
     <dialog #dlg aria-labelledby="dialog-title" (close)="onNativeClose()" (cancel)="onNativeClose()">
       @if (ui.dialog(); as d) {
@@ -48,6 +50,9 @@ const TITLES: Record<string, string> = {
           }
           @case ('finances') {
             <app-finance-panel />
+          }
+          @case ('phone') {
+            <app-phone-dialog />
           }
           @case ('news') {
             <app-news-dialog />

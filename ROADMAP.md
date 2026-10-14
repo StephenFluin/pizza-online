@@ -58,12 +58,12 @@ Match the original game's screen structure more closely (with original art).
 
 ## Phase 6 – Characters and the phone
 
-- [ ] Character selection screen with a large cast of original procedurally drawn portraits, each with a bio and a starting perk
-- [ ] Rival chains are run by characters from the same cast
-- [ ] Phone system: every lot has a realtor; clicking "Call realtor" connects directly (no dialling)
-- [ ] Realtor calls: ask about the property, negotiate rent or price, sign the lease or purchase
-- [ ] Bank calls (loans), supplier calls (ingredient deals and deliveries), staff agency calls (hiring)
-- [ ] Buying or renting property happens only through the phone, as in the original
+- [x] Character selection screen with a large cast of original procedurally drawn portraits, each with a bio and a starting perk
+- [x] Rival chains are run by characters from the same cast
+- [x] Phone system: every lot has a realtor; clicking "Call realtor" connects directly (no dialling)
+- [x] Realtor calls: ask about the property, negotiate rent or price, sign the lease or purchase
+- [x] Bank calls (loans), supplier calls (ingredient deals and deliveries), staff agency calls (hiring)
+- [x] Buying or renting property happens only through the phone, as in the original
 
 ## Phase 7 – Restaurant interior
 

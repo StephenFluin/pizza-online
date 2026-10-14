@@ -10,10 +10,11 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  { id: 'phone', label: 'Phone', dialog: { kind: 'phone' }, icon: 'M6 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z' },
   { id: 'restaurants', label: 'Restaurants', dialog: { kind: 'restaurants' }, icon: 'M3 10h18l-2-6H5zM4 10v10h16V10M9 20v-5h6v5M3 10c0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0' },
   { id: 'cookbook', label: 'Cook book', dialog: { kind: 'cookbook' }, icon: 'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-5a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h5z' },
   { id: 'finances', label: 'Finances', dialog: { kind: 'finances' }, icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
-  { id: 'bank', label: 'Bank & ads', dialog: { kind: 'bank' }, icon: 'M3 9l9-5 9 5M5 9v9M9 9v9M15 9v9M19 9v9M3 20h18' },
+  { id: 'ads', label: 'Advertising', dialog: { kind: 'bank' }, icon: 'M3 11v2l13 5V6zM16 9a3 3 0 0 1 0 6M6 13l1 6h3l-1-5' },
   { id: 'world', label: 'World', dialog: { kind: 'world' }, icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18' },
   { id: 'news', label: 'News', dialog: { kind: 'news' }, icon: 'M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2M7 9h7M7 13h7M7 16h4' },
   { id: 'saves', label: 'Disk', dialog: { kind: 'saves' }, icon: 'M5 3h12l3 3v15H4V3zM8 3v5h8V3M7 21v-7h10v7' },

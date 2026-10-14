@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { character } from './characters';
 import { AdKind, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
 import { deserialize, loadFromSlot, saveToSlot } from './saves';
 import { checkOutcome } from './world';
@@ -63,13 +64,15 @@ export class GameService {
   /** Job applicants per restaurant id, refreshed weekly. Plain cache: read inside computeds. */
   private readonly applicantCache = new Map<number, Staff[]>();
 
-  newGame(playerName: string, cityId: string, seed = Math.floor(Math.random() * 2 ** 31)): void {
+  newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31)): void {
+    const hero = character(characterId);
     const human: Player = {
       id: 0,
-      name: playerName.trim() || 'Player',
+      name: playerName.trim() || hero.name,
+      characterId: hero.id,
       color: PLAYER_COLORS[0],
       isHuman: true,
-      cash: START_CASH,
+      cash: START_CASH + (hero.perk === 'heir' ? 25000 : 0),
       loan: 0,
       ledger: [],
       ads: [],
@@ -81,7 +84,7 @@ export class GameService {
       minute: OPEN_MINUTE - 60,
       currentCityId: cityId,
       cities: CITIES.map((def) => generateCity(def, seed)),
-      players: [human, ...createRivals(1, START_CASH)],
+      players: [human, ...createRivals(1, START_CASH, hero.id)],
       restaurants: [],
       recipes: STANDARD_RECIPES.map((r) => structuredClone(r)),
       nextId: 1,
@@ -187,9 +190,10 @@ export class GameService {
     const existing = this.applicantCache.get(r.id);
     if (existing) return existing;
     const col = cityDef(r.cityId).costOfLiving;
+    const boss = character(this.human()?.characterId).perk === 'boss';
     const list: Staff[] = [];
     for (const role of ['cook', 'cook', 'waiter', 'waiter', 'cook', 'waiter'] as StaffRole[]) {
-      const skill = Math.round(Math.random() * 100) / 100;
+      const skill = Math.round(Math.min(1, Math.random() * (boss ? 0.8 : 1) + (boss ? 0.2 : 0)) * 100) / 100;
       list.push({
         id: Math.floor(Math.random() * 1e9),
         name: `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]}`,

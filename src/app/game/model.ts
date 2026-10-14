@@ -75,6 +75,8 @@ export interface Restaurant {
   owned: boolean;
   /** 0..3 – furniture and decoration level. */
   decor: number;
+  /** Monthly rent agreed with the realtor (0 when the property is owned). */
+  rentPerMonth: number;
   staff: Staff[];
   menu: MenuItem[];
   /** Ingredient id -> portions in stock. */
@@ -137,6 +139,8 @@ export interface LedgerEntry {
 export interface Player {
   id: number;
   name: string;
+  /** Id from the character cast; decides portrait and perk. */
+  characterId: string;
   color: number;
   isHuman: boolean;
   cash: number;

@@ -251,7 +251,7 @@ export class CityMapComponent {
         const owner = st.players.find((p) => p.id === r.ownerId);
         text = `${r.name}\n${owner?.isHuman ? 'Your restaurant' : `Run by ${owner?.name}`} · ${r.lastDay.customers} guests yesterday`;
       } else {
-        text = `For rent or sale · ${lot.seats} seats\n${formatMoney(lot.rentPerMonth)}/month · ${formatMoney(lot.purchasePrice)} to buy\nClick for details`;
+        text = `For rent or sale · ${lot.seats} seats\n${formatMoney(lot.rentPerMonth)}/month · ${formatMoney(lot.purchasePrice)} to buy\nClick, then call the realtor`;
       }
     } else if (tile.kind === 'building') {
       const kinds = ['Townhouse', 'Apartments', 'Apartment block', 'Tower block'];

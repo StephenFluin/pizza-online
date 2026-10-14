@@ -3,11 +3,16 @@ import { ingredient } from '../game/data';
 import { GameService } from '../game/game.service';
 import { formatMoney } from '../game/model';
 import { RestaurantPanelComponent } from './restaurant-panel';
+import { PortraitComponent } from '../characters/portrait';
+import { character } from '../game/characters';
+import { realtorFor } from '../game/contacts';
+import { PhoneService } from '../game/phone.service';
+import { UiService } from '../game/ui.service';
 
 /** Details for the selected lot: rent/buy an empty lot, manage your own restaurant or inspect a rival's. */
 @Component({
   selector: 'app-lot-panel',
-  imports: [RestaurantPanelComponent],
+  imports: [RestaurantPanelComponent, PortraitComponent],
   template: `
     @if (lot(); as lot) {
       <section class="panel" aria-label="Selected location">
@@ -16,7 +21,12 @@ import { RestaurantPanelComponent } from './restaurant-panel';
             <app-restaurant-panel [restaurantId]="r.id" />
           } @else {
             <h2>{{ r.name }}</h2>
-            <p>A rival pizzeria run by {{ ownerName(r.ownerId) }}.</p>
+            @if (rival(); as c) {
+              <div class="agent">
+                <app-portrait [cacheKey]="'char-' + c.id" [look]="c.look" [background]="c.color" [size]="56" alt="" />
+                <p>A rival pizzeria run by <b>{{ c.name }}</b>.</p>
+              </div>
+            }
             <dl>
               <dt>Reputation</dt><dd>{{ pct(r.reputation) }}</dd>
               <dt>Yesterday</dt><dd>{{ r.lastDay.customers }} guests</dd>
@@ -29,10 +39,17 @@ import { RestaurantPanelComponent } from './restaurant-panel';
             <dt>Rent</dt><dd>{{ money(lot.rentPerMonth) }} / month</dd>
             <dt>Price</dt><dd>{{ money(lot.purchasePrice) }}</dd>
           </dl>
-          <div class="actions">
-            <button type="button" (click)="open(false)" [disabled]="cash() < lot.rentPerMonth">Rent</button>
-            <button type="button" (click)="open(true)" [disabled]="cash() < lot.purchasePrice">Buy</button>
-          </div>
+          @if (realtor(); as agent) {
+            <div class="agent">
+              <app-portrait [cacheKey]="'contact-' + agent.id" [look]="agent.look" [background]="agent.color" [size]="56" alt="" />
+              <div>
+                Handled by <b>{{ agent.name }}</b><br /><small>{{ agent.company }}</small>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" (click)="callRealtor()">Call {{ agent.name.split(' ')[0] }} to rent or buy</button>
+            </div>
+          }
         }
         @if (district(); as d) {
           <h3>District: {{ d.name }}</h3>
@@ -69,6 +86,8 @@ import { RestaurantPanelComponent } from './restaurant-panel';
     dt { font-weight: 600; }
     dd { margin: 0; }
     .actions { display: flex; gap: 8px; margin-bottom: 8px; }
+    .agent { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .agent p { margin: 0; }
     .lots { list-style: none; padding: 0; margin: 0; max-height: 36vh; overflow: auto; }
     .lots li + li { border-top: 1px solid var(--line); }
   `,
@@ -100,13 +119,26 @@ export class LotPanelComponent {
     return (st?.restaurants ?? []).filter((r) => r.ownerId === me?.id && r.cityId === st?.currentCityId);
   });
 
-  protected open(buy: boolean): void {
+  private readonly phone = inject(PhoneService);
+  private readonly ui = inject(UiService);
+  protected readonly realtor = computed(() => {
     const lot = this.lot();
-    if (lot) this.game.openRestaurant(lot.id, buy);
-  }
+    const st = this.game.state();
+    return lot && st ? realtorFor(st.currentCityId, st.seed, lot.id) : null;
+  });
+  protected readonly rival = computed(() => {
+    const r = this.restaurant();
+    const owner = r ? this.game.state()?.players.find((p) => p.id === r.ownerId) : null;
+    return owner ? character(owner.characterId) : null;
+  });
 
-  protected ownerName(id: number): string {
-    return this.game.state()?.players.find((p) => p.id === id)?.name ?? 'a rival';
+  /** Connects straight to the realtor handling this lot; no dialling needed. */
+  protected callRealtor(): void {
+    const lot = this.lot();
+    const agent = this.realtor();
+    if (!lot || !agent) return;
+    this.phone.connect(agent, lot.id);
+    this.ui.open({ kind: 'phone' });
   }
 
   protected money(n: number): string {

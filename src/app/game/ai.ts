@@ -1,3 +1,4 @@
+import { POSTERS, campaignCost, flyerRate } from './advertising';
 import { CHARACTERS, character } from './characters';
 import { CITIES, FIRST_NAMES, LAST_NAMES, cityDef } from './data';
 import { GameState, Player, Restaurant, StaffRole } from './model';
@@ -90,9 +91,14 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
   if (d.turnedAway > d.customers * 0.2 && p.cash > 8000) buyItems(st, p, r, ['table4', 'table2'], 2);
   if (d.noStaff > 10 && r.kitchenCapacity < 30 && p.cash > 12000) buyItems(st, p, r, ['counter', 'oven'], 2);
   if (p.cash > 40000 && r.decor < 2.5 && Math.random() < 0.3) buyItems(st, p, r, ['plant', 'painting', 'lamp', 'jukebox'], 3);
+  // Rivals run flyer or poster campaigns when they can afford them.
   if (p.cash > 30000 && Math.random() < 0.08 && !p.ads.some((a) => a.cityId === r.cityId)) {
-    addLedger(p, st.day, 'Advertising', -2000 * cityDef(r.cityId).costOfLiving);
-    p.ads.push({ cityId: r.cityId, kind: 'flyers', daysLeft: 14, boost: 0.25 });
+    const posters = Math.random() < 0.5;
+    const poster = POSTERS[Math.floor(Math.random() * POSTERS.length)];
+    const rate = posters ? { effectiveness: poster.effectiveness, weeklyCost: poster.weeklyCost } : flyerRate(300);
+    const cost = campaignCost(rate.weeklyCost, 14, cityDef(r.cityId).costOfLiving);
+    addLedger(p, st.day, 'Advertising', -cost);
+    p.ads.push({ cityId: r.cityId, channel: posters ? 'posters' : 'flyers', daysLeft: 14, effectiveness: rate.effectiveness, cost, ...(posters ? { posterId: poster.id } : { flyers: 300 }) });
   }
 }
 

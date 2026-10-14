@@ -92,12 +92,12 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 9 – Advertising channels and mini-games
 
-- [ ] Advertising screen per city with four channels, one campaign each, duration, cost and effectiveness
-- [ ] Flyers: print run in steps of 100
-- [ ] Posters: gallery of original procedurally drawn posters
-- [ ] Newspaper: five-round slogan game with drifting fragment window and family multiplier, then size and colour
-- [ ] TV: original animated PixiJS commercials to preview and pick
-- [ ] Effectiveness feeds restaurant popularity
+- [x] Advertising screen per city with four channels, one campaign each, duration, cost and effectiveness
+- [x] Flyers: print run in steps of 100
+- [x] Posters: gallery of original procedurally drawn posters
+- [x] Newspaper: five-round slogan game with drifting fragment window and family multiplier, then size and colour
+- [x] TV: original animated PixiJS commercials to preview and pick
+- [x] Effectiveness feeds restaurant popularity
 
 ### Phase 10 – Stock purchasing
 

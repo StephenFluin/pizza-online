@@ -4,7 +4,7 @@ import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
 import { SELL_BACK, applyRoom, canPlace, catalogItem } from './furniture';
 import { character } from './characters';
-import { AdKind, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
+import { AdCampaign, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
 import { deserialize, loadFromSlot, saveToSlot } from './saves';
 import { checkOutcome } from './world';
 import { addLedger, addMessage, buyStock, endDay, openRestaurantAt, simulateHour, startDay } from './simulation';
@@ -22,11 +22,6 @@ export const START_CASH = 50000;
 export const MAX_LOAN = 150000;
 export const LOAN_STEP = 10000;
 
-export const AD_OPTIONS: Record<AdKind, { label: string; cost: number; days: number; boost: number }> = {
-  flyers: { label: 'Flyers', cost: 2000, days: 14, boost: 0.25 },
-  radio: { label: 'Radio spots', cost: 6000, days: 30, boost: 0.5 },
-  tv: { label: 'TV commercial', cost: 18000, days: 30, boost: 1 },
-};
 
 /**
  * Owns the game state. The state object is mutated in place for performance
@@ -401,16 +396,19 @@ export class GameService {
     });
   }
 
-  advertise(kind: AdKind, cityId: string): void {
+  /** Starts a campaign for the player; refused when the channel is busy in that city or cash is short. */
+  advertise(campaign: AdCampaign): boolean {
+    let ok = false;
     this.mutate((st) => {
       const p = st.players.find((x) => x.isHuman);
-      const opt = AD_OPTIONS[kind];
-      const cost = opt.cost * cityDef(cityId).costOfLiving;
-      if (!p || p.cash < cost) return;
-      addLedger(p, st.day, 'Advertising', -cost);
-      p.ads.push({ cityId, kind, daysLeft: opt.days, boost: opt.boost });
-      addMessage(st, `${opt.label} campaign started in ${cityDef(cityId).name}.`);
+      if (!p || p.cash < campaign.cost) return;
+      if (p.ads.some((a) => a.cityId === campaign.cityId && a.channel === campaign.channel)) return;
+      addLedger(p, st.day, 'Advertising', -campaign.cost);
+      p.ads.push(campaign);
+      addMessage(st, `New ${campaign.channel === 'tv' ? 'TV' : campaign.channel} campaign in ${cityDef(campaign.cityId).name}: ${campaign.effectiveness}% effective for ${campaign.daysLeft} days.`);
+      ok = true;
     });
+    return ok;
   }
 
   save(slot: string): boolean {

@@ -70,6 +70,8 @@ export function deserialize(text: string): GameState {
       applyRoom(r, lot);
     }
   }
+  // Campaigns from before the advertising channels existed are dropped.
+  for (const p of st.players) p.ads = (p.ads ?? []).filter((a) => typeof a.channel === 'string' && typeof a.effectiveness === 'number');
   return { ...st, cities, outcome: st.outcome ?? null };
 }
 

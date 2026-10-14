@@ -185,14 +185,22 @@ export interface Player {
   ads: AdCampaign[];
 }
 
-export type AdKind = 'flyers' | 'radio' | 'tv';
+export type AdChannel = 'flyers' | 'posters' | 'newspaper' | 'tv';
 
+/** A running advertising campaign; one per channel per city. */
 export interface AdCampaign {
   cityId: string;
-  kind: AdKind;
+  channel: AdChannel;
   daysLeft: number;
-  /** Multiplier added to restaurant attraction in that city, e.g. 0.3 = +30%. */
-  boost: number;
+  /** Effectiveness in percent. Half the city's total feeds restaurant popularity. */
+  effectiveness: number;
+  /** Total paid for the campaign. */
+  cost: number;
+  flyers?: number;
+  posterId?: number;
+  slogan?: string[];
+  format?: number;
+  tvId?: number;
 }
 
 export interface GameState {

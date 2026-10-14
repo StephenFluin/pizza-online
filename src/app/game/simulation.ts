@@ -151,11 +151,19 @@ export function hasPerk(state: GameState, ownerId: number, perk: PerkId): boolea
   return !!owner && character(owner.characterId).perk === perk;
 }
 
-/** Advertising multiplier for a restaurant from its owner's campaigns in that city. */
+/** Sum of a player's live campaign effectiveness (percent) in a city. */
+export function adEffectiveness(state: GameState, ownerId: number, cityId: string): number {
+  const owner = state.players.find((p) => p.id === ownerId);
+  return (owner?.ads ?? []).filter((a) => a.cityId === cityId).reduce((n, a) => n + a.effectiveness, 0);
+}
+
+/**
+ * Advertising multiplier for a restaurant. As in the original, half the summed
+ * effectiveness of the owner's campaigns in the city counts towards popularity.
+ */
 function adBoost(state: GameState, r: Restaurant): number {
-  const owner = state.players.find((p) => p.id === r.ownerId);
-  const boost = (owner?.ads ?? []).filter((a) => a.cityId === r.cityId).reduce((n, a) => n + a.boost, 0);
-  return 1 + boost * (hasPerk(state, r.ownerId, 'showman') ? 1.25 : 1);
+  const points = adEffectiveness(state, r.ownerId, r.cityId) / 2;
+  return 1 + (points / 100) * (hasPerk(state, r.ownerId, 'showman') ? 1.25 : 1);
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {

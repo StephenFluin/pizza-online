@@ -6,7 +6,7 @@ import { InteriorViewComponent } from '../interior/interior-view';
 import { CookbookComponent } from '../pizza/cookbook';
 import { PizzaDesignerComponent } from '../pizza/pizza-designer';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
-import { BankDialogComponent } from './bank-dialog';
+import { AdvertisingScreenComponent } from '../ads/advertising-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
 import { NewsDialogComponent } from './news-dialog';
@@ -39,7 +39,7 @@ const TITLES: Record<string, string> = {
     CookbookComponent,
     PizzaDesignerComponent,
     WorldDialogComponent,
-    BankDialogComponent,
+    AdvertisingScreenComponent,
     SavesDialogComponent,
     RestaurantsDialogComponent,
     FinancePanelComponent,
@@ -62,7 +62,7 @@ const TITLES: Record<string, string> = {
             @switch (d.kind) {
               @case ('cookbook') { <app-cookbook /> }
               @case ('world') { <app-world-dialog /> }
-              @case ('bank') { <app-bank-dialog /> }
+              @case ('bank') { <app-advertising-screen /> }
               @case ('restaurants') { <app-restaurants-dialog /> }
               @case ('finances') { <app-finance-panel /> }
               @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" /> }

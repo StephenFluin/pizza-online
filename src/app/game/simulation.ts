@@ -10,6 +10,7 @@ import { demandFactor, morningNews } from './newspaper';
 import { CUSTOMER_GROUPS } from './pizza-stats';
 import { activeManager, effectiveSkill, isAvailable, managerSettings, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
+import { storeInWarehouse, warehouseIn, warehouseMorning, warehouseRent } from './warehouse';
 import { clamp01, groupAppeal, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
@@ -357,6 +358,8 @@ export function startDay(state: GameState): void {
     }
   }
   deliverOrders(state);
+  // Warehouses supply restaurants first; vendors only fill what is still missing.
+  warehouseMorning(state, addStock);
   // Managers do the shopping even without a standing order, unless told not to.
   for (const r of state.restaurants) if (r.autoRestock || (activeManager(r) && managerSettings(r).shopping)) restock(state, r);
   staffMorning(state);
@@ -392,7 +395,14 @@ function deliverOrders(state: GameState): void {
       continue;
     }
     addLedger(owner, state.day, 'Ingredients', -o.total);
-    for (const [id, units] of Object.entries(o.items)) addStock(r, id, units, v.quality);
+    const w = o.toWarehouse ? warehouseIn(owner, v.cityId) : null;
+    if (w) {
+      let turnedAway = 0;
+      for (const [id, units] of Object.entries(o.items)) turnedAway += units - storeInWarehouse(w, id, units, v.quality);
+      if (turnedAway > 0 && owner.isHuman) addMessage(state, `Your ${cityDef(v.cityId).name} warehouse was full: ${Math.round(turnedAway)} units of the delivery were turned away.`);
+    } else {
+      for (const [id, units] of Object.entries(o.items)) addStock(r, id, units, v.quality);
+    }
     if (owner.isHuman) state.vendorSpend[v.id] = (state.vendorSpend[v.id] ?? 0) + o.total;
   }
 }
@@ -477,6 +487,7 @@ function endMonth(state: GameState): void {
       const wages = r.staff.reduce((n, s) => n + s.wagePerMonth, 0);
       if (wages > 0) addLedger(player, state.day, 'Wages', -wages);
     }
+    for (const w of Object.values(player.warehouses ?? {})) addLedger(player, state.day, 'Warehouse rent', -warehouseRent(w));
     monthlyLoanPayments(state, player, (label, amount) => addLedger(player, state.day, label, amount));
     for (const type of Object.keys(POLICIES) as InsuranceType[]) if (insured(player, type)) addLedger(player, state.day, 'Insurance', -premium(state, player, type));
     if (player.isHuman) {

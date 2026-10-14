@@ -7,6 +7,7 @@ import { InsuranceType, repayLoan, takeLoan } from './insurance';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
 import { Course, jobMarket, managerSettings, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
 import { vendorById, vendorPrice } from './vendors';
+import { BULK_DISCOUNT, BULK_UNITS, Warehouse, WarehouseSize, ship, syncPriority, warehouseIn, warehouseRent } from './warehouse';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
 import { AdCampaign, CLOSE_MINUTE, ManagerSettings, DAYS_PER_MONTH, GameState, Lot, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
@@ -587,7 +588,7 @@ export class GameService {
    * vendor's minimum order. The vendor becomes the restaurant's preferred one
    * for automatic restocking in that category.
    */
-  placeOrder(restaurantId: number, vendorId: string, items: Record<string, number>): string | null {
+  placeOrder(restaurantId: number, vendorId: string, items: Record<string, number>, toWarehouse = false): string | null {
     let error: string | null = 'Order failed.';
     this.mutate((st) => {
       const r = st.restaurants.find((x) => x.id === restaurantId);
@@ -596,7 +597,9 @@ export class GameService {
       if (!r || !v || !owner) return;
       const thrifty = ingredientPriceFactor(statsOf(owner));
       const lines = Object.entries(items).filter(([id, n]) => n > 0 && vendorPrice(v, id, st.day) !== null);
-      const total = Math.round(lines.reduce((n, [id, units]) => n + vendorPrice(v, id, st.day)! * units, 0) * thrifty * 100) / 100;
+      const units = lines.reduce((n, [, u]) => n + u, 0);
+      const bulk = toWarehouse && units >= BULK_UNITS ? 1 - BULK_DISCOUNT : 1;
+      const total = Math.round(lines.reduce((n, [id, u]) => n + vendorPrice(v, id, st.day)! * u, 0) * thrifty * bulk * 100) / 100;
       if (lines.length === 0) {
         error = 'Nothing to order.';
         return;
@@ -605,7 +608,11 @@ export class GameService {
         error = `${v.name} only delivers orders of $${v.minimumOrder} or more.`;
         return;
       }
-      st.orders.push({ id: st.nextId++, restaurantId, vendorId, items: Object.fromEntries(lines), total, deliverDay: st.day + 1 });
+      if (toWarehouse && !warehouseIn(owner, v.cityId)) {
+        error = `You have no warehouse in ${cityDef(v.cityId).name}.`;
+        return;
+      }
+      st.orders.push({ id: st.nextId++, restaurantId, vendorId, items: Object.fromEntries(lines), total, deliverDay: st.day + 1, toWarehouse });
       r.preferredVendors[v.category] = v.id;
       error = null;
     });
@@ -648,5 +655,54 @@ export class GameService {
       result = donate(st, p, cityId, amount);
     });
     return result;
+  }
+
+  /** Rents a warehouse in a city (one per city). */
+  rentWarehouse(cityId: string, size: WarehouseSize): boolean {
+    let ok = false;
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (!p || warehouseIn(p, cityId)) return;
+      const w: Warehouse = { cityId, size, stock: {}, stockQuality: {}, priority: [] };
+      const deposit = warehouseRent(w);
+      if (p.cash < deposit) return;
+      addLedger(p, st.day, 'Warehouse rent', -deposit);
+      (p.warehouses ??= {})[cityId] = w;
+      syncPriority(st, p, w);
+      ok = true;
+    });
+    return ok;
+  }
+
+  /** Gives up a warehouse; whatever is left inside is lost. */
+  closeWarehouse(cityId: string): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (p?.warehouses) delete p.warehouses[cityId];
+    });
+  }
+
+  /** Moves a restaurant up (-1) or down (+1) the warehouse's delivery order. */
+  movePriority(cityId: string, restaurantId: number, delta: number): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      const w = p ? warehouseIn(p, cityId) : null;
+      if (!w) return;
+      const i = w.priority.indexOf(restaurantId);
+      const j = i + delta;
+      if (i < 0 || j < 0 || j >= w.priority.length) return;
+      [w.priority[i], w.priority[j]] = [w.priority[j], w.priority[i]];
+    });
+  }
+
+  /** Ships stock from one of the player's warehouses to another. */
+  shipStock(fromCityId: string, toCityId: string, ingredientId: string, units: number): string | null {
+    let error: string | null = 'No warehouse.';
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      const from = p ? warehouseIn(p, fromCityId) : null;
+      if (p && from) error = ship(st, p, from, toCityId, ingredientId, units);
+    });
+    return error;
   }
 }

@@ -11,6 +11,7 @@ import { PizzaDesignerComponent } from '../pizza/pizza-designer';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { AdvertisingScreenComponent } from '../ads/advertising-screen';
 import { StockScreenComponent } from '../stock/stock-screen';
+import { WarehouseScreenComponent } from '../stock/warehouse-screen';
 import { CapacityScreenComponent } from './capacity-screen';
 import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
@@ -38,6 +39,7 @@ const TITLES: Record<string, string> = {
   incident: 'A staff matter',
   contest: 'Pizza contest',
   capacity: 'Capacity',
+  warehouse: 'Warehouse',
 };
 
 /**
@@ -53,6 +55,7 @@ const TITLES: Record<string, string> = {
     WorldDialogComponent,
     AdvertisingScreenComponent,
     StockScreenComponent,
+    WarehouseScreenComponent,
     SavesDialogComponent,
     RestaurantsDialogComponent,
     FinancePanelComponent,
@@ -89,6 +92,7 @@ const TITLES: Record<string, string> = {
               @case ('staff') { <app-staff-screen [restaurantId]="d.restaurantId" /> }
               @case ('incident') { <app-incident-screen /> }
               @case ('contest') { <app-contest-screen /> }
+              @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
               @case ('capacity') { <app-capacity-screen [restaurantId]="d.restaurantId" /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }
               @case ('stock') { <app-stock-screen [restaurantId]="d.restaurantId" /> }

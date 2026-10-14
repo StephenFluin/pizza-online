@@ -1,5 +1,6 @@
 import type { Award, Boost, Contest } from './awards';
 import type { IncomingCall } from './inspections';
+import type { Shipment, Warehouse } from './warehouse';
 import type { InsuranceType, Loan } from './insurance';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
@@ -308,6 +309,8 @@ export interface Player {
   boosts?: Boost[];
   /** Highest business rank reached (index into RANKS). */
   rank?: number;
+  /** City id -> the player's warehouse there. */
+  warehouses?: Record<string, Warehouse>;
   /** Loans with repayment schedules; `loan` holds their total. */
   loans?: Loan[];
   insurance?: Partial<Record<InsuranceType, boolean>>;
@@ -365,6 +368,8 @@ export interface GameState {
   contest?: Contest | null;
   /** Calls ringing for the player, oldest first. */
   phoneQueue?: IncomingCall[];
+  /** Stock on its way between warehouses. */
+  shipments?: Shipment[];
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */
@@ -376,6 +381,8 @@ export interface StockOrder {
   items: Record<string, number>;
   /** Price agreed when ordering; charged on delivery. */
   total: number;
+  /** Delivered to the owner's warehouse in the vendor's city instead of the restaurant. */
+  toWarehouse?: boolean;
   deliverDay: number;
 }
 

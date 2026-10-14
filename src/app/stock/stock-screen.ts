@@ -5,6 +5,7 @@ import { IngredientCategory, formatMoney } from '../game/model';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { Vendor, cityVendors, dailyUsage, daysOfSupply, vendorPrice } from '../game/vendors';
+import { BULK_DISCOUNT, BULK_UNITS, warehouseIn } from '../game/warehouse';
 
 type View = { kind: 'overview' } | { kind: 'vendors'; category: IngredientCategory } | { kind: 'order'; vendorId: string };
 
@@ -28,6 +29,7 @@ const AMOUNT_STEP = 10;
               }
             </select>
           </label>
+          <button type="button" class="secondary small" (click)="ui.open({ kind: 'warehouse', cityId: r.cityId })">{{ hasWarehouse() ? 'Warehouse' : 'Rent a warehouse' }}</button>
           <nav class="cats" aria-label="Categories">
             @for (c of categories; track c.id) {
               <button type="button" class="plate" [attr.aria-pressed]="activeCategory() === c.id" (click)="openCategory(c.id)">{{ c.label }}</button>
@@ -121,7 +123,12 @@ const AMOUNT_STEP = 10;
                   </tbody>
                 </table>
                 <div class="foot">
-                  <span>Total <b>{{ money2(orderTotal()) }}</b> @if (orderTotal() > 0 && orderTotal() < v.minimumOrder) {<span class="warn">below the minimum order</span>}</span>
+                  @if (hasWarehouse()) {
+                    <label class="dest"><input type="checkbox" [checked]="toWarehouse()" (change)="toWarehouse.set($any($event.target).checked)" /> Deliver to the {{ cityName() }} warehouse
+                      @if (toWarehouse() && orderUnits() >= bulkUnits) {<span class="bulk">bulk discount {{ bulkPct }}%</span>}
+                    </label>
+                  }
+                  <span>Total <b>{{ money2(orderTotal() * (toWarehouse() && orderUnits() >= bulkUnits ? 1 - bulkPct / 100 : 1)) }}</b> @if (orderTotal() > 0 && orderTotal() < v.minimumOrder) {<span class="warn">below the minimum order</span>}</span>
                   <button type="button" class="secondary" (click)="amounts.set({})">Clear</button>
                   <button type="button" (click)="order()" [disabled]="orderTotal() === 0">Order for tomorrow</button>
                 </div>
@@ -164,12 +171,14 @@ const AMOUNT_STEP = 10;
     .tag { justify-self: start; background: var(--basil); color: #fff; font-size: 0.75rem; padding: 0 6px; border-radius: 3px; }
     .foot { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; }
     .warn { color: var(--tomato); margin-left: 6px; }
+    .dest { display: flex; gap: 6px; align-items: center; margin-right: auto; }
+    .bulk { background: var(--basil); color: #fff; font-size: 0.75rem; padding: 0 6px; border-radius: 3px; }
   `,
 })
 export class StockScreenComponent {
   protected readonly game = inject(GameService);
   private readonly shell = inject(ShellService);
-  private readonly ui = inject(UiService);
+  protected readonly ui = inject(UiService);
   readonly restaurantId = input<number | undefined>(undefined);
 
   protected readonly categories = INGREDIENT_CATEGORIES;
@@ -254,6 +263,15 @@ export class StockScreenComponent {
       return { id: i.id, name: i.name, price: vendorPrice(v, i.id, st.day), amount, projected, days: daysOfSupply(projected, usage[i.id] ?? 0) };
     });
   });
+  protected readonly bulkUnits = BULK_UNITS;
+  protected readonly bulkPct = Math.round(BULK_DISCOUNT * 100);
+  protected readonly toWarehouse = signal(false);
+  protected readonly hasWarehouse = computed(() => {
+    const me = this.game.human();
+    const r = this.restaurant();
+    return !!(me && r && warehouseIn(me, r.cityId));
+  });
+  protected readonly orderUnits = computed(() => Object.values(this.amounts()).reduce((n, x) => n + x, 0));
   protected readonly orderTotal = computed(() => this.orderRows().reduce((n, row) => n + (row.price ?? 0) * row.amount, 0));
 
   private readonly lines = computed<LcdLine[]>(() => {
@@ -333,11 +351,11 @@ export class StockScreenComponent {
     const r = this.restaurant();
     const v = this.vendor();
     if (!r || !v) return;
-    const error = this.game.placeOrder(r.id, v.id, this.amounts());
+    const error = this.game.placeOrder(r.id, v.id, this.amounts(), this.toWarehouse() && this.hasWarehouse());
     if (error) {
       this.message.set(error);
     } else {
-      this.message.set(`Order placed with ${v.name}: delivery tomorrow morning.`);
+      this.message.set(`Order placed with ${v.name}: delivery ${this.toWarehouse() && this.hasWarehouse() ? 'to the warehouse ' : ''}tomorrow morning.`);
       this.amounts.set({});
     }
   }

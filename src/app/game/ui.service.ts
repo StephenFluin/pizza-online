@@ -19,7 +19,8 @@ export type Dialog =
   | { kind: 'staff'; restaurantId?: number }
   | { kind: 'incident' }
   | { kind: 'contest' }
-  | { kind: 'capacity'; restaurantId?: number };
+  | { kind: 'capacity'; restaurantId?: number }
+  | { kind: 'warehouse'; cityId?: string };
 
 /** The map's folder tabs: plain map, district boundaries, or which chain controls each district. */
 export type MapOverlay = 'none' | 'districts' | 'control' | 'wealth' | 'competition';

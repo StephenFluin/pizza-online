@@ -161,10 +161,10 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 18 – Warehouses
 
-- [ ] Rent a warehouse in a city (capacity, rent, cold storage slows spoilage)
-- [ ] Bulk orders delivered to the warehouse at a discount
-- [ ] The warehouse restocks restaurants in a priority order the player sets
-- [ ] Ship stock between your cities' warehouses
+- [x] Rent a warehouse in a city (capacity, rent, cold storage slows spoilage)
+- [x] Bulk orders delivered to the warehouse at a discount
+- [x] The warehouse restocks restaurants in a priority order the player sets
+- [x] Ship stock between your cities' warehouses
 
 ### Phase 19 – The underworld
 

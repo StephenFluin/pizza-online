@@ -176,6 +176,8 @@ export function drawLots(g: Graphics, city: CityMap, state: GameState, selected:
     if (restaurant) {
       const owner = state.players.find((p) => p.id === restaurant.ownerId);
       drawRestaurant(g, px, py, lot.w * TILE, lot.h * TILE, owner?.color ?? 0xffffff, owner?.isHuman ?? false);
+      // The mayor's stars hang above the door.
+      for (let i = 0; i < (restaurant.stars ?? 0); i++) g.star(px + 8 + i * 9, py + lot.h * TILE - 4, 5, 4, 2).fill(0xffd166).stroke({ width: 1, color: 0x7a5a00 });
     } else {
       drawForSaleSign(g, px + lot.w * TILE - 10, py + lot.h * TILE - 4);
     }

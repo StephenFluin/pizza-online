@@ -4,6 +4,7 @@ import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { roomStats } from './furniture';
 import { DAYS_PER_MONTH, GameState, Player, Recipe } from './model';
 import { PizzaStats, pizzaStats } from './pizza-stats';
+import { queueCall } from './inspections';
 import { Rng, hashString } from './rng';
 
 /**
@@ -169,6 +170,7 @@ function presentAwards(st: GameState): void {
       p.ledger.push({ day: st.day, label: 'Prize money', amount: prize });
       (p.awards ??= []).push({ year, cityId: c.id, title: cat.title });
       (p.boosts ??= []).push({ cityId: c.id, points: 12, daysLeft: 90, reason: cat.title });
+      if (p.isHuman) queueCall(st, { contactId: `${c.id}:mayor`, topic: 'award', title: cat.title, amount: prize });
       if (p.isHuman || c.id === st.currentCityId) news(st, `${cat.title} ${year}, ${c.name}`, `The mayor presented the award to ${p.name} ${cat.why}, with ${'$' + prize.toLocaleString('en-US')} in prize money.`);
     }
   }

@@ -207,7 +207,7 @@ export class GameService {
     if (st.minute === OPEN_MINUTE) {
       startDay(st);
       // Staff incidents and the pizza contest need the owner's answer before the day gets going.
-      if (st.staffEvents.length > 0 || st.contest?.phase === 'entry') {
+      if (st.staffEvents.length > 0 || st.contest?.phase === 'entry' || (st.phoneQueue?.length ?? 0) > 0) {
         this.resumeSpeed = this.speed() || this.resumeSpeed;
         this.speed.set(0);
         return true;
@@ -614,6 +614,15 @@ export class GameService {
 
   cancelOrder(orderId: number): void {
     this.mutate((st) => (st.orders = st.orders.filter((o) => o.id !== orderId)));
+  }
+
+  /** Removes an answered call and lets the day carry on when nothing else is waiting. */
+  finishIncomingCall(callId: number): void {
+    this.mutate((st) => (st.phoneQueue = (st.phoneQueue ?? []).filter((c) => c.id !== callId)));
+    const st = this.state();
+    if (st && this.speed() === 0 && this.dayReport() === null && st.staffEvents.length === 0 && !(st.contest?.phase === 'entry') && (st.phoneQueue?.length ?? 0) === 0) {
+      this.speed.set(this.resumeSpeed || 1);
+    }
   }
 
   /** Enters a recipe in this year's contest and has it judged. */

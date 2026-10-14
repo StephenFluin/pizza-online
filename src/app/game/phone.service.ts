@@ -1,5 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MAX_FAVOUR, favour } from './awards';
+import { COMPLAINTS, IncomingCall, PROJECTS } from './inspections';
+import { recipeQuality } from './recipes';
 import { InsuranceType, LOAN_TERMS, MONTHLY_INTEREST, POLICIES, insured, premium } from './insurance';
 import { creditLimit, haggleBonus, statsOf } from './owner-stats';
 import { Contact, cityContacts, weeklySpecial } from './contacts';
@@ -26,6 +28,8 @@ export interface Call {
   lines: CallLine[];
   options: CallOption[];
   haggles: number;
+  /** Set when this is a call someone made to the player. */
+  incoming?: IncomingCall;
   /** Amount being borrowed while the term is chosen. */
   pendingLoan?: number;
   /** Fraction knocked off the asking rent/price so far. */
@@ -57,7 +61,33 @@ export class PhoneService {
   }
 
   hangUp(): void {
+    const incoming = this.call()?.incoming;
     this.call.set(null);
+    if (incoming) this.game.finishIncomingCall(incoming.id);
+  }
+
+  /** The oldest call ringing for the player, if any. */
+  ringing(): IncomingCall | null {
+    return this.game.state()?.phoneQueue?.[0] ?? null;
+  }
+
+  /** Who is on the line for a ringing call. */
+  caller(incoming: IncomingCall): Contact | null {
+    const st = this.game.state();
+    if (!st) return null;
+    return cityContacts(incoming.contactId.split(':')[0], st.seed).find((c) => c.id === incoming.contactId) ?? null;
+  }
+
+  /** Picks up a ringing call. */
+  answer(incoming: IncomingCall): void {
+    const contact = this.caller(incoming);
+    if (!contact) {
+      this.game.finishIncomingCall(incoming.id);
+      return;
+    }
+    const call: Call = { contact, lotId: null, restaurantId: incoming.restaurantId ?? null, lines: [], options: [], haggles: 0, discount: 0, ended: false, incoming };
+    this.call.set(call);
+    this.incomingGreeting(call, incoming);
   }
 
   choose(optionId: string): void {
@@ -65,6 +95,11 @@ export class PhoneService {
     if (!call || call.ended) return;
     const option = call.options.find((o) => o.id === optionId);
     if (option) call.lines.push({ from: 'me', text: option.label });
+    if (call.incoming) {
+      this.incomingReply(call, call.incoming, optionId);
+      this.call.set({ ...call });
+      return;
+    }
     switch (call.contact.kind) {
       case 'realtor': this.realtor(call, optionId); break;
       case 'bank': this.bank(call, optionId); break;
@@ -379,6 +414,117 @@ export class PhoneService {
       return;
     }
     this.agencyOptions(call);
+  }
+
+  // ---- Incoming calls from city hall -------------------------------------------
+
+  private restaurantName(id: number | undefined): string {
+    return this.game.state()?.restaurants.find((r) => r.id === id)?.name ?? 'your restaurant';
+  }
+
+  private incomingGreeting(call: Call, inc: IncomingCall): void {
+    const who = `${call.contact.name.split(' ')[0]} here, from the ${call.contact.company.toLowerCase()}.`;
+    const name = this.restaurantName(inc.restaurantId);
+    const stars = (n: number) => (n === 0 ? 'no stars' : `${n} star${n === 1 ? '' : 's'}`);
+    switch (inc.topic) {
+      case 'inspection': {
+        const before = inc.before ?? 0;
+        const after = inc.after ?? 0;
+        if (after > before) this.say(call, `${who} Good news! Our inspectors ate at ${name} and were delighted. It now has ${stars(after)}.`);
+        else if (after < before) this.say(call, `${who} I'm afraid our inspectors were disappointed by ${name}. It loses a star and now has ${stars(after)}.`);
+        else this.say(call, `${who} Our inspectors visited ${name}. The rating stays at ${stars(after)}${after < 5 ? ' for now' : ', the very best'}.`);
+        call.options = [
+          { id: 'why', label: 'What did the inspectors think could be better?' },
+          { id: 'thanks', label: 'Thank you, Mayor.' },
+        ];
+        break;
+      }
+      case 'donation': {
+        const project = PROJECTS[inc.id % PROJECTS.length];
+        this.say(call, `${who} The city is raising money for ${project}. Could you spare ${formatMoney(inc.amount ?? 0)}? The mayor never forgets a friend.`);
+        call.options = [
+          { id: 'full', label: `Of course, here's ${formatMoney(inc.amount ?? 0)}.` },
+          { id: 'half', label: `I can manage ${formatMoney(Math.round((inc.amount ?? 0) / 2))}.` },
+          { id: 'no', label: 'Not this time, sorry.' },
+        ];
+        break;
+      }
+      case 'complaint': {
+        const complaint = COMPLAINTS[inc.id % COMPLAINTS.length];
+        this.say(call, `${who} Residents near ${name} have been complaining about ${complaint}. What are you going to do about it?`);
+        call.options = [
+          { id: 'pay', label: `I'll pay for it to be sorted out (${formatMoney(inc.amount ?? 0)}).` },
+          { id: 'word', label: "I'll have a word with my staff." },
+          { id: 'ignore', label: "That's not my problem." },
+        ];
+        break;
+      }
+      case 'award':
+        this.say(call, `${who} Congratulations! The mayor has chosen you for the ${inc.title} award. A cheque for ${formatMoney(inc.amount ?? 0)} is on its way, and the whole city will hear about it.`);
+        call.options = [{ id: 'thanks', label: 'What an honour, thank you!' }];
+        break;
+    }
+  }
+
+  private incomingReply(call: Call, inc: IncomingCall, optionId: string): void {
+    const st = this.game.state()!;
+    const me = this.game.human()!;
+    const r = st.restaurants.find((x) => x.id === inc.restaurantId);
+    const cityId = call.contact.cityId;
+    if (inc.topic === 'inspection' && optionId === 'why' && r) {
+      this.say(call, this.inspectionAdvice(r));
+      call.options = [{ id: 'thanks', label: 'Thank you, I’ll work on it.' }];
+      return;
+    }
+    if (inc.topic === 'donation') {
+      const amount = optionId === 'full' ? (inc.amount ?? 0) : optionId === 'half' ? Math.round((inc.amount ?? 0) / 2) : 0;
+      if (amount > 0 && me.cash >= amount) {
+        this.game.donateToMayor(cityId, amount);
+        this.say(call, optionId === 'full' ? 'Wonderful! The mayor will be thrilled.' : 'Every little helps. Thank you.');
+      } else if (amount > 0) {
+        this.say(call, 'It seems your account can’t cover that. Another time, perhaps.');
+      } else {
+        this.game.mutate(() => me.favour && (me.favour[cityId] = Math.max(0, (me.favour[cityId] ?? 0) - 10)));
+        this.say(call, 'I see. The mayor will be… disappointed.');
+      }
+    } else if (inc.topic === 'complaint' && r) {
+      if (optionId === 'pay' && me.cash >= (inc.amount ?? 0)) {
+        this.game.mutate((s) => {
+          addLedger(me, s.day, 'Community', -(inc.amount ?? 0));
+          (me.favour ??= {})[cityId] = Math.min(MAX_FAVOUR, (me.favour[cityId] ?? 0) + 5);
+        });
+        this.say(call, 'Splendid. The residents will be pleased, and so is the mayor.');
+      } else if (optionId === 'ignore') {
+        this.game.mutate(() => {
+          (me.favour ??= {})[cityId] = Math.max(0, (me.favour[cityId] ?? 0) - 15);
+          r.reputation = Math.max(0, r.reputation - 0.04);
+        });
+        this.say(call, 'Then don’t be surprised if the papers hear about it.');
+      } else {
+        const fixed = Math.random() < 0.6;
+        if (!fixed) this.game.mutate(() => (r.reputation = Math.max(0, r.reputation - 0.01)));
+        this.say(call, fixed ? 'Thank you. Let’s hope that settles it.' : 'Let’s hope so. We’ve heard that before.');
+      }
+    } else {
+      this.say(call, 'Goodbye, and keep up the good work.');
+    }
+    this.end(call);
+  }
+
+  /** What the inspectors would improve first, from the parts of the rating. */
+  private inspectionAdvice(r: Restaurant): string {
+    const st = this.game.state()!;
+    const days = (r.history ?? []).slice(-7);
+    const served = days.reduce((n, d) => n + d.customers, 0);
+    const satisfaction = served ? days.reduce((n, d) => n + d.satisfaction, 0) / served : 0;
+    const recipes = r.menu.map((m) => st.recipes.find((x) => x.id === m.recipeId)).filter((x): x is NonNullable<typeof x> => !!x);
+    const craft = recipes.length ? recipes.reduce((n, x) => n + recipeQuality(x), 0) / recipes.length : 0;
+    const weakest = [
+      { v: satisfaction, text: 'Guests didn’t leave happy enough: better-liked pizzas, fair prices and good staff would help.' },
+      { v: craft, text: 'The pizzas themselves could be better made: even toppings, a sensible amount, some fine chopping.' },
+      { v: r.decor / 3, text: 'The dining room felt bare. Nicer furniture, flooring and decoration would impress them.' },
+    ].sort((a, b) => a.v - b.v)[0];
+    return `The inspectors rated it ${r.qualityRating ?? 0} out of 100. ${weakest.text}`;
   }
 
   // ---- Mayor ---------------------------------------------------------------

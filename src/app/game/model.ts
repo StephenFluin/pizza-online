@@ -1,4 +1,5 @@
 import type { Award, Boost, Contest } from './awards';
+import type { IncomingCall } from './inspections';
 import type { InsuranceType, Loan } from './insurance';
 import type { ChartEntry, CityConditions, Edition } from './newspaper';
 /** Core game data model. All state is plain JSON so it can be saved and loaded. */
@@ -169,6 +170,10 @@ export interface Restaurant {
   closedDays?: number;
   /** What the restaurant's manager may do on the owner's behalf. */
   managerSettings?: ManagerSettings;
+  /** Stars from the mayor's inspectors (0–5), the last rating (0–100) and when they come next. */
+  stars?: number;
+  qualityRating?: number;
+  nextInspection?: number;
   /** Stats for the day in progress and the last finished day. */
   today: DayStats;
   lastDay: DayStats;
@@ -358,6 +363,8 @@ export interface GameState {
   charts: Record<string, ChartEntry[]>;
   /** This year's pizza contest while it's open or just judged. */
   contest?: Contest | null;
+  /** Calls ringing for the player, oldest first. */
+  phoneQueue?: IncomingCall[];
 }
 
 /** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */

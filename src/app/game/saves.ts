@@ -85,7 +85,7 @@ export function deserialize(text: string): GameState {
   for (const p of st.players) {
     if (!p.loans && p.loan > 0) p.loans = [{ id: st.nextId++, principal: p.loan, remaining: p.loan, termMonths: 24, monthsLeft: 24 }];
   }
-  const loaded: GameState = { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {}, jobMarket: st.jobMarket ?? {}, staffEvents: st.staffEvents ?? [], cityConditions: st.cityConditions ?? {}, newspaper: st.newspaper ?? null, charts: st.charts ?? {}, contest: st.contest ?? null };
+  const loaded: GameState = { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {}, jobMarket: st.jobMarket ?? {}, staffEvents: st.staffEvents ?? [], cityConditions: st.cityConditions ?? {}, newspaper: st.newspaper ?? null, charts: st.charts ?? {}, contest: st.contest ?? null, phoneQueue: st.phoneQueue ?? [] };
   for (const c of CITIES) jobMarket(loaded, c.id);
   return loaded;
 }

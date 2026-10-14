@@ -152,7 +152,39 @@ describes the systems being reproduced (in our own code, text and art).
 - [x] Economic trend per city
 - [x] Loan schedules and insurance
 
-### Phase 17 – Polish
+### Phase 17 – Stars and the mayor
+
+- [x] Incoming phone calls (the phone rings and pauses the game)
+- [x] Mayor's quality inspections award or remove one star at a time, with a gap between gain and loss thresholds
+- [x] Stars feed popularity and show on the map, panels and reports
+- [x] Mayor calls: inspection results, award ceremonies, donation requests, complaints from residents
+
+### Phase 18 – Warehouses
+
+- [ ] Rent a warehouse in a city (capacity, rent, cold storage slows spoilage)
+- [ ] Bulk orders delivered to the warehouse at a discount
+- [ ] The warehouse restocks restaurants in a priority order the player sets
+- [ ] Ship stock between your cities' warehouses
+
+### Phase 19 – The underworld
+
+- [ ] Loan sharks: quick loans without credit checks, steep weekly interest, collection calls and reprisals
+- [ ] Mafia jobs (deliveries, laundering, investments) with risk, reward and police busts
+- [ ] Black-market fixer selling sabotage goods at prices that drift by city
+- [ ] Non-violent sabotage of rival restaurants (rats, stink bombs, glue in the locks, fake reviews, gas cut-off) with success from dexterity and courage
+- [ ] Rivals sabotage the player too; insurance and police respond
+- [ ] Police investigations: fines, or days in jail away from the business
+
+### Phase 20 – More of the original
+
+- [ ] Market research reports (area, customers, competitors, trends)
+- [ ] Click guests in the restaurant view to hear what they think
+- [ ] Supplier contracts with discounts, delivery amounts and penalties
+- [ ] Difficulty levels
+- [ ] Restaurant statistics (week's takings, sales curve) and a chain comparison
+- [ ] Game-over and win screens with high scores
+
+### Phase 21 – Polish
 
 - [ ] Balancing pass: mature shops currently earn ~$20k/month, so rivals snowball
 - [ ] Keyboard navigation and screen-reader labels for every panel (WCAG AA)

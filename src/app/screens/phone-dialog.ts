@@ -34,6 +34,18 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
       </nav>
 
       <section class="call" aria-label="Call">
+        @if (!phone.call() && phone.ringing(); as ring) {
+          @if (phone.caller(ring); as who) {
+            <div class="ringing" role="alert">
+              <app-portrait [cacheKey]="'contact-' + who.id" [look]="who.look" [background]="who.color" [size]="72" [alt]="who.name" />
+              <div>
+                <p class="ring-title">☎ The phone is ringing…</p>
+                <p><b>{{ who.name }}</b>, {{ who.company }}</p>
+                <button type="button" (click)="phone.answer(ring)">Answer</button>
+              </div>
+            </div>
+          }
+        }
         @if (phone.call(); as call) {
           <header class="who">
             <app-portrait [cacheKey]="'contact-' + call.contact.id" [look]="call.contact.look" [background]="call.contact.color" [size]="72" [alt]="call.contact.name" />
@@ -55,7 +67,7 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
             <button type="button" class="secondary" (click)="phone.hangUp()">{{ call.ended ? 'Put the phone down' : 'Hang up' }}</button>
           </div>
         } @else {
-          <p class="idle">Pick someone from the phone book to call them. Tip: select a lot on the map and use “Call realtor” to talk about that property.</p>
+          <p class="idle" [hidden]="!!phone.ringing()">Pick someone from the phone book to call them. Tip: select a lot on the map and use “Call realtor” to talk about that property.</p>
         }
       </section>
     </div>
@@ -75,6 +87,11 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
     .options { display: grid; gap: 6px; }
     .option { text-align: left; font-weight: 400; background: var(--panel); color: var(--ink); border-color: var(--ink-soft); }
     .idle { margin: 0; }
+    .ringing { display: flex; gap: 12px; align-items: center; background: #fff3d6; border: 3px solid var(--brass); border-radius: 8px; padding: 10px; animation: shake 0.6s ease-in-out 3; }
+    .ringing p { margin: 0 0 6px; }
+    .ring-title { font-weight: 700; font-size: 1.1rem; }
+    @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
+    @media (prefers-reduced-motion: reduce) { .ringing { animation: none; } }
     @media (max-width: 700px) { .phone { grid-template-columns: 1fr; } .book { max-height: 30dvh; border-right: none; } }
   `,
 })

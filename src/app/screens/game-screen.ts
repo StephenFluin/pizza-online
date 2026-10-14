@@ -58,11 +58,13 @@ export class GameScreenComponent {
       const st = this.game.state();
       const waiting = (st?.staffEvents.length ?? 0) > 0;
       const contest = st?.contest?.phase === 'entry';
+      const ringing = (st?.phoneQueue?.length ?? 0) > 0;
       untracked(() => {
         const open = this.ui.dialog()?.kind;
         if (this.game.speed() !== 0 || this.game.dayReport() !== null) return;
         if (waiting && open !== 'incident') this.ui.open({ kind: 'incident' });
         else if (!waiting && contest && open !== 'contest' && open !== 'cookbook' && open !== 'designer') this.ui.open({ kind: 'contest' });
+        else if (!waiting && !contest && ringing && open !== 'phone') this.ui.open({ kind: 'phone' });
       });
     });
     effect(() => {

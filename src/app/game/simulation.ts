@@ -4,6 +4,7 @@ import { cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, CustomerGroup, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { cityLifeMorning, cityPrestige } from './awards';
+import { mayorMorning } from './inspections';
 import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
 import { CUSTOMER_GROUPS } from './pizza-stats';
@@ -254,7 +255,8 @@ export function computePopularity(state: GameState, r: Restaurant, city: CityMap
 
   const advertising = Math.round((adEffectiveness(state, r.ownerId, r.cityId) / 2) * adBonus(ownerStats(state, r.ownerId)));
 
-  const starCount = Math.min(5, Math.floor(r.reputation * 5 + 1e-9));
+  // Stars come from the mayor's inspections.
+  const starCount = r.stars ?? 0;
   const stars = starCount * starCount + (starCount > 0 ? 4 : 0);
 
   const fulfilled = wanted > 0 ? (100 * y.customers) / wanted : 100;
@@ -361,6 +363,7 @@ export function startDay(state: GameState): void {
   morningRisks(state);
   morningNews(state);
   cityLifeMorning(state);
+  mayorMorning(state);
 }
 
 /** Adds units to a restaurant's stock, blending their quality into what is already there. */

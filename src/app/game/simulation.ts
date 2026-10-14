@@ -1,4 +1,5 @@
-import { PerkId, character, firstName } from './characters';
+import { firstName } from './characters';
+import { INTEREST_RATE, adBonus, cookingBonus, ingredientPriceFactor, ownerStats, startReputation, statsOf, supervisable } from './owner-stats';
 import { INGREDIENTS, cityDef, ingredient } from './data';
 import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
@@ -137,7 +138,7 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
         served++;
         today.customers++;
         today.revenue += item.price;
-        const cost = recipeCost(item.recipe) * col * (hasPerk(state, s.r.ownerId, 'thrifty') ? 0.9 : 1);
+        const cost = recipeCost(item.recipe) * col * ingredientPriceFactor(ownerStats(state, s.r.ownerId));
         today.foodCost += cost;
         const sales = pizzaSales(today, item.recipe.id);
         sales.sold++;
@@ -153,10 +154,6 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
   }
 }
 
-export function hasPerk(state: GameState, ownerId: number, perk: PerkId): boolean {
-  const owner = state.players.find((p) => p.id === ownerId);
-  return !!owner && character(owner.characterId).perk === perk;
-}
 
 /** Sum of a player's live campaign effectiveness (percent) in a city. */
 export function adEffectiveness(state: GameState, ownerId: number, cityId: string): number {
@@ -172,7 +169,7 @@ function districtLookAppeal(room: RoomStats, district: CityMap['districts'][numb
 }
 
 export function emptyPopularity(): Popularity {
-  return { waiting: 0, menu: 0, advertising: 0, stars: 0, fulfilment: 0, events: 0, total: 0, waitMinutes: 0, expectedMinutes: 15, starCount: 0 };
+  return { waiting: 0, menu: 0, advertising: 0, stars: 0, fulfilment: 0, events: 0, supervision: 0, total: 0, waitMinutes: 0, expectedMinutes: 15, starCount: 0 };
 }
 
 /** Turns popularity points into a demand multiplier (100 points doubles demand). */
@@ -198,13 +195,13 @@ export function computePopularity(state: GameState, r: Restaurant, city: CityMap
 
   // Locals want a few classics, plus house creations beyond what they take for granted.
   const standard = r.menu.filter((m) => state.recipes.find((x) => x.id === m.recipeId)?.ownerId === null).length;
-  const own = r.menu.length - standard;
+  const houseRecipes = r.menu.length - standard;
   let menu = standard < 3 ? -(3 - standard) * 12 : 0;
-  menu += Math.max(0, own - (district.desiredOwn ?? 1)) * 3;
+  menu += Math.max(0, houseRecipes - (district.desiredOwn ?? 1)) * 3;
   menu += (standard - (district.desiredStandard ?? 3)) * 2;
   menu = Math.max(-40, Math.min(20, menu));
 
-  const advertising = Math.round((adEffectiveness(state, r.ownerId, r.cityId) / 2) * (hasPerk(state, r.ownerId, 'showman') ? 1.25 : 1));
+  const advertising = Math.round((adEffectiveness(state, r.ownerId, r.cityId) / 2) * adBonus(ownerStats(state, r.ownerId)));
 
   const starCount = Math.min(5, Math.floor(r.reputation * 5 + 1e-9));
   const stars = starCount * starCount + (starCount > 0 ? 4 : 0);
@@ -213,8 +210,13 @@ export function computePopularity(state: GameState, r: Restaurant, city: CityMap
   const fulfilment = -Math.round((100 - fulfilled) / 6);
 
   const events = r.popularity?.events ?? 0;
-  const total = waiting + menu + advertising + stars + fulfilment + events;
-  return { waiting, menu, advertising, stars, fulfilment, events, total, waitMinutes, expectedMinutes, starCount };
+
+  // The owner can only keep an eye on so many restaurants; the rest lose a little popularity.
+  const own = state.restaurants.filter((x) => x.ownerId === r.ownerId).map((x) => x.id).sort((a, b) => a - b);
+  const supervision = own.indexOf(r.id) >= supervisable(ownerStats(state, r.ownerId)) ? -10 : 0;
+
+  const total = waiting + menu + advertising + stars + fulfilment + events + supervision;
+  return { waiting, menu, advertising, stars, fulfilment, events, supervision, total, waitMinutes, expectedMinutes, starCount };
 }
 
 function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'][number], col: number) {
@@ -222,7 +224,7 @@ function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'
   for (const m of r.menu) {
     const recipe = state.recipes.find((x) => x.id === m.recipeId);
     if (!recipe) continue;
-    const appeal = itemAppeal(recipe, m.price, district, col, cityDistricts(state, r)) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1) * stockQualityFactor(r, recipe);
+    const appeal = itemAppeal(recipe, m.price, district, col, cityDistricts(state, r)) * cookingBonus(ownerStats(state, r.ownerId)) * stockQualityFactor(r, recipe);
     if (!best || appeal > best.appeal) best = { recipeId: m.recipeId, price: m.price, appeal };
   }
   return best;
@@ -237,7 +239,7 @@ function serveFromStock(state: GameState, r: Restaurant, district: CityMap['dist
   const options = r.menu
     .map((m) => {
       const recipe = state.recipes.find((x) => x.id === m.recipeId);
-      const chef = hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1;
+      const chef = cookingBonus(ownerStats(state, r.ownerId));
       return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col, cityDistricts(state, r)) * chef * stockQualityFactor(r, recipe) } : null;
     })
     .filter((o): o is NonNullable<typeof o> => o !== null)
@@ -326,7 +328,7 @@ export function restock(state: GameState, r: Restaurant): void {
 
 /** Buys stock immediately (standing orders, phone deals). Defaults to the plain market price and middling quality. */
 export function buyStock(state: GameState, owner: Player, r: Restaurant, id: string, units: number, unitPrice?: number, quality = 50): boolean {
-  const thrifty = character(owner.characterId).perk === 'thrifty' ? 0.9 : 1;
+  const thrifty = ingredientPriceFactor(statsOf(owner));
   const price = unitPrice ?? ingredient(id).cost * cityDef(r.cityId).costOfLiving;
   const cost = price * units * thrifty;
   // Suppliers extend a small overdraft before refusing to deliver.
@@ -392,8 +394,7 @@ function endMonth(state: GameState): void {
       const wages = r.staff.reduce((n, s) => n + s.wagePerMonth, 0);
       if (wages > 0) addLedger(player, state.day, 'Wages', -wages);
     }
-    const rate = character(player.characterId).perk === 'banker' ? 0.005 : 0.01;
-    if (player.loan > 0) addLedger(player, state.day, 'Loan interest', -Math.round(player.loan * rate));
+    if (player.loan > 0) addLedger(player, state.day, 'Loan interest', -Math.round(player.loan * INTEREST_RATE));
     if (player.isHuman) {
       const month = player.ledger.filter((e) => e.day > state.day - DAYS_PER_MONTH);
       const net = month.reduce((n, e) => n + e.amount, 0);
@@ -443,7 +444,7 @@ export function openRestaurantAt(
     stock: {},
     stockQuality: {},
     preferredVendors: {},
-    reputation: character(owner.characterId).perk === 'charmer' ? 0.45 : 0.3,
+    reputation: startReputation(statsOf(owner)),
     popularity: emptyPopularity(),
     autoRestock: true,
     restockTarget: 250,

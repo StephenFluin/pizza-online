@@ -131,9 +131,9 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 14 – Characters
 
-- [ ] Full stat block for every original cast member (same attributes as the original)
-- [ ] Classic selection screen: arrows to cycle, stat box, photo box, rename, human/computer company slots
-- [ ] Stats drive gameplay (bank credit, haggling, staff handling, day length)
+- [x] Full stat block for every original cast member (same attributes as the original)
+- [x] Classic selection screen: arrows to cycle, stat box, photo box, rename, human/computer company slots
+- [x] Stats drive gameplay (starting money, bank credit, haggling, cooking, staff quality, how many restaurants you can supervise)
 
 ### Phase 15 – Restaurant interior rebuild
 

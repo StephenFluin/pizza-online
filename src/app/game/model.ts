@@ -132,6 +132,8 @@ export interface Popularity {
   stars: number;
   fulfilment: number;
   events: number;
+  /** Penalty for restaurants beyond what the owner can supervise. */
+  supervision: number;
   total: number;
   /** Estimated wait in minutes, and what the district expects. */
   waitMinutes: number;
@@ -232,7 +234,7 @@ export interface LedgerEntry {
 export interface Player {
   id: number;
   name: string;
-  /** Id from the character cast; decides portrait and perk. */
+  /** Id from the character cast; decides portrait and stats. */
   characterId: string;
   color: number;
   isHuman: boolean;

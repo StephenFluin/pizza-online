@@ -1,15 +1,16 @@
 import { POSTERS, campaignCost, flyerRate } from './advertising';
-import { CHARACTERS, character } from './characters';
+import { CHARACTERS } from './characters';
+import { applicantSkillBonus, ownerStats } from './owner-stats';
 import { CITIES, FIRST_NAMES, LAST_NAMES, cityDef } from './data';
 import { GameState, PlacedItem, Player, Restaurant, StaffRole } from './model';
 import { applyRoom, autoPlace, catalogItem, placeDiningSet } from './furniture';
 import { cityTaste, fairPrice } from './recipes';
 import { addLedger, openRestaurantAt } from './simulation';
 
-/** Picks three rival characters from the cast, never the player's own. */
-export function createRivals(firstId: number, startCash: number, exclude: string): Player[] {
+/** Three rival characters: the ones chosen on the selection screen, or random others from the cast. */
+export function createRivals(firstId: number, startCash: number, exclude: string, chosen: string[] = []): Player[] {
   const pool = CHARACTERS.filter((c) => c.id !== exclude);
-  const picked: typeof pool = [];
+  const picked: typeof pool = chosen.map((id) => pool.find((c) => c.id === id)).filter((c): c is (typeof pool)[number] => !!c).slice(0, 3);
   while (picked.length < 3) {
     const c = pool[Math.floor(Math.random() * pool.length)];
     if (!picked.includes(c)) picked.push(c);
@@ -20,7 +21,7 @@ export function createRivals(firstId: number, startCash: number, exclude: string
     characterId: c.id,
     color: c.color,
     isHuman: false,
-    cash: startCash + (c.perk === 'heir' ? 25000 : 0),
+    cash: c.stats.money,
     loan: 0,
     ledger: [],
     ads: [],
@@ -103,8 +104,8 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
 }
 
 function hire(st: GameState, r: Restaurant, role: StaffRole): void {
-  const boss = character(st.players.find((p) => p.id === r.ownerId)?.characterId).perk === 'boss';
-  const skill = Math.min(1, 0.3 + Math.random() * 0.5 + (boss ? 0.15 : 0));
+  const bonus = applicantSkillBonus(ownerStats(st, r.ownerId));
+  const skill = Math.max(0.1, Math.min(1, 0.3 + Math.random() * 0.5 + bonus));
   r.staff.push({
     id: st.nextId++,
     name: `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]}`,

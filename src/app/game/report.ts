@@ -91,6 +91,9 @@ export function reviewRestaurant(st: GameState, r: Restaurant): RestaurantReview
   } else if (pop && pop.waiting > 10) {
     findings.push({ tone: 'good', text: `Quick service: about ${pop.waitMinutes} minutes against an expected ${pop.expectedMinutes}.` });
   }
+  if (pop && pop.supervision < 0) {
+    findings.push({ tone: 'bad', text: 'You have more restaurants than you can supervise yourself, so this one loses popularity. Hire a manager or pick an owner with more energy.' });
+  }
   if (pop && pop.menu < -5) {
     findings.push({ tone: 'bad', text: 'Locals want more choice: keep at least three classic pizzas on the menu, plus some house creations.' });
   }

@@ -54,6 +54,9 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
               <tr><th scope="row">Advertising</th><td>{{ signed(r.popularity.advertising) }}</td></tr>
               <tr><th scope="row">Star rating</th><td>{{ signed(r.popularity.stars) }}</td></tr>
               <tr><th scope="row">Demand met</th><td>{{ signed(r.popularity.fulfilment) }}</td></tr>
+              @if (r.popularity.supervision) {
+                <tr><th scope="row">Owner stretched too thin</th><td>{{ signed(r.popularity.supervision) }}</td></tr>
+              }
             </tbody>
           </table>
           @if (warning(); as w) {

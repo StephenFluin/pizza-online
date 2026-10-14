@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { applicantSkillBonus, ingredientPriceFactor, statsOf } from './owner-stats';
 import { vendorById, vendorPrice } from './vendors';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
@@ -74,7 +75,7 @@ export class GameService {
   /** Job applicants per restaurant id, refreshed weekly. Plain cache: read inside computeds. */
   private readonly applicantCache = new Map<number, Staff[]>();
 
-  newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31)): void {
+  newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31), rivalIds: string[] = []): void {
     const hero = character(characterId);
     const human: Player = {
       id: 0,
@@ -82,7 +83,7 @@ export class GameService {
       characterId: hero.id,
       color: PLAYER_COLORS[0],
       isHuman: true,
-      cash: START_CASH + (hero.perk === 'heir' ? 25000 : 0),
+      cash: hero.stats.money,
       loan: 0,
       ledger: [],
       ads: [],
@@ -94,7 +95,7 @@ export class GameService {
       minute: OPEN_MINUTE - 60,
       currentCityId: cityId,
       cities: CITIES.map((def) => generateCity(def, seed)),
-      players: [human, ...createRivals(1, START_CASH, hero.id)],
+      players: [human, ...createRivals(1, START_CASH, hero.id, rivalIds)],
       restaurants: [],
       recipes: STANDARD_RECIPES.map((r) => structuredClone(r)),
       nextId: 1,
@@ -254,10 +255,10 @@ export class GameService {
     const existing = this.applicantCache.get(r.id);
     if (existing) return existing;
     const col = cityDef(r.cityId).costOfLiving;
-    const boss = character(this.human()?.characterId).perk === 'boss';
+    const bonus = applicantSkillBonus(statsOf(this.human()));
     const list: Staff[] = [];
     for (const role of ['cook', 'cook', 'waiter', 'waiter', 'cook', 'waiter'] as StaffRole[]) {
-      const skill = Math.round(Math.min(1, Math.random() * (boss ? 0.8 : 1) + (boss ? 0.2 : 0)) * 100) / 100;
+      const skill = Math.round(Math.max(0.05, Math.min(1, Math.random() + bonus)) * 100) / 100;
       list.push({
         id: Math.floor(Math.random() * 1e9),
         name: `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]}`,
@@ -526,7 +527,7 @@ export class GameService {
       const v = vendorById(st, vendorId);
       const owner = st.players.find((p) => p.id === r?.ownerId);
       if (!r || !v || !owner) return;
-      const thrifty = character(owner.characterId).perk === 'thrifty' ? 0.9 : 1;
+      const thrifty = ingredientPriceFactor(statsOf(owner));
       const lines = Object.entries(items).filter(([id, n]) => n > 0 && vendorPrice(v, id, st.day) !== null);
       const total = Math.round(lines.reduce((n, [id, units]) => n + vendorPrice(v, id, st.day)! * units, 0) * thrifty * 100) / 100;
       if (lines.length === 0) {

@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { character } from './characters';
+import { creditLimit, haggleBonus, statsOf } from './owner-stats';
 import { Contact, cityContacts, weeklySpecial } from './contacts';
 import { cityDef, ingredient } from './data';
 import { GameService, LOAN_STEP, MAX_LOAN } from './game.service';
@@ -143,10 +143,10 @@ export class PhoneService {
       case 'haggle': {
         call.haggles++;
         const me = this.game.human();
-        const negotiator = character(me?.characterId).perk === 'negotiator';
-        const chance = 0.7 - call.contact.toughness * 0.45 + (negotiator ? 0.25 : 0) - (call.haggles - 1) * 0.2;
+        const bonus = haggleBonus(statsOf(me));
+        const chance = 0.7 - call.contact.toughness * 0.45 + bonus - (call.haggles - 1) * 0.2;
         if (Math.random() < chance && call.discount < 0.25) {
-          call.discount = Math.min(0.25, call.discount + 0.04 + Math.random() * (negotiator ? 0.08 : 0.05));
+          call.discount = Math.min(0.25, call.discount + 0.04 + Math.random() * (0.05 + Math.max(0, bonus) * 0.12));
           this.say(call, `You drive a hard bargain. ${formatMoney(this.rent(call))} a month, or ${formatMoney(this.price(call))} to buy. Final offer.`);
         } else if (call.haggles >= 3) {
           this.say(call, 'I have other clients waiting. Call me when you are serious.');
@@ -212,7 +212,7 @@ export class PhoneService {
       const amount = LOAN_STEP * Number(optionId.slice(7));
       // The bank looks at your business before lending.
       const shops = this.game.state()!.restaurants.filter((r) => r.ownerId === me.id).length;
-      if (me.loan + amount > Math.max(LOAN_STEP * 3, shops * 40000)) {
+      if (me.loan + amount > creditLimit(statsOf(me), shops)) {
         this.say(call, 'I’m sorry, with your current business we can’t lend that much. Open more restaurants and ask again.');
       } else {
         this.game.borrow(amount);
@@ -226,8 +226,8 @@ export class PhoneService {
         this.say(call, `Thank you. ${this.bankStatus()}`);
       }
     } else if (optionId === 'rate') {
-      const banker = character(me.characterId).perk === 'banker';
-      this.say(call, banker ? 'For an old friend like you, half a percent a month.' : 'One percent a month on the outstanding loan, charged at the end of each month.');
+      const shops = this.game.state()!.restaurants.filter((r) => r.ownerId === me.id).length;
+      this.say(call, `One percent a month on the outstanding loan, charged at the end of each month. With your standing I can lend you up to ${formatMoney(creditLimit(statsOf(me), shops))} in total.`);
     } else {
       this.say(call, 'Goodbye, and good luck with the pizzas.');
       this.end(call);
@@ -239,8 +239,7 @@ export class PhoneService {
   // ---- Supplier ------------------------------------------------------------
 
   private supplierDiscount(base: number): number {
-    const negotiator = character(this.game.human()?.characterId).perk === 'negotiator';
-    return base + (negotiator ? 0.05 : 0);
+    return base + Math.max(0, haggleBonus(statsOf(this.game.human()))) / 5;
   }
 
   private myRestaurantsHere(): Restaurant[] {

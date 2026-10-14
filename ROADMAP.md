@@ -101,11 +101,11 @@ describes the systems being reproduced (in our own code, text and art).
 
 ### Phase 10 – Stock purchasing
 
-- [ ] More ingredients, grouped into vegetables, meat & fish, fruit and cheese
-- [ ] Vendors per category with quality, minimum order, reliability and price levels (some items not stocked)
-- [ ] Stock screen: category → vendor list → order table (price, amount, projected stock, days of supply)
-- [ ] Deliveries arrive next morning; unreliable vendors sometimes miss
-- [ ] Stock quality affects how good the pizzas taste
+- [x] More ingredients, grouped into vegetables, meat & fish, fruit and cheese
+- [x] Vendors per category with quality, minimum order, reliability and price levels (some items not stocked)
+- [x] Stock screen: category → vendor list → order table (price, amount, projected stock, days of supply)
+- [x] Deliveries arrive next morning; unreliable vendors sometimes miss
+- [x] Stock quality affects how good the pizzas taste
 
 ### Phase 11 – Pizza depth
 

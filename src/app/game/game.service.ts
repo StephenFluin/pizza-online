@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { vendorById, vendorPrice } from './vendors';
 import { SELL_BACK, applyRoom, canPlace, catalogItem } from './furniture';
 import { character } from './characters';
 import { AdCampaign, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
@@ -99,6 +100,8 @@ export class GameService {
       nextId: 1,
       messages: [{ day: 0, text: `Welcome to ${cityDef(cityId).name}, ${human.name}! Pick an empty lot to open your first pizzeria.` }],
       outcome: null,
+      orders: [],
+      vendorSpend: {},
     });
     this.selectedLotId.set(null);
     this.applicantCache.clear();
@@ -455,5 +458,39 @@ export class GameService {
       if (!this.autosaveFailed) addMessage(st, 'Autosave failed: browser storage is full or unavailable.');
       this.autosaveFailed = true;
     }
+  }
+
+  /**
+   * Orders stock from a vendor for delivery tomorrow morning. Refused below the
+   * vendor's minimum order. The vendor becomes the restaurant's preferred one
+   * for automatic restocking in that category.
+   */
+  placeOrder(restaurantId: number, vendorId: string, items: Record<string, number>): string | null {
+    let error: string | null = 'Order failed.';
+    this.mutate((st) => {
+      const r = st.restaurants.find((x) => x.id === restaurantId);
+      const v = vendorById(st, vendorId);
+      const owner = st.players.find((p) => p.id === r?.ownerId);
+      if (!r || !v || !owner) return;
+      const thrifty = character(owner.characterId).perk === 'thrifty' ? 0.9 : 1;
+      const lines = Object.entries(items).filter(([id, n]) => n > 0 && vendorPrice(v, id, st.day) !== null);
+      const total = Math.round(lines.reduce((n, [id, units]) => n + vendorPrice(v, id, st.day)! * units, 0) * thrifty * 100) / 100;
+      if (lines.length === 0) {
+        error = 'Nothing to order.';
+        return;
+      }
+      if (total < v.minimumOrder) {
+        error = `${v.name} only delivers orders of $${v.minimumOrder} or more.`;
+        return;
+      }
+      st.orders.push({ id: st.nextId++, restaurantId, vendorId, items: Object.fromEntries(lines), total, deliverDay: st.day + 1 });
+      r.preferredVendors[v.category] = v.id;
+      error = null;
+    });
+    return error;
+  }
+
+  cancelOrder(orderId: number): void {
+    this.mutate((st) => (st.orders = st.orders.filter((o) => o.id !== orderId)));
   }
 }

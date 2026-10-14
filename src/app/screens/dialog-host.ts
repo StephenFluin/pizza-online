@@ -7,6 +7,7 @@ import { CookbookComponent } from '../pizza/cookbook';
 import { PizzaDesignerComponent } from '../pizza/pizza-designer';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { AdvertisingScreenComponent } from '../ads/advertising-screen';
+import { StockScreenComponent } from '../stock/stock-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
 import { NewsDialogComponent } from './news-dialog';
@@ -26,6 +27,7 @@ const TITLES: Record<string, string> = {
   news: 'News',
   phone: 'Telephone',
   report: 'End of day',
+  stock: 'Stock',
 };
 
 /**
@@ -40,6 +42,7 @@ const TITLES: Record<string, string> = {
     PizzaDesignerComponent,
     WorldDialogComponent,
     AdvertisingScreenComponent,
+    StockScreenComponent,
     SavesDialogComponent,
     RestaurantsDialogComponent,
     FinancePanelComponent,
@@ -68,6 +71,7 @@ const TITLES: Record<string, string> = {
               @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" /> }
               @case ('phone') { <app-phone-dialog /> }
               @case ('news') { <app-news-dialog /> }
+              @case ('stock') { <app-stock-screen [restaurantId]="d.restaurantId" /> }
               @case ('saves') { <app-saves-dialog /> }
               @case ('designer') {
                 <app-pizza-designer [recipe]="d.recipe" (saved)="saveRecipe($event)" (cancelled)="ui.open({ kind: 'cookbook' })" />

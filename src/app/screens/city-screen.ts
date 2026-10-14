@@ -104,7 +104,7 @@ export class CityScreenComponent {
       { id: 'ads', label: 'Advertise', icon: ICONS.megaphone, action: () => this.ui.open({ kind: 'bank' }) },
       { id: 'cookbook', label: 'Cook book', icon: ICONS.book, action: () => this.ui.open({ kind: 'cookbook' }) },
       { id: 'finances', label: 'Finances', icon: ICONS.chart, action: () => this.ui.open({ kind: 'finances' }) },
-      { id: 'news', label: 'News', icon: ICONS.news, action: () => this.ui.open({ kind: 'news' }) },
+      { id: 'stock', label: 'Stock', icon: ICONS.box, action: () => this.ui.open({ kind: 'stock' }) },
       {
         id: 'speed',
         label: speed === 0 ? 'Paused' : `Speed ${speed}x`,

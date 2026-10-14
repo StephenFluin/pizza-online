@@ -95,26 +95,9 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
           </ul>
         }
         @case ('stock') {
-          <label class="check">
-            <input type="checkbox" [checked]="r.autoRestock" (change)="setAutoRestock($any($event.target).checked)" />
-            Restock automatically each morning to
-            <input class="qty" type="number" min="5" max="500" step="5" [value]="r.restockTarget" (change)="setTarget($any($event.target).valueAsNumber)" aria-label="Restock target portions" />
-            portions
-          </label>
-          <table>
-            <caption class="sr-only">Ingredient stock</caption>
-            <thead><tr><th scope="col">Ingredient</th><th scope="col">Stock</th><th scope="col">Price</th><th scope="col"><span class="sr-only">Buy</span></th></tr></thead>
-            <tbody>
-              @for (i of ingredients; track i.id) {
-                <tr>
-                  <th scope="row">{{ i.name }}</th>
-                  <td>{{ stockOf(i.id) }}</td>
-                  <td>{{ money2(i.cost * col()) }}</td>
-                  <td><button type="button" class="small" (click)="game.buy(r.id, i.id, 20)" [attr.aria-label]="'Buy 20 ' + i.name">+20</button></td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <p>{{ stockSummary() }}</p>
+          <p>{{ r.autoRestock ? 'A standing order tops up menu ingredients to ' + r.restockTarget + ' units each morning.' : 'No standing order: stock only arrives when you order it.' }}</p>
+          <button type="button" (click)="ui.open({ kind: 'stock', restaurantId: r.id })">Buy stock</button>
         }
       }
     </div>
@@ -185,9 +168,6 @@ export class RestaurantPanelComponent {
       }));
   });
 
-  protected stockOf(id: string): number {
-    return Math.floor(this.restaurant().stock[id] ?? 0);
-  }
 
   protected toggleMenu(recipeId: string, on: boolean): void {
     this.game.updateRestaurant(this.restaurant().id, (r) => {
@@ -203,14 +183,12 @@ export class RestaurantPanelComponent {
     });
   }
 
-  protected setAutoRestock(on: boolean): void {
-    this.game.updateRestaurant(this.restaurant().id, (r) => (r.autoRestock = on));
-  }
-
-  protected setTarget(n: number): void {
-    if (!Number.isFinite(n)) return;
-    this.game.updateRestaurant(this.restaurant().id, (r) => (r.restockTarget = Math.max(5, Math.min(500, Math.round(n)))));
-  }
+  protected readonly stockSummary = computed(() => {
+    const r = this.restaurant();
+    const units = Math.floor(Object.values(r.stock).reduce((n, x) => n + x, 0));
+    const kinds = Object.keys(r.stock).length;
+    return kinds ? `${units} units of ${kinds} ingredients in stock.` : 'The pantry is empty.';
+  });
 
   protected close(): void {
     if (confirm(`Close ${this.restaurant().name}? Staff will be let go.`)) this.game.closeRestaurant(this.restaurant().id);

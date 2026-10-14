@@ -1,7 +1,8 @@
 import { PerkId, character, firstName } from './characters';
 import { INGREDIENTS, cityDef, ingredient } from './data';
 import { TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
-import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Restaurant } from './model';
+import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, formatMoney } from './model';
+import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { clamp01, itemAppeal, recipeCost, recipeUsage } from './recipes';
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
@@ -171,7 +172,7 @@ function bestItem(state: GameState, r: Restaurant, district: CityMap['districts'
   for (const m of r.menu) {
     const recipe = state.recipes.find((x) => x.id === m.recipeId);
     if (!recipe) continue;
-    const appeal = itemAppeal(recipe, m.price, district, col) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1);
+    const appeal = itemAppeal(recipe, m.price, district, col) * (hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1) * stockQualityFactor(r, recipe);
     if (!best || appeal > best.appeal) best = { recipeId: m.recipeId, price: m.price, appeal };
   }
   return best;
@@ -183,7 +184,7 @@ function serveFromStock(state: GameState, r: Restaurant, district: CityMap['dist
     .map((m) => {
       const recipe = state.recipes.find((x) => x.id === m.recipeId);
       const chef = hasPerk(state, r.ownerId, 'chef') ? 1.06 : 1;
-      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col) * chef } : null;
+      return recipe ? { recipe, price: m.price, appeal: itemAppeal(recipe, m.price, district, col) * chef * stockQualityFactor(r, recipe) } : null;
     })
     .filter((o): o is NonNullable<typeof o> => o !== null)
     .sort((a, b) => b.appeal - a.appeal);
@@ -197,19 +198,55 @@ function serveFromStock(state: GameState, r: Restaurant, district: CityMap['dist
   return null;
 }
 
-/** Morning routine: spoilage and automatic restocking. */
+/** Morning routine: spoilage, deliveries and automatic restocking. */
 export function startDay(state: GameState): void {
   for (const r of state.restaurants) {
     // A refrigerator halves spoilage.
     const chill = r.layout.some((p) => p.itemId === 'fridge') ? 0.5 : 1;
     for (const id of Object.keys(r.stock)) {
       r.stock[id] = Math.max(0, r.stock[id] * (1 - chill / ingredient(id).shelfLife));
-      if (r.stock[id] < 0.01) delete r.stock[id];
+      if (r.stock[id] < 0.01) {
+        delete r.stock[id];
+        delete r.stockQuality[id];
+      }
     }
-    if (r.autoRestock) restock(state, r);
+  }
+  deliverOrders(state);
+  for (const r of state.restaurants) if (r.autoRestock) restock(state, r);
+}
+
+/** Adds units to a restaurant's stock, blending their quality into what is already there. */
+export function addStock(r: Restaurant, id: string, units: number, quality: number): void {
+  const have = r.stock[id] ?? 0;
+  const q = r.stockQuality[id] ?? quality;
+  r.stock[id] = have + units;
+  r.stockQuality[id] = Math.round((have * q + units * quality) / (have + units));
+}
+
+/** Delivers today's stock orders; unreliable vendors sometimes don't turn up. Orders are paid on delivery. */
+function deliverOrders(state: GameState): void {
+  const due = state.orders.filter((o) => o.deliverDay <= state.day);
+  state.orders = state.orders.filter((o) => o.deliverDay > state.day);
+  for (const o of due) {
+    const r = state.restaurants.find((x) => x.id === o.restaurantId);
+    const owner = state.players.find((p) => p.id === r?.ownerId);
+    const v = vendorById(state, o.vendorId);
+    if (!r || !owner || !v) continue;
+    if (Math.random() < v.missChance) {
+      if (owner.isHuman) addMessage(state, `${v.name} failed to deliver to ${r.name}. Nothing was charged.`);
+      continue;
+    }
+    if (owner.cash - o.total < -OVERDRAFT) {
+      if (owner.isHuman) addMessage(state, `${v.name} refused to deliver to ${r.name}: your account can't cover ${formatMoney(o.total)}.`);
+      continue;
+    }
+    addLedger(owner, state.day, 'Ingredients', -o.total);
+    for (const [id, units] of Object.entries(o.items)) addStock(r, id, units, v.quality);
+    if (owner.isHuman) state.vendorSpend[v.id] = (state.vendorSpend[v.id] ?? 0) + o.total;
   }
 }
 
+/** Tops every ingredient on the menu up to the restock target from the preferred (or cheapest) vendor. */
 export function restock(state: GameState, r: Restaurant): void {
   const owner = state.players.find((p) => p.id === r.ownerId);
   if (!owner) return;
@@ -218,20 +255,42 @@ export function restock(state: GameState, r: Restaurant): void {
     const recipe = state.recipes.find((x) => x.id === m.recipeId);
     if (recipe) for (const id of Object.keys(recipeUsage(recipe))) needed.add(id);
   }
+  const vendors = cityVendors(r.cityId, state.seed);
   for (const id of needed) {
     const missing = Math.ceil(r.restockTarget - (r.stock[id] ?? 0));
-    if (missing > 0) buyStock(state, owner, r, id, missing);
+    if (missing <= 0) continue;
+    const category = ingredient(id).category;
+    const preferred = vendors.find((v) => v.id === r.preferredVendors[category] && vendorPrice(v, id, state.day) !== null);
+    const cheapest = vendors
+      .filter((v) => v.category === category && vendorPrice(v, id, state.day) !== null)
+      .sort((a, b) => vendorPrice(a, id, state.day)! - vendorPrice(b, id, state.day)!)[0];
+    const v = preferred ?? cheapest;
+    if (v) buyStock(state, owner, r, id, missing, vendorPrice(v, id, state.day)!, v.quality);
+    else buyStock(state, owner, r, id, missing);
   }
 }
 
-export function buyStock(state: GameState, owner: Player, r: Restaurant, id: string, portions: number): boolean {
+/** Buys stock immediately (standing orders, phone deals). Defaults to the plain market price and middling quality. */
+export function buyStock(state: GameState, owner: Player, r: Restaurant, id: string, units: number, unitPrice?: number, quality = 50): boolean {
   const thrifty = character(owner.characterId).perk === 'thrifty' ? 0.9 : 1;
-  const cost = ingredient(id).cost * portions * cityDef(r.cityId).costOfLiving * thrifty;
+  const price = unitPrice ?? ingredient(id).cost * cityDef(r.cityId).costOfLiving;
+  const cost = price * units * thrifty;
   // Suppliers extend a small overdraft before refusing to deliver.
   if (owner.cash - cost < -OVERDRAFT) return false;
-  r.stock[id] = (r.stock[id] ?? 0) + portions;
+  addStock(r, id, units, quality);
   addLedger(owner, state.day, 'Ingredients', -cost);
   return true;
+}
+
+/** How much the quality of the stock used for a recipe helps (0.85–1.15). */
+function stockQualityFactor(r: Restaurant, recipe: Recipe): number {
+  let total = 0;
+  let weight = 0;
+  for (const [id, n] of Object.entries(recipeUsage(recipe))) {
+    total += (r.stockQuality[id] ?? 50) * n;
+    weight += n;
+  }
+  return 0.85 + (weight ? total / weight : 50) * 0.003;
 }
 
 /** Evening routine: book revenue, update reputation, and roll the day's stats. */
@@ -322,6 +381,8 @@ export function openRestaurantAt(
       { recipeId: 'std-salami', price: Math.round(9 * cityDef(city.id).costOfLiving) },
     ],
     stock: {},
+    stockQuality: {},
+    preferredVendors: {},
     reputation: character(owner.characterId).perk === 'charmer' ? 0.45 : 0.3,
     autoRestock: true,
     restockTarget: 250,

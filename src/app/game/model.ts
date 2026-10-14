@@ -90,8 +90,12 @@ export interface Restaurant {
   rentPerMonth: number;
   staff: Staff[];
   menu: MenuItem[];
-  /** Ingredient id -> portions in stock. */
+  /** Ingredient id -> units in stock. */
   stock: Record<string, number>;
+  /** Ingredient id -> average quality (0–100) of the units in stock. */
+  stockQuality: Record<string, number>;
+  /** Vendor used for automatic restocking, per category (the last one ordered from). */
+  preferredVendors: Partial<Record<IngredientCategory, string>>;
   /** 0..1 reputation, rises with satisfied customers. */
   reputation: number;
   /** Top stock up to `restockTarget` portions per used ingredient each morning. */
@@ -155,9 +159,13 @@ export interface Recipe {
   toppings: Topping[];
 }
 
+/** Stock categories, as on the original's stock screen. */
+export type IngredientCategory = 'vegetables' | 'meat' | 'fruit' | 'cheese';
+
 export interface Ingredient {
   id: string;
   name: string;
+  category: IngredientCategory;
   /** Cost of one portion at the market. */
   cost: number;
   /** Shelf life in days. */
@@ -219,6 +227,22 @@ export interface GameState {
   messages: GameMessage[];
   /** Set when the game has been decided. */
   outcome: 'won' | 'lost' | null;
+  /** Stock orders waiting for delivery. */
+  orders: StockOrder[];
+  /** Vendor id -> total the human player has spent there ("so far" on the vendor list). */
+  vendorSpend: Record<string, number>;
+}
+
+/** Ingredients ordered from a vendor, delivered on the morning of `deliverDay`. */
+export interface StockOrder {
+  id: number;
+  restaurantId: number;
+  vendorId: string;
+  /** Ingredient id -> units. */
+  items: Record<string, number>;
+  /** Price agreed when ordering; charged on delivery. */
+  total: number;
+  deliverDay: number;
 }
 
 export interface GameMessage {

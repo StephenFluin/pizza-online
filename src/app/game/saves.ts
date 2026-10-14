@@ -64,6 +64,8 @@ export function deserialize(text: string): GameState {
     r.today = { ...emptyStats(st.day), ...r.today };
     r.lastDay = { ...emptyStats(st.day - 1), ...r.lastDay };
     r.history ??= [];
+    r.stockQuality ??= {};
+    r.preferredVendors ??= {};
     const lot = cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
     if (lot && !Array.isArray(r.layout)) {
       r.layout = starterLayout(lot);
@@ -72,7 +74,7 @@ export function deserialize(text: string): GameState {
   }
   // Campaigns from before the advertising channels existed are dropped.
   for (const p of st.players) p.ads = (p.ads ?? []).filter((a) => typeof a.channel === 'string' && typeof a.effectiveness === 'number');
-  return { ...st, cities, outcome: st.outcome ?? null };
+  return { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {} };
 }
 
 export function saveToSlot(slot: string, st: GameState): void {

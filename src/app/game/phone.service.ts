@@ -4,7 +4,7 @@ import { Contact, cityContacts, weeklySpecial } from './contacts';
 import { cityDef, ingredient } from './data';
 import { GameService, LOAN_STEP, MAX_LOAN } from './game.service';
 import { Restaurant, formatMoney } from './model';
-import { addLedger, addMessage, openRestaurantAt } from './simulation';
+import { addLedger, addMessage, addStock, openRestaurantAt } from './simulation';
 
 export interface CallLine {
   from: 'them' | 'me';
@@ -274,7 +274,7 @@ export class PhoneService {
       const r = st.restaurants.find((x) => x.id === rid);
       if (!me || !r || me.cash < cost) return;
       addLedger(me, st.day, 'Ingredients', -cost);
-      r.stock[ing.id] = (r.stock[ing.id] ?? 0) + BULK_PORTIONS;
+      addStock(r, ing.id, BULK_PORTIONS, 60);
       ok = true;
     });
     this.say(call, ok ? `Lovely. ${formatMoney(cost)}, delivered this afternoon.` : 'Hmm, your account can’t cover that order.');

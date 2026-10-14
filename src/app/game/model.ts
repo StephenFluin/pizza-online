@@ -264,7 +264,7 @@ export interface Ingredient {
   /** Shelf life in days. */
   shelfLife: number;
   color: number;
-  shape: 'circle' | 'slice' | 'leaf' | 'strip' | 'cube' | 'ring';
+  shape: 'circle' | 'slice' | 'leaf' | 'strip' | 'cube' | 'ring' | 'half' | 'crumble' | 'floret' | 'pearl';
   /** Grams per piece when whole, chopped and minced; 0 means it can't be cut that finely. */
   grams: [number, number, number];
   /** Calories per 100 g. */

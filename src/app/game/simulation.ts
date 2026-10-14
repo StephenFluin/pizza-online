@@ -475,6 +475,7 @@ export function endDay(state: GameState): void {
     r.lastDay = r.today;
     // History keeps only the numbers (no per-pizza detail) to keep saves small; rivals keep a week.
     const compact: DayStats = { ...r.today, pizzas: {}, missing: {} };
+    if (owner?.isHuman) compact.sold = Object.fromEntries(Object.entries(r.today.pizzas).filter(([, s]) => s.sold > 0).map(([id, s]) => [id, s.sold]));
     r.history = [...(r.history ?? []), compact].slice(owner?.isHuman ? -HISTORY_DAYS : -7);
     r.today = emptyStats(state.day + 1);
   }

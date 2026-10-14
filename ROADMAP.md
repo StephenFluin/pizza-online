@@ -181,7 +181,7 @@ describes the systems being reproduced (in our own code, text and art).
 - [ ] Click guests in the restaurant view to hear what they think
 - [ ] Supplier contracts with discounts, delivery amounts and penalties
 - [x] Difficulty levels
-- [ ] Restaurant statistics (week's takings, sales curve) and a chain comparison
+- [x] Restaurant statistics (week's takings, sales curve) and a chain comparison
 - [x] Game-over and win screens with high scores
 
 ### Phase 21 – Polish

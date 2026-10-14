@@ -16,6 +16,7 @@ import { CapacityScreenComponent } from './capacity-screen';
 import { UnderworldScreenComponent } from './underworld-screen';
 import { EndingScreenComponent } from './ending-screen';
 import { HighScoresComponent } from './high-scores';
+import { StatsScreenComponent } from './stats-screen';
 import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
@@ -46,6 +47,7 @@ const TITLES: Record<string, string> = {
   underworld: 'Back streets',
   ending: 'The end of an era',
   highscores: 'High scores',
+  stats: 'Statistics',
 };
 
 /**
@@ -77,6 +79,7 @@ const TITLES: Record<string, string> = {
     UnderworldScreenComponent,
     EndingScreenComponent,
     HighScoresComponent,
+    StatsScreenComponent,
   ],
   template: `
     @if (ui.dialog(); as d) {
@@ -104,6 +107,7 @@ const TITLES: Record<string, string> = {
               @case ('underworld') { <app-underworld-screen /> }
               @case ('ending') { <app-ending-screen /> }
               @case ('highscores') { <app-high-scores /> }
+              @case ('stats') { <app-stats-screen [restaurantId]="d.restaurantId" /> }
               @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
               @case ('capacity') { <app-capacity-screen [restaurantId]="d.restaurantId" /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }

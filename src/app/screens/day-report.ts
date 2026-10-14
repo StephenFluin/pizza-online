@@ -193,6 +193,7 @@ export class DayReportComponent {
       { id: 'capacity', label: 'Capacity', icon: ICONS.zoom, disabled: !sel, action: () => sel && this.ui.open({ kind: 'capacity', restaurantId: sel.id }) },
       { id: 'stock', label: 'Stock', icon: ICONS.box, disabled: !sel, action: () => sel && this.ui.open({ kind: 'stock', restaurantId: sel.id }) },
       { id: 'finances', label: 'Finances', icon: ICONS.chart, action: () => this.ui.open({ kind: 'finances' }) },
+      { id: 'stats', label: 'Statistics', icon: ICONS.chart, action: () => this.ui.open({ kind: 'stats', restaurantId: sel?.id }) },
     ];
   });
 

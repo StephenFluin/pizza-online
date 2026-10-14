@@ -68,6 +68,7 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
           <div class="buttons">
             <button type="button" (click)="ui.open({ kind: 'interior', restaurantId: r.id })">View restaurant</button>
             <button type="button" class="secondary" (click)="ui.open({ kind: 'capacity', restaurantId: r.id })">Capacity</button>
+            <button type="button" class="secondary" (click)="ui.open({ kind: 'stats', restaurantId: r.id })">Statistics</button>
           </div>
           <button type="button" class="secondary close" (click)="close()">Close restaurant</button>
         }

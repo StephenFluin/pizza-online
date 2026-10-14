@@ -23,7 +23,8 @@ export type Dialog =
   | { kind: 'warehouse'; cityId?: string }
   | { kind: 'underworld' }
   | { kind: 'ending' }
-  | { kind: 'highscores' };
+  | { kind: 'highscores' }
+  | { kind: 'stats'; restaurantId?: number };
 
 /** The map's folder tabs: plain map, district boundaries, or which chain controls each district. */
 export type MapOverlay = 'none' | 'districts' | 'control' | 'wealth' | 'competition';

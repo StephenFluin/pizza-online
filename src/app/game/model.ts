@@ -231,6 +231,8 @@ export interface DayStats {
   day: number;
   /** Reputation at closing time. */
   reputation: number;
+  /** Recipe id -> pizzas sold, kept in the history after `pizzas` is dropped. */
+  sold?: Record<string, number>;
 }
 
 export interface PizzaSales {

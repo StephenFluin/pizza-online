@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { CITIES, FIRST_NAMES, LAST_NAMES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
+import { SELL_BACK, applyRoom, canPlace, catalogItem } from './furniture';
 import { character } from './characters';
 import { AdKind, CLOSE_MINUTE, DAYS_PER_MONTH, GameState, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
 import { deserialize, loadFromSlot, saveToSlot } from './saves';
@@ -12,7 +13,6 @@ export type GameSpeed = 0 | 1 | 2 | 4;
 
 /** Game minutes that pass per real second at 1x speed. */
 const MINUTES_PER_SECOND = 20;
-export const DECOR_COST = [0, 4000, 9000, 16000];
 
 export const PLAYER_COLORS = [0xe63946];
 export const START_CASH = 50000;
@@ -239,15 +239,51 @@ export class GameService {
     });
   }
 
-  upgradeDecor(restaurantId: number): void {
+  /** Buys a catalogue item and places it in the restaurant at (x, y). */
+  placeItem(restaurantId: number, itemId: string, x: number, y: number): boolean {
+    let ok = false;
     this.mutate((st) => {
-      const r = st.restaurants.find((x) => x.id === restaurantId);
+      const r = st.restaurants.find((x2) => x2.id === restaurantId);
       const owner = st.players.find((p) => p.id === r?.ownerId);
-      if (!r || !owner || r.decor >= 3) return;
-      const cost = DECOR_COST[r.decor + 1] * cityDef(r.cityId).costOfLiving;
+      const lot = r ? st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] : undefined;
+      if (!r || !owner || !lot || !canPlace(r.layout, lot, itemId, x, y)) return;
+      const cost = catalogItem(itemId).price * cityDef(r.cityId).costOfLiving;
       if (owner.cash < cost) return;
       addLedger(owner, st.day, 'Furniture', -cost);
-      r.decor++;
+      r.layout.push({ itemId, x, y });
+      applyRoom(r, lot);
+      ok = true;
+    });
+    return ok;
+  }
+
+  /** Moves a placed item to a new cell when it fits there. */
+  moveItem(restaurantId: number, index: number, x: number, y: number): boolean {
+    let ok = false;
+    this.mutate((st) => {
+      const r = st.restaurants.find((x2) => x2.id === restaurantId);
+      const lot = r ? st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] : undefined;
+      const item = r?.layout[index];
+      if (!r || !lot || !item || !canPlace(r.layout, lot, item.itemId, x, y, index)) return;
+      item.x = x;
+      item.y = y;
+      applyRoom(r, lot);
+      ok = true;
+    });
+    return ok;
+  }
+
+  /** Sells a placed item back for half its price. */
+  sellItem(restaurantId: number, index: number): void {
+    this.mutate((st) => {
+      const r = st.restaurants.find((x2) => x2.id === restaurantId);
+      const owner = st.players.find((p) => p.id === r?.ownerId);
+      const lot = r ? st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] : undefined;
+      const item = r?.layout[index];
+      if (!r || !owner || !lot || !item) return;
+      addLedger(owner, st.day, 'Furniture sold', catalogItem(item.itemId).price * cityDef(r.cityId).costOfLiving * SELL_BACK);
+      r.layout.splice(index, 1);
+      applyRoom(r, lot);
     });
   }
 

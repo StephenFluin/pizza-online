@@ -10,7 +10,8 @@ export type Dialog =
   | { kind: 'restaurants' }
   | { kind: 'finances' }
   | { kind: 'news' }
-  | { kind: 'phone' };
+  | { kind: 'phone' }
+  | { kind: 'interior'; restaurantId: number };
 
 export type MapOverlay = 'none' | 'districts' | 'wealth' | 'competition';
 

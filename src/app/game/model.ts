@@ -61,6 +61,13 @@ export interface Staff {
   wagePerMonth: number;
 }
 
+/** A piece of furniture or kitchen equipment placed on the restaurant's floor grid. */
+export interface PlacedItem {
+  itemId: string;
+  x: number;
+  y: number;
+}
+
 export interface MenuItem {
   recipeId: string;
   price: number;
@@ -73,8 +80,12 @@ export interface Restaurant {
   lotId: number;
   name: string;
   owned: boolean;
-  /** 0..3 – furniture and decoration level. */
+  /** 0..3 atmosphere level, derived from the furniture in `layout`. */
   decor: number;
+  layout: PlacedItem[];
+  /** Cached from `layout`: seats and pizzas per hour the kitchen can bake. */
+  seats: number;
+  kitchenCapacity: number;
   /** Monthly rent agreed with the realtor (0 when the property is owned). */
   rentPerMonth: number;
   staff: Staff[];

@@ -1,5 +1,6 @@
 import { CITIES } from './data';
 import { generateCity } from './city-gen';
+import { applyRoom, starterLayout } from './furniture';
 import { District, GameState, formatDate } from './model';
 
 /**
@@ -56,6 +57,14 @@ export function deserialize(text: string): GameState {
     }
     return city;
   });
+  // Saves from before restaurant interiors existed get a starter fit-out.
+  for (const r of st.restaurants) {
+    const lot = cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
+    if (lot && !Array.isArray(r.layout)) {
+      r.layout = starterLayout(lot);
+      applyRoom(r, lot);
+    }
+  }
   return { ...st, cities, outcome: st.outcome ?? null };
 }
 

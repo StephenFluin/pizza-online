@@ -67,12 +67,12 @@ Match the original game's screen structure more closely (with original art).
 
 ## Phase 7 – Restaurant interior
 
-- [ ] "View restaurant" screen: a PixiJS floor plan sized from the property's footprint
-- [ ] Furniture shop: tables, chairs, decorations, lighting, with styles and prices
-- [ ] Cookware shop: ovens, prep counters, fridges, dishwashers
-- [ ] Place, move and sell items on the grid; seats come from placed tables and chairs
-- [ ] Kitchen throughput comes from ovens and counters; ambience from decor replaces the abstract decor level
-- [ ] Menu board in the restaurant view (prices, which pizzas are served)
+- [x] "View restaurant" screen: a PixiJS floor plan sized from the property's footprint
+- [x] Furniture shop: tables, chairs, decorations, lighting, with styles and prices
+- [x] Cookware shop: ovens, prep counters, fridges, dishwashers
+- [x] Place, move and sell items on the grid; seats come from placed tables and chairs
+- [x] Kitchen throughput comes from ovens and counters; ambience from decor replaces the abstract decor level
+- [x] Menu board in the restaurant view (prices, which pizzas are served)
 
 ## Phase 8 – Polish
 

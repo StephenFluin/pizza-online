@@ -8,6 +8,7 @@ import { BankDialogComponent } from './bank-dialog';
 import { FinancePanelComponent } from './finance-panel';
 import { NewsDialogComponent } from './news-dialog';
 import { PhoneDialogComponent } from './phone-dialog';
+import { InteriorViewComponent } from '../interior/interior-view';
 import { RestaurantsDialogComponent } from './restaurants-dialog';
 import { SavesDialogComponent } from './saves-dialog';
 import { WorldDialogComponent } from './world-dialog';
@@ -27,7 +28,7 @@ const TITLES: Record<string, string> = {
 /** A single native modal dialog that shows whichever screen the UiService asks for. */
 @Component({
   selector: 'app-dialog-host',
-  imports: [CookbookComponent, PizzaDesignerComponent, WorldDialogComponent, BankDialogComponent, SavesDialogComponent, RestaurantsDialogComponent, FinancePanelComponent, NewsDialogComponent, PhoneDialogComponent],
+  imports: [CookbookComponent, PizzaDesignerComponent, WorldDialogComponent, BankDialogComponent, SavesDialogComponent, RestaurantsDialogComponent, FinancePanelComponent, NewsDialogComponent, PhoneDialogComponent, InteriorViewComponent],
   template: `
     <dialog #dlg aria-labelledby="dialog-title" (close)="onNativeClose()" (cancel)="onNativeClose()">
       @if (ui.dialog(); as d) {
@@ -51,6 +52,9 @@ const TITLES: Record<string, string> = {
           @case ('finances') {
             <app-finance-panel />
           }
+          @case ('interior') {
+            <app-interior-view [restaurantId]="d.restaurantId" />
+          }
           @case ('phone') {
             <app-phone-dialog />
           }
@@ -68,7 +72,7 @@ const TITLES: Record<string, string> = {
     </dialog>
   `,
   styles: `
-    dialog { border: none; border-radius: 12px; padding: 16px; background: var(--panel); color: var(--ink); max-width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); width: max-content; }
+    dialog { border: none; border-radius: 12px; padding: 16px; background: var(--panel); color: var(--ink); max-width: min(1100px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); width: max-content; }
     dialog::backdrop { background: #0009; }
     header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; }
     header h2 { margin: 0; }
@@ -79,7 +83,11 @@ export class DialogHostComponent {
   protected readonly ui = inject(UiService);
   private readonly game = inject(GameService);
   private readonly dlg = viewChild.required<ElementRef<HTMLDialogElement>>('dlg');
-  protected readonly title = computed(() => TITLES[this.ui.dialog()?.kind ?? ''] ?? '');
+  protected readonly title = computed(() => {
+    const d = this.ui.dialog();
+    if (d?.kind === 'interior') return this.game.state()?.restaurants.find((r) => r.id === d.restaurantId)?.name ?? 'Restaurant';
+    return TITLES[d?.kind ?? ''] ?? '';
+  });
 
   constructor() {
     effect(() => {

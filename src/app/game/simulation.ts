@@ -1,5 +1,6 @@
 import { PerkId, character, firstName } from './characters';
 import { INGREDIENTS, cityDef, ingredient } from './data';
+import { TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
 import { CityMap, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Restaurant } from './model';
 import { clamp01, itemAppeal, recipeUsage } from './recipes';
 
@@ -49,10 +50,12 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
   const col = cityDef(city.id).costOfLiving;
   const capacity = new Map<number, { kitchen: number; floor: number; seats: number }>();
   for (const r of restaurants) {
-    const lot = city.lots[r.lotId];
-    const kitchen = r.staff.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.6 + s.skill * 0.8), 0);
-    const floor = r.staff.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.6 + s.skill * 0.8), 0);
-    capacity.set(r.id, { kitchen, floor, seats: lot.seats * 1.5 });
+    const room = roomStats(r.layout, city.lots[r.lotId]);
+    // Cooks can only bake as fast as the ovens allow; dishwashers free up waiters.
+    const cooks = r.staff.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.6 + s.skill * 0.8), 0);
+    const kitchen = Math.min(cooks, room.kitchenCapacity);
+    const floor = r.staff.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.6 + s.skill * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
+    capacity.set(r.id, { kitchen, floor, seats: room.seats * TURNOVER_PER_SEAT });
   }
 
   for (const district of city.districts) {
@@ -149,8 +152,10 @@ function serveFromStock(state: GameState, r: Restaurant, district: CityMap['dist
 /** Morning routine: spoilage and automatic restocking. */
 export function startDay(state: GameState): void {
   for (const r of state.restaurants) {
+    // A refrigerator halves spoilage.
+    const chill = r.layout.some((p) => p.itemId === 'fridge') ? 0.5 : 1;
     for (const id of Object.keys(r.stock)) {
-      r.stock[id] = Math.max(0, r.stock[id] * (1 - 1 / ingredient(id).shelfLife));
+      r.stock[id] = Math.max(0, r.stock[id] * (1 - chill / ingredient(id).shelfLife));
       if (r.stock[id] < 0.01) delete r.stock[id];
     }
     if (r.autoRestock) restock(state, r);
@@ -261,6 +266,9 @@ export function openRestaurantAt(
     name: `${firstName(owner.name)}'s Pizzeria${count ? ` #${count + 1}` : ''}`,
     owned: buy,
     decor: 0,
+    layout: starterLayout(lot),
+    seats: 0,
+    kitchenCapacity: 0,
     rentPerMonth: buy ? 0 : price,
     staff: [],
     menu: [
@@ -274,6 +282,7 @@ export function openRestaurantAt(
     today: emptyStats(),
     lastDay: emptyStats(),
   };
+  applyRoom(r, lot);
   lot.restaurantId = r.id;
   st.restaurants.push(r);
   if (st.minute >= OPEN_MINUTE) restock(st, r);

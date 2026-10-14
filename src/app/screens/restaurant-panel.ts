@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { INGREDIENTS, cityDef, ingredient } from '../game/data';
-import { DECOR_COST, GameService } from '../game/game.service';
+import { GameService } from '../game/game.service';
+import { UiService } from '../game/ui.service';
 import { Restaurant, formatMoney } from '../game/model';
 import { recipeCost, recipeQuality } from '../game/recipes';
 
@@ -39,17 +40,15 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
             <dt>Turned away</dt><dd>{{ r.lastDay.turnedAway }}</dd>
             <dt>Today so far</dt><dd>{{ r.today.customers }} guests · {{ money(r.today.revenue) }}</dd>
             <dt>Staff</dt><dd>{{ cooks() }} cooks, {{ waiters() }} waiters</dd>
-            <dt>Decor</dt><dd>{{ decorName() }}</dd>
+            <dt>Seats</dt><dd>{{ r.seats }}</dd>
+            <dt>Kitchen</dt><dd>{{ r.kitchenCapacity }} pizzas/hour</dd>
+            <dt>Atmosphere</dt><dd>{{ decorName() }}</dd>
             <dt>Premises</dt><dd>{{ r.owned ? 'Owned' : 'Rented' }}</dd>
           </dl>
           @if (warning(); as w) {
             <p class="warn" role="status">{{ w }}</p>
           }
-          @if (r.decor < 3) {
-            <button type="button" (click)="game.upgradeDecor(r.id)" [disabled]="(game.human()?.cash ?? 0) < decorCost()">
-              Refurnish ({{ decorNext() }}) – {{ money(decorCost()) }}
-            </button>
-          }
+          <button type="button" (click)="ui.open({ kind: 'interior', restaurantId: r.id })">View restaurant</button>
           <button type="button" class="secondary close" (click)="close()">Close restaurant</button>
         }
         @case ('staff') {
@@ -161,13 +160,14 @@ export class RestaurantPanelComponent {
   protected readonly col = computed(() => cityDef(this.restaurant().cityId).costOfLiving);
   protected readonly cooks = computed(() => this.restaurant().staff.filter((s) => s.role === 'cook').length);
   protected readonly waiters = computed(() => this.restaurant().staff.filter((s) => s.role === 'waiter').length);
-  protected readonly decorName = computed(() => DECOR_NAMES[this.restaurant().decor]);
-  protected readonly decorNext = computed(() => DECOR_NAMES[Math.min(3, this.restaurant().decor + 1)]);
-  protected readonly decorCost = computed(() => DECOR_COST[Math.min(3, this.restaurant().decor + 1)] * this.col());
+  protected readonly ui = inject(UiService);
+  protected readonly decorName = computed(() => DECOR_NAMES[Math.min(3, Math.floor(this.restaurant().decor))]);
   protected readonly applicants = computed(() => this.game.applicantsFor(this.restaurant()));
   protected readonly warning = computed(() => {
     const r = this.restaurant();
     if (this.cooks() === 0 || this.waiters() === 0) return 'You need at least one cook and one waiter to serve guests.';
+    if (r.kitchenCapacity === 0) return 'Your kitchen needs an oven and a prep counter. Open the restaurant view to buy them.';
+    if (r.seats === 0) return 'There are no tables. Open the restaurant view to buy some.';
     if (r.menu.length === 0) return 'Your menu is empty.';
     if (!r.autoRestock && Object.keys(r.stock).length === 0) return 'Your pantry is empty. Buy ingredients in the Stock tab.';
     return null;

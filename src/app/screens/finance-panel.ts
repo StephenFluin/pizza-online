@@ -13,7 +13,10 @@ import { UiService } from '../game/ui.service';
     <section aria-labelledby="fin-title" class="fin">
       <div class="head">
         <h3 id="fin-title">This month</h3>
-        <button type="button" class="secondary small" (click)="ui.open({ kind: 'stats' })">Statistics and comparisons</button>
+        <span class="links">
+          <button type="button" class="secondary small" (click)="ui.open({ kind: 'stats' })">Statistics</button>
+          <button type="button" class="secondary small" (click)="ui.open({ kind: 'research' })">Market research</button>
+        </span>
       </div>
       <table>
         <caption class="sr-only">Income and expenses this month</caption>
@@ -75,6 +78,7 @@ import { UiService } from '../game/ui.service';
     .rank { font-size: 1.1rem; }
     .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .small { padding: 2px 8px; font-size: 0.85rem; }
+    .links { display: flex; gap: 6px; }
     .awards { margin: 0 0 6px; padding-left: 18px; }
     .hint { margin: 0; font-size: 0.85rem; color: #555; }
     table { width: 100%; border-collapse: collapse; }

@@ -17,6 +17,7 @@ import { UnderworldScreenComponent } from './underworld-screen';
 import { EndingScreenComponent } from './ending-screen';
 import { HighScoresComponent } from './high-scores';
 import { StatsScreenComponent } from './stats-screen';
+import { ResearchScreenComponent } from './research-screen';
 import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
@@ -48,6 +49,7 @@ const TITLES: Record<string, string> = {
   ending: 'The end of an era',
   highscores: 'High scores',
   stats: 'Statistics',
+  research: 'Market research',
 };
 
 /**
@@ -80,8 +82,11 @@ const TITLES: Record<string, string> = {
     EndingScreenComponent,
     HighScoresComponent,
     StatsScreenComponent,
+    ResearchScreenComponent,
   ],
   template: `
+    <!-- Screens load in their own chunk, fetched right after start-up, to keep the first download small. -->
+    @defer (on immediate) {
     @if (ui.dialog(); as d) {
       @if (d.kind === 'report') {
         <app-day-report />
@@ -107,6 +112,7 @@ const TITLES: Record<string, string> = {
               @case ('underworld') { <app-underworld-screen /> }
               @case ('ending') { <app-ending-screen /> }
               @case ('highscores') { <app-high-scores /> }
+              @case ('research') { <app-research-screen [startDistrict]="d.districtId" /> }
               @case ('stats') { <app-stats-screen [restaurantId]="d.restaurantId" /> }
               @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
               @case ('capacity') { <app-capacity-screen [restaurantId]="d.restaurantId" /> }
@@ -120,6 +126,7 @@ const TITLES: Record<string, string> = {
           </div>
         </section>
       }
+    }
     }
   `,
   styles: `

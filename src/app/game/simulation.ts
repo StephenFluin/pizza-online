@@ -212,6 +212,33 @@ export function estimateDailyDemand(state: GameState, r: Restaurant): number {
   return Math.round(demand);
 }
 
+export interface DistrictAppetite {
+  districtId: number;
+  /** Pizza meals residents would eat in a day if every craving were met. */
+  potential: number;
+  /** Owner id -> guests the district sends to that owner's restaurants. */
+  byOwner: Map<number, number>;
+  /** Cravings no pizzeria in town currently wins: the opening for a new shop. */
+  unserved: number;
+}
+
+/** Market research: how each district's appetite splits between the chains today, capacity aside. */
+export function districtAppetite(state: GameState, cityId: string): DistrictAppetite[] {
+  const city = state.cities.find((c) => c.id === cityId);
+  if (!city) return [];
+  const col = cityDef(city.id).costOfLiving;
+  const restaurants = state.restaurants.filter((x) => x.cityId === city.id && !x.closedDays);
+  const rooms = new Map(restaurants.map((x) => [x.id, roomStats(x.layout, city.lots[x.lotId], x.floorId)] as const));
+  const dayRate = Object.values(HOURLY_RATE).reduce((n, v) => n + v, 0);
+  return city.districts.map((district) => {
+    const potential = district.population * dayRate * demandFactor(state, city.id);
+    const { scored, total } = scoreRestaurants(state, city, restaurants, rooms, district, col);
+    const byOwner = new Map<number, number>();
+    for (const s of scored) byOwner.set(s.r.ownerId, (byOwner.get(s.r.ownerId) ?? 0) + (potential * s.score) / total);
+    return { districtId: district.id, potential, byOwner, unserved: (potential * OUTSIDE_OPTION) / total };
+  });
+}
+
 /** Hours a restaurant trades each day. */
 export const OPEN_HOURS = Object.keys(HOURLY_RATE).length;
 

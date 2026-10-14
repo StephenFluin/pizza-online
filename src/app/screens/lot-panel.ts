@@ -63,6 +63,7 @@ import { UiService } from '../game/ui.service';
             <dt>Loves</dt><dd>{{ favourites() }}</dd>
             <dt>Dislikes</dt><dd>{{ dislikes() }}</dd>
           </dl>
+          <button type="button" class="secondary" (click)="ui.open({ kind: 'research', districtId: d.id })">Market research</button>
         }
         <button type="button" class="secondary" (click)="game.selectLot(null)">Back to overview</button>
       </section>
@@ -133,7 +134,7 @@ export class LotPanelComponent {
   });
 
   private readonly phone = inject(PhoneService);
-  private readonly ui = inject(UiService);
+  protected readonly ui = inject(UiService);
   protected readonly realtor = computed(() => {
     const lot = this.lot();
     const st = this.game.state();

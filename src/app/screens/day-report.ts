@@ -56,7 +56,7 @@ import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
               <div><span>Reputation</span><b>{{ pct(r.reputation) }} <small [class.neg]="r.reputationTrend < 0">{{ trend(r.reputationTrend) }}</small></b></div>
             </div>
 
-            <h4>What happened</h4>
+            <h4>What happened <button type="button" class="link-btn" (click)="ui.open({ kind: 'capacity', restaurantId: r.id })">See what limits this restaurant</button></h4>
             <ul class="findings">
               @for (f of r.findings; track $index) {
                 <li [class]="f.tone"><span class="icon" aria-hidden="true">{{ f.tone === 'good' ? '▲' : f.tone === 'bad' ? '▼' : '•' }}</span><span class="sr-only">{{ toneLabel(f.tone) }}: </span>{{ f.text }}</li>
@@ -120,6 +120,7 @@ import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
     .badge { position: absolute; top: -6px; right: -6px; background: var(--tomato); color: #fff; border-radius: 999px; min-width: 22px; text-align: center; font-size: 0.8rem; font-weight: 700; padding: 1px 6px; }
     .detail { overflow: auto; background: #fffaf0; border: 2px solid var(--line); padding: 12px; min-height: 0; }
     h3 { margin: 0 0 8px; } h3 small { font-weight: 400; color: #555; }
+    .link-btn { background: none; border: none; color: var(--ink-soft); text-decoration: underline; font-size: 0.85rem; text-transform: none; letter-spacing: 0; padding: 0 0 0 8px; font-weight: 400; }
     h4 { margin: 14px 0 6px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
     .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
     .kpis div { background: var(--lcd); color: var(--lcd-text); font-family: var(--font-lcd); padding: 4px 8px; border-radius: 2px; display: grid; }
@@ -147,7 +148,7 @@ import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 })
 export class DayReportComponent {
   protected readonly game = inject(GameService);
-  private readonly ui = inject(UiService);
+  protected readonly ui = inject(UiService);
   private readonly shell = inject(ShellService);
 
   protected readonly reviews = computed(() => {
@@ -189,6 +190,7 @@ export class DayReportComponent {
       { id: 'next', label: 'Next', icon: ICONS.down, disabled: list.length < 2, action: () => this.selectedId.set(list[(i + 1) % list.length].id) },
       { id: 'view', label: 'Restaurant', icon: ICONS.restaurant, disabled: !sel, action: () => sel && this.ui.open({ kind: 'interior', restaurantId: sel.id }) },
       { id: 'staff', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff', restaurantId: sel?.id }) },
+      { id: 'capacity', label: 'Capacity', icon: ICONS.zoom, disabled: !sel, action: () => sel && this.ui.open({ kind: 'capacity', restaurantId: sel.id }) },
       { id: 'stock', label: 'Stock', icon: ICONS.box, disabled: !sel, action: () => sel && this.ui.open({ kind: 'stock', restaurantId: sel.id }) },
       { id: 'finances', label: 'Finances', icon: ICONS.chart, action: () => this.ui.open({ kind: 'finances' }) },
     ];

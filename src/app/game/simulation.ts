@@ -82,35 +82,19 @@ function simulateCityHour(state: GameState, city: CityMap, restaurants: Restaura
   for (const r of restaurants) {
     const room = roomStats(r.layout, city.lots[r.lotId], r.floorId);
     rooms.set(r.id, room);
-    // Cooks can only bake as fast as the ovens allow; dishwashers free up waiters.
-    // Only staff at work count; skill shows through motivation, and fast cooks turn out more pizzas.
-    const working = r.staff.filter(isAvailable);
-    const cooks = working.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.5 + effectiveSkill(s) * 0.8) * (0.8 + s.pizzasPerDay / 500), 0);
-    const kitchen = Math.min(cooks, room.kitchenCapacity);
-    const floor = working.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.5 + effectiveSkill(s) * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
-    capacity.set(r.id, { kitchen, floor, seats: room.seats * TURNOVER_PER_SEAT });
+    const rates = hourlyRates(r, room);
+    const kitchen = Math.min(rates.cooks, rates.ovens);
+    const floor = rates.waiters;
+    capacity.set(r.id, { kitchen, floor, seats: rates.seats });
     r.popularity = computePopularity(state, r, city);
-    r.today.capacity += Math.floor(Math.min(kitchen, floor, room.seats * TURNOVER_PER_SEAT));
+    r.today.capacity += Math.floor(Math.min(kitchen, floor, rates.seats));
   }
 
   for (const district of city.districts) {
     const hungry = Math.round(district.population * rate * demandFactor(state, city.id));
     if (hungry <= 0) continue;
 
-    // Score each restaurant for this district: best menu item, reputation, decor, distance.
-    const scored = restaurants
-      .map((r) => {
-        const lot = city.lots[r.lotId];
-        const dist = Math.hypot(lot.x - district.cx, lot.y - district.cy);
-        const best = bestItem(state, r, district, col);
-        if (!best) return null;
-        // Atmosphere, and whether this district's groups like the furniture's style.
-        const look = districtLookAppeal(rooms.get(r.id)!, district);
-        const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * (0.9 + look * 0.2) * Math.exp(-dist / 14);
-        return { r, best, score };
-      })
-      .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0);
-    const total = scored.reduce((n, s) => n + s.score, OUTSIDE_OPTION);
+    const { scored, total } = scoreRestaurants(state, city, restaurants, rooms, district, col);
 
     for (const s of scored) {
       const wanted = Math.round((hungry * s.score) / total);
@@ -167,6 +151,58 @@ export function adEffectiveness(state: GameState, ownerId: number, cityId: strin
   const owner = state.players.find((p) => p.id === ownerId);
   return (owner?.ads ?? []).filter((a) => a.cityId === cityId).reduce((n, a) => n + a.effectiveness, 0);
 }
+
+/** Guests (or pizzas) per hour each part of a restaurant can handle. */
+export function hourlyRates(r: Restaurant, room: RoomStats): { seats: number; cooks: number; ovens: number; waiters: number } {
+  // Only staff at work count; skill shows through motivation, and fast cooks turn out more pizzas.
+  const working = r.staff.filter(isAvailable);
+  const cooks = working.filter((s) => s.role === 'cook').reduce((n, s) => n + PIZZAS_PER_COOK_HOUR * (0.5 + effectiveSkill(s) * 0.8) * (0.8 + s.pizzasPerDay / 500), 0);
+  // Dishwashers free up waiters.
+  const waiters = working.filter((s) => s.role === 'waiter').reduce((n, s) => n + GUESTS_PER_WAITER_HOUR * (0.5 + effectiveSkill(s) * 0.8), 0) * (1 + Math.min(2, room.dishwashers) * 0.15);
+  // Cooks can only bake as fast as the ovens (fed by prep counters) allow.
+  return { seats: room.seats * TURNOVER_PER_SEAT, cooks, ovens: room.kitchenCapacity, waiters };
+}
+
+/** How strongly each restaurant pulls this district's hungry residents, against eating elsewhere. */
+function scoreRestaurants(state: GameState, city: CityMap, restaurants: Restaurant[], rooms: Map<number, RoomStats>, district: CityMap['districts'][number], col: number) {
+  const scored = restaurants
+    .map((r) => {
+      const lot = city.lots[r.lotId];
+      const dist = Math.hypot(lot.x - district.cx, lot.y - district.cy);
+      const best = bestItem(state, r, district, col);
+      if (!best) return null;
+      // Atmosphere, and whether this district's groups like the furniture's style.
+      const look = districtLookAppeal(rooms.get(r.id)!, district);
+      const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * (0.9 + look * 0.2) * Math.exp(-dist / 14);
+      return { r, best, score };
+    })
+    .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0);
+  return { scored, total: scored.reduce((n, s) => n + s.score, OUTSIDE_OPTION) };
+}
+
+/**
+ * Guests who would want to eat at a restaurant in a full day with today's
+ * menu, popularity and competition, ignoring its own capacity limits.
+ */
+export function estimateDailyDemand(state: GameState, r: Restaurant): number {
+  const city = state.cities.find((c) => c.id === r.cityId);
+  if (!city) return 0;
+  const col = cityDef(city.id).costOfLiving;
+  const restaurants = state.restaurants.filter((x) => x.cityId === city.id && !x.closedDays);
+  if (!restaurants.includes(r)) return 0;
+  const rooms = new Map(restaurants.map((x) => [x.id, roomStats(x.layout, city.lots[x.lotId], x.floorId)] as const));
+  const dayRate = Object.values(HOURLY_RATE).reduce((n, v) => n + v, 0);
+  let demand = 0;
+  for (const district of city.districts) {
+    const { scored, total } = scoreRestaurants(state, city, restaurants, rooms, district, col);
+    const mine = scored.find((s) => s.r.id === r.id);
+    if (mine) demand += district.population * dayRate * demandFactor(state, city.id) * (mine.score / total);
+  }
+  return Math.round(demand);
+}
+
+/** Hours a restaurant trades each day. */
+export const OPEN_HOURS = Object.keys(HOURLY_RATE).length;
 
 /** How much a district's customer groups like a room's style, 0..1. */
 function districtLookAppeal(room: RoomStats, district: CityMap['districts'][number]): number {

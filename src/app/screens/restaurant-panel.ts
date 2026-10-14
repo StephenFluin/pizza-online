@@ -65,7 +65,10 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
           @if (warning(); as w) {
             <p class="warn" role="status">{{ w }}</p>
           }
-          <button type="button" (click)="ui.open({ kind: 'interior', restaurantId: r.id })">View restaurant</button>
+          <div class="buttons">
+            <button type="button" (click)="ui.open({ kind: 'interior', restaurantId: r.id })">View restaurant</button>
+            <button type="button" class="secondary" (click)="ui.open({ kind: 'capacity', restaurantId: r.id })">Capacity</button>
+          </div>
           <button type="button" class="secondary close" (click)="close()">Close restaurant</button>
         }
         @case ('staff') {
@@ -113,6 +116,7 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
     .price input, .qty { width: 64px; font: inherit; padding: 2px 4px; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
     th, td { text-align: left; padding: 3px 4px; border-top: 1px solid var(--line); }
+    .buttons { display: flex; gap: 6px; flex-wrap: wrap; }
     .pop { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 0.9rem; }
     .pop caption { text-align: left; font-weight: 600; }
     .pop th { text-align: left; font-weight: 400; }

@@ -1,7 +1,10 @@
 import { Component, computed, inject } from '@angular/core';
 import { GameService, GameSpeed } from '../game/game.service';
 import { formatDate, formatMoney, formatTime } from '../game/model';
-import { ShellService } from './shell.service';
+import { ShellService, Tool } from './shell.service';
+
+/** Fixed places for the navigation tools in the bottom row of the grid. */
+const NAV_SLOTS: Record<string, number> = { 'prev-shop': 6, 'next-shop': 7, back: 8 };
 
 /**
  * Right-hand column of the classic frame: an amber LCD info panel framed by
@@ -34,7 +37,8 @@ import { ShellService } from './shell.service';
       </div>
     </section>
     <nav class="tools" aria-label="Tools">
-      @for (t of tools(); track t.id) {
+      @for (t of slots(); track $index) {
+        @if (t) {
         <button
           type="button"
           class="tool bevel"
@@ -45,11 +49,11 @@ import { ShellService } from './shell.service';
           (click)="t.action()"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="t.icon" /></svg>
-          <span class="label">{{ t.label }}</span>
+          <span class="label" [class.long]="longWord(t.label)">{{ t.label }}</span>
         </button>
-      }
-      @for (f of filler(); track $index) {
-        <span class="tool bevel empty" aria-hidden="true"></span>
+        } @else {
+          <span class="tool bevel empty" aria-hidden="true"></span>
+        }
       }
     </nav>
   `,
@@ -81,7 +85,9 @@ import { ShellService } from './shell.service';
     .tool:active:not(:disabled), .tool[aria-pressed='true'] { border-color: var(--steel-dark) var(--steel-light) var(--steel-light) var(--steel-dark); filter: brightness(0.92); }
     .tool:disabled { opacity: 0.45; }
     .tool svg { width: 60%; max-width: 34px; fill: none; stroke: #2b3036; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .label { font-size: 0.6rem; line-height: 1.05; text-align: center; text-transform: uppercase; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .label { font-size: 0.6rem; line-height: 1.05; text-align: center; text-transform: uppercase; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    /* Labels wrap between words; a single long word gets smaller type instead of breaking. */
+    .label.long { font-size: 0.5rem; }
     .empty { opacity: 0.6; }
   `,
 })
@@ -92,12 +98,32 @@ export class ShellSideComponent {
   protected readonly speed = this.game.speed;
   protected readonly inGame = computed(() => !!this.game.state() && !this.game.state()?.outcome);
   protected readonly lines = computed(() => this.shell.active()?.lines() ?? []);
-  protected readonly tools = computed(() => (this.shell.active()?.tools() ?? []).slice(0, 9));
-  protected readonly filler = computed(() => Array.from({ length: Math.max(0, 9 - this.tools().length) }));
+  /**
+   * The 3×3 grid. The bottom row is for getting around, the same on every
+   * screen: Prev shop, Next shop, Back. Other tools fill the grid in order.
+   */
+  protected readonly slots = computed(() => {
+    const grid: (Tool | null)[] = Array.from({ length: 9 }, () => null);
+    const rest: Tool[] = [];
+    for (const t of this.shell.active()?.tools() ?? []) {
+      const at = NAV_SLOTS[t.id];
+      if (at !== undefined && !grid[at]) grid[at] = t;
+      else rest.push(t);
+    }
+    for (const t of rest) {
+      const free = grid.indexOf(null);
+      if (free >= 0) grid[free] = t;
+    }
+    return grid;
+  });
   protected readonly clock = computed(() => {
     const st = this.game.state();
     return st ? `${formatDate(st.day)}  ${formatTime(st.minute)}` : '';
   });
   protected readonly cash = computed(() => this.game.human()?.cash ?? 0);
+
+  protected longWord(label: string): boolean {
+    return label.split(' ').some((w) => w.length > 8);
+  }
   protected readonly money = computed(() => formatMoney(this.cash()));
 }

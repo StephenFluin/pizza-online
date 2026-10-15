@@ -1,4 +1,8 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { UiService } from '../game/ui.service';
+import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
+import { reportTools } from './reports';
+import { ShopPickerComponent, shopCycleTools } from './shop-picker';
 import { netWorth, rankOf } from '../game/awards';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
@@ -23,6 +27,7 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
 /** Statistics: a restaurant's last month as a curve, its week in numbers, and comparisons across shops and chains. */
 @Component({
   selector: 'app-stats-screen',
+  imports: [ShopPickerComponent],
   template: `
     <div class="tabs" role="tablist" aria-label="Statistics">
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'restaurant'" (click)="tab.set('restaurant')">Restaurant</button>
@@ -34,13 +39,7 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
       @case ('restaurant') {
         @if (restaurant(); as r) {
           <div class="bar">
-            <label>Restaurant
-              <select [value]="r.id" (change)="pick($event)">
-                @for (x of mine(); track x.id) {
-                  <option [value]="x.id">{{ x.name }} ({{ city(x.cityId) }})</option>
-                }
-              </select>
-            </label>
+            <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="open($event)" />
             <div class="metrics" role="radiogroup" aria-label="Show on the curve">
               @for (m of metrics; track m.id) {
                 <button type="button" role="radio" class="small" [class.secondary]="metric() !== m.id" [attr.aria-checked]="metric() === m.id" (click)="metric.set(m.id)">{{ m.label }}</button>
@@ -206,6 +205,7 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
 })
 export class StatsScreenComponent {
   private readonly game = inject(GameService);
+  private readonly ui = inject(UiService);
   readonly restaurantId = input<number | undefined>(undefined);
 
   protected readonly metrics = METRICS;
@@ -329,17 +329,24 @@ export class StatsScreenComponent {
       .sort((a, b) => b.worth - a.worth);
   });
 
-  protected pick(ev: Event): void {
-    this.chosenId.set(Number((ev.target as HTMLSelectElement).value));
+  private readonly lines = computed<LcdLine[]>(() => {
+    const r = this.restaurant();
+    const w = this.weekTotals();
+    return [{ label: 'Statistics' }, { label: r?.name ?? '' }, { label: 'Week guests', value: String(w.customers) }, { label: 'Week takings', value: formatMoney(w.revenue) }];
+  });
+  private readonly tools = computed<Tool[]>(() => [
+    ...reportTools(this.ui, 'stats'),
+    ...shopCycleTools(this.mine().map((r) => r.id), this.restaurant()?.id, (id) => this.open(id)),
+    { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
+  ]);
+
+  constructor() {
+    inject(DestroyRef).onDestroy(inject(ShellService).register(this, { lines: this.lines, tools: this.tools }));
   }
 
   protected open(id: number): void {
     this.chosenId.set(id);
     this.tab.set('restaurant');
-  }
-
-  protected city(id: string): string {
-    return cityDef(id).name;
   }
 
   protected shortDate(day: number): string {

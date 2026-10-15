@@ -18,6 +18,7 @@ import { EndingScreenComponent } from './ending-screen';
 import { HighScoresComponent } from './high-scores';
 import { StatsScreenComponent } from './stats-screen';
 import { ResearchScreenComponent } from './research-screen';
+import { REPORTS, reportTools } from './reports';
 import { ContestScreenComponent } from './contest-screen';
 import { DayReportComponent } from './day-report';
 import { FinancePanelComponent } from './finance-panel';
@@ -26,14 +27,6 @@ import { PhoneDialogComponent } from './phone-dialog';
 import { RestaurantsDialogComponent } from './restaurants-dialog';
 import { SavesDialogComponent } from './saves-dialog';
 import { WorldDialogComponent } from './world-dialog';
-
-/** Reports share one tool button and a row of tabs, so each is a click away from the others. */
-const REPORTS: { kind: 'finances' | 'stats' | 'research' | 'news'; label: string; short: string; icon: string }[] = [
-  { kind: 'finances', label: 'Finances', short: 'Finances', icon: ICONS.chart },
-  { kind: 'stats', label: 'Statistics', short: 'Statistics', icon: ICONS.up },
-  { kind: 'research', label: 'Market research', short: 'Research', icon: ICONS.zoom },
-  { kind: 'news', label: 'Newspaper', short: 'News', icon: ICONS.news },
-];
 
 const TITLES: Record<string, string> = {
   cookbook: 'Cook book',
@@ -177,7 +170,7 @@ export class DialogHostComponent {
     const kind = this.ui.dialog()?.kind;
     const back: Tool = { id: 'back', label: 'Back', icon: ICONS.back, action: () => this.back() };
     // The reports switch between each other from the tool grid as well as the tabs.
-    if (this.isReport()) return [...REPORTS.map((r) => ({ id: r.kind, label: r.short, icon: r.icon, pressed: r.kind === kind, action: () => this.ui.open({ kind: r.kind }) })), back];
+    if (this.isReport()) return [...reportTools(this.ui, kind), back];
     if (kind === 'phone') return [{ id: 'streets', label: 'Back streets', icon: ICONS.person, action: () => this.ui.open({ kind: 'underworld' }) }, back];
     return [back];
   });

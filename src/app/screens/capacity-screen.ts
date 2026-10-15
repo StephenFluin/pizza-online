@@ -2,6 +2,7 @@ import { Component, DestroyRef, computed, inject, input, linkedSignal } from '@a
 import { CapacityReport, restaurantCapacity } from '../game/capacity';
 import { GameService } from '../game/game.service';
 import { Popularity, Restaurant } from '../game/model';
+import { ShopPickerComponent, shopCycleTools } from './shop-picker';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 
@@ -21,16 +22,13 @@ const POPULARITY_ROWS: { key: keyof Popularity; label: string }[] = [
  */
 @Component({
   selector: 'app-capacity-screen',
+  imports: [ShopPickerComponent],
   template: `
     @if (restaurant(); as r) {
       @let rep = report()!;
       <div class="cap">
         <header class="head">
-          <label>Restaurant
-            <select [value]="r.id" (change)="chosenId.set(+$any($event.target).value)">
-              @for (x of mine(); track x.id) {<option [value]="x.id">{{ x.name }}</option>}
-            </select>
-          </label>
+          <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="chosenId.set($event)" />
           <p class="verdict" [class.ok]="rep.limitedBy === 'popularity'" role="status">{{ verdict() }}</p>
         </header>
 
@@ -197,17 +195,14 @@ export class CapacityScreenComponent {
     ];
   });
   private readonly tools = computed<Tool[]>(() => {
-    const list = this.mine();
     const r = this.restaurant();
-    const i = list.findIndex((x) => x.id === r?.id);
     const id = r?.id;
     return [
-      { id: 'room', label: 'Restaurant', icon: ICONS.restaurant, disabled: !r, action: () => id !== undefined && this.ui.open({ kind: 'interior', restaurantId: id }) },
+      { id: 'room', label: 'View inside', icon: ICONS.restaurant, disabled: !r, action: () => id !== undefined && this.ui.open({ kind: 'interior', restaurantId: id }) },
       { id: 'staff', label: 'Staff', icon: ICONS.staff, disabled: !r, action: () => this.ui.open({ kind: 'staff', restaurantId: id }) },
       { id: 'stock', label: 'Stock', icon: ICONS.box, disabled: !r, action: () => this.ui.open({ kind: 'stock', restaurantId: id }) },
       { id: 'ads', label: 'Advertise', icon: ICONS.megaphone, action: () => this.ui.open({ kind: 'bank' }) },
-      { id: 'prev', label: 'Prev shop', icon: ICONS.left, disabled: list.length < 2, action: () => this.chosenId.set(list[(i - 1 + list.length) % list.length].id) },
-      { id: 'next', label: 'Next shop', icon: ICONS.right, disabled: list.length < 2, action: () => this.chosenId.set(list[(i + 1) % list.length].id) },
+      ...shopCycleTools(this.mine().map((x) => x.id), id, (next) => this.chosenId.set(next)),
       { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
     ];
   });

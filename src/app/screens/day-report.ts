@@ -4,6 +4,7 @@ import { formatDate, formatMoney } from '../game/model';
 import { RestaurantReview, reviewCompany } from '../game/report';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
+import { shopCycleTools } from './shop-picker';
 
 /**
  * Full-screen end-of-day report: every restaurant at a glance, and a detailed
@@ -182,12 +183,10 @@ export class DayReportComponent {
   });
   private readonly tools = computed<Tool[]>(() => {
     const list = this.reviews();
-    const i = list.findIndex((r) => r.id === this.selected()?.id);
     const sel = this.selected();
     return [
       { id: 'continue', label: 'Next day', icon: ICONS.sun, action: () => this.continue() },
-      { id: 'prev', label: 'Previous', icon: ICONS.up, disabled: list.length < 2, action: () => this.selectedId.set(list[(i - 1 + list.length) % list.length].id) },
-      { id: 'next', label: 'Next', icon: ICONS.down, disabled: list.length < 2, action: () => this.selectedId.set(list[(i + 1) % list.length].id) },
+      ...shopCycleTools(list.map((r) => r.id), sel?.id, (id) => this.selectedId.set(id)),
       { id: 'view', label: 'View inside', icon: ICONS.restaurant, disabled: !sel, action: () => sel && this.ui.open({ kind: 'interior', restaurantId: sel.id }) },
       { id: 'staff', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff', restaurantId: sel?.id }) },
       { id: 'capacity', label: 'Capacity', icon: ICONS.zoom, disabled: !sel, action: () => sel && this.ui.open({ kind: 'capacity', restaurantId: sel.id }) },

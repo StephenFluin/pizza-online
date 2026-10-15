@@ -9,6 +9,7 @@ import { MAX_RESTOCK_DAYS, forecastGuests, forecastUsage, freshDays, restockTarg
 import { BULK_DISCOUNT, BULK_UNITS, warehouseIn } from '../game/warehouse';
 import { ARGUMENTS, Argument, PATIENCE, Terms, argue, contractMinimum, dailyListPrice, deliveryCost, openingTerms, relationOf, salesRep } from '../game/contracts';
 import { PortraitComponent } from '../characters/portrait';
+import { ShopPickerComponent, shopCycleTools } from '../screens/shop-picker';
 
 type View = { kind: 'overview' } | { kind: 'vendors'; category: IngredientCategory } | { kind: 'order'; vendorId: string };
 
@@ -21,18 +22,12 @@ const AMOUNT_STEP = 10;
  */
 @Component({
   selector: 'app-stock-screen',
-  imports: [PortraitComponent],
+  imports: [PortraitComponent, ShopPickerComponent],
   template: `
     @if (restaurant(); as r) {
       <div class="stock">
         <header class="head">
-          <label>Restaurant
-            <select [value]="r.id" (change)="selectRestaurant(+$any($event.target).value)">
-              @for (x of mine(); track x.id) {
-                <option [value]="x.id">{{ x.name }}</option>
-              }
-            </select>
-          </label>
+          <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="selectRestaurant($event)" />
           <button type="button" class="secondary small" (click)="ui.open({ kind: 'warehouse', cityId: r.cityId })">{{ hasWarehouse() ? 'Warehouse' : 'Rent a warehouse' }}</button>
           <nav class="cats" aria-label="Categories">
             @for (c of categories; track c.id) {
@@ -440,19 +435,14 @@ export class StockScreenComponent {
     const cat = this.activeCategory();
     const icons: Record<IngredientCategory, string> = { vegetables: ICONS.plus, meat: ICONS.box, fruit: ICONS.sun, cheese: ICONS.pizza };
     const tools: Tool[] = INGREDIENT_CATEGORIES.map((c) => ({ id: c.id, label: c.label, icon: icons[c.id], pressed: cat === c.id, action: () => this.openCategory(c.id) }));
-    const list = this.mine();
-    const i = list.findIndex((r) => r.id === this.restaurant()?.id);
-    tools.push(
-      { id: 'prev', label: 'Prev shop', icon: ICONS.left, disabled: list.length < 2, action: () => this.selectRestaurant(list[(i - 1 + list.length) % list.length].id) },
-      { id: 'next', label: 'Next shop', icon: ICONS.right, disabled: list.length < 2, action: () => this.selectRestaurant(list[(i + 1) % list.length].id) },
-    );
+    tools.push(...shopCycleTools(this.mine().map((r) => r.id), this.restaurant()?.id, (id) => this.selectRestaurant(id)));
     if (this.view().kind === 'order') {
       const talk = this.talk();
       if (this.buyMode() === 'once') tools.push({ id: 'order', label: 'Order', icon: ICONS.save, disabled: this.orderTotal() === 0, action: () => this.order() });
       else if (talk) tools.push({ id: 'sign', label: 'Sign', icon: ICONS.pencil, disabled: talk.ended, action: () => this.sign() });
       else tools.push({ id: 'talk', label: 'Talk terms', icon: ICONS.phone, disabled: this.orderTotal() === 0, action: () => this.startTalk() });
     }
-    tools.push({ id: 'back', label: this.view().kind === 'overview' ? 'Close' : 'Back', icon: ICONS.back, action: () => this.back() });
+    tools.push({ id: 'back', label: 'Back', icon: ICONS.back, action: () => this.back() });
     return tools;
   });
 

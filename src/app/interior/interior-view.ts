@@ -10,6 +10,7 @@ import { UiService } from '../game/ui.service';
 import { ArtCacheService } from '../shell/art-cache.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { CELL, WALL, drawItem, drawItemAt, drawRoom } from './interior-art';
+import { ShopPickerComponent, shopCycleTools } from '../screens/shop-picker';
 
 /** What clicking on the floor plan does. */
 type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'move'; index: number };
@@ -22,6 +23,7 @@ type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'mo
  */
 @Component({
   selector: 'app-interior-view',
+  imports: [ShopPickerComponent],
   template: `
     @if (restaurant(); as r) {
       <div class="interior">
@@ -48,6 +50,10 @@ type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'mo
         </div>
 
         <div class="tray">
+          <section aria-label="Pizzeria">
+            <h3>Pizzeria</h3>
+            <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="switchTo($event)" />
+          </section>
           <section aria-labelledby="storage-title">
           <h3 id="storage-title">Storage</h3>
           <ul class="stored">
@@ -157,6 +163,10 @@ export class InteriorViewComponent {
     return r ? (this.game.state()?.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] ?? null) : null;
   });
   private readonly size = computed(() => roomSize(this.lot() ?? { w: 2, h: 2 }));
+  protected readonly mine = computed(() => {
+    const me = this.game.human();
+    return (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
+  });
   protected readonly stats = computed(() => {
     const r = this.restaurant();
     const lot = this.lot();
@@ -211,14 +221,12 @@ export class InteriorViewComponent {
     const shop = (kind: StoreKind) => () => this.ui.open({ kind: 'shop', restaurantId: id, storeKind: kind });
     const sel = this.selectedIndex() !== null;
     return [
-      { id: 'furniture', label: 'Furniture', icon: ICONS.shop, action: shop('furniture') },
-      { id: 'floors', label: 'Flooring', icon: ICONS.box, action: shop('flooring') },
-      { id: 'extras', label: 'Extras', icon: ICONS.sun, action: shop('extras') },
-      { id: 'kitchen', label: 'Kitchen', icon: ICONS.pizza, action: shop('kitchen') },
-      { id: 'move', label: 'Move', icon: ICONS.right, disabled: !sel, pressed: this.mode().kind === 'move', action: () => this.startMove() },
+      { id: 'stores', label: 'Stores', icon: ICONS.shop, action: shop('furniture') },
+      { id: 'move', label: 'Move', icon: ICONS.rotate, disabled: !sel, pressed: this.mode().kind === 'move', action: () => this.startMove() },
       { id: 'capacity', label: 'Capacity', icon: ICONS.chart, action: () => this.ui.open({ kind: 'capacity', restaurantId: id }) },
       { id: 'stock', label: 'Stock', icon: ICONS.box, action: () => this.ui.open({ kind: 'stock', restaurantId: id }) },
       { id: 'manage', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff', restaurantId: id }) },
+      ...shopCycleTools(this.mine().map((r) => r.id), id, (next) => this.switchTo(next)),
       { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
     ];
   });
@@ -475,6 +483,15 @@ export class InteriorViewComponent {
 
   private isKitchen(itemId: string): boolean {
     return store(catalogItem(itemId).storeId).kind === 'kitchen';
+  }
+
+  /** Shows another of the owner's pizzerias in this view. */
+  protected switchTo(restaurantId: number): void {
+    if (restaurantId === this.restaurantId()) return;
+    this.selectedIndex.set(null);
+    this.talk.set(null);
+    this.mode.set({ kind: 'select' });
+    this.ui.open({ kind: 'interior', restaurantId });
   }
 
   protected startPlace(itemId: string): void {

@@ -1,5 +1,6 @@
 import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { PortraitComponent } from '../characters/portrait';
+import { ShopPickerComponent, shopCycleTools } from '../screens/shop-picker';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
 import { ManagerSettings, Staff, StaffRole, formatMoney } from '../game/model';
@@ -12,16 +13,12 @@ type Filter = StaffRole | 'all';
 /** Staff for one restaurant: the team, the city's job market, training and pay. */
 @Component({
   selector: 'app-staff-screen',
-  imports: [PortraitComponent],
+  imports: [PortraitComponent, ShopPickerComponent],
   template: `
     @if (restaurant(); as r) {
       <div class="staff">
         <header class="head">
-          <label>Restaurant
-            <select [value]="r.id" (change)="chosenId.set(+$any($event.target).value)">
-              @for (x of mine(); track x.id) {<option [value]="x.id">{{ x.name }}</option>}
-            </select>
-          </label>
+          <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="chosenId.set($event)" />
           <div class="filters" role="radiogroup" aria-label="Show">
             @for (f of filters; track f.id) {
               <button type="button" role="radio" class="plate" [attr.aria-checked]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
@@ -216,16 +213,13 @@ export class StaffScreenComponent {
     ];
   });
   private readonly tools = computed<Tool[]>(() => {
-    const list = this.mine();
-    const i = list.findIndex((r) => r.id === this.restaurant()?.id);
     const f = this.filter();
     return [
       { id: 'all', label: 'All staff', icon: ICONS.staff, pressed: f === 'all', action: () => this.filter.set('all') },
       { id: 'cook', label: 'Cooks', icon: ICONS.pizza, pressed: f === 'cook', action: () => this.filter.set('cook') },
       { id: 'waiter', label: 'Waiters', icon: ICONS.restaurant, pressed: f === 'waiter', action: () => this.filter.set('waiter') },
       { id: 'manager', label: 'Managers', icon: ICONS.person, pressed: f === 'manager', action: () => this.filter.set('manager') },
-      { id: 'prev', label: 'Prev shop', icon: ICONS.left, disabled: list.length < 2, action: () => this.chosenId.set(list[(i - 1 + list.length) % list.length].id) },
-      { id: 'next', label: 'Next shop', icon: ICONS.right, disabled: list.length < 2, action: () => this.chosenId.set(list[(i + 1) % list.length].id) },
+      ...shopCycleTools(this.mine().map((r) => r.id), this.restaurant()?.id, (id) => this.chosenId.set(id)),
       { id: 'phone', label: 'Agency', icon: ICONS.phone, action: () => this.ui.open({ kind: 'phone' }) },
       { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
     ];

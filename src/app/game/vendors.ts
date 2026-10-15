@@ -1,6 +1,5 @@
 import { INGREDIENTS, cityDef, ingredient } from './data';
-import { DayStats, GameState, IngredientCategory, Restaurant } from './model';
-import { recipeUsage } from './recipes';
+import { GameState, IngredientCategory } from './model';
 import { Rng, hashString } from './rng';
 
 /** A wholesaler selling one category of ingredients in one city. */
@@ -72,21 +71,6 @@ export function vendorPrice(v: Vendor, ingredientId: string, day: number): numbe
   const week = Math.floor(day / 7);
   const wobble = 0.92 + new Rng(hashString(`${v.id}:${ingredientId}:${week}`)).next() * 0.16;
   return Math.round(ingredient(ingredientId).cost * cityDef(v.cityId).costOfLiving * level * wobble * 100) / 100;
-}
-
-/** Units of each ingredient the restaurant uses per day, from the last day's sales (or a guess before the first day). */
-export function dailyUsage(state: GameState, r: Restaurant): Record<string, number> {
-  const usage: Record<string, number> = {};
-  const d: DayStats = r.lastDay;
-  const sold = Object.values(d.pizzas ?? {}).reduce((n, p) => n + p.sold, 0);
-  for (const m of r.menu) {
-    const recipe = state.recipes.find((x) => x.id === m.recipeId);
-    if (!recipe) continue;
-    // Before any sales, assume 40 guests a day spread over the menu.
-    const count = sold > 0 ? (d.pizzas[m.recipeId]?.sold ?? 0) : 40 / Math.max(1, r.menu.length);
-    for (const [id, n] of Object.entries(recipeUsage(recipe))) usage[id] = (usage[id] ?? 0) + n * count;
-  }
-  return usage;
 }
 
 /** Days the given stock lasts at the restaurant's daily usage, or null when it isn't used. */

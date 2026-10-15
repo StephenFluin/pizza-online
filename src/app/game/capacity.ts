@@ -3,7 +3,7 @@ import { roomStats } from './furniture';
 import { CustomerGroup, GameState, Restaurant } from './model';
 import { CUSTOMER_GROUPS, cachedPizzaStats } from './pizza-stats';
 import { recipeUsage } from './recipes';
-import { OPEN_HOURS, estimateDailyDemand, hourlyRates } from './simulation';
+import { OPEN_HOURS, estimateDailyDemand, hourlyRates, restockTargets } from './simulation';
 import { activeManager, managerSettings } from './staff';
 
 export type ConstraintId = 'seating' | 'stock' | 'cooks' | 'ovens' | 'waiters';
@@ -45,11 +45,12 @@ function stockCapacity(st: GameState, r: Restaurant): { pizzas: number; limiting
   });
   // A standing order or a shopping manager tops every ingredient up each morning.
   const refills = r.autoRestock || (!!activeManager(r) && managerSettings(r).shopping);
+  const targets = refills ? restockTargets(st, r) : {};
   let pizzas = Infinity;
   let limiting: string | null = null;
   for (const [id, need] of Object.entries(perPizza)) {
     if (need <= 0) continue;
-    const have = refills ? Math.max(r.stock[id] ?? 0, r.restockTarget) : (r.stock[id] ?? 0);
+    const have = refills ? Math.max(r.stock[id] ?? 0, targets[id] ?? 0) : (r.stock[id] ?? 0);
     const n = have / need;
     if (n < pizzas) {
       pizzas = n;
@@ -83,8 +84,8 @@ export function restaurantCapacity(st: GameState, r: Restaurant): CapacityReport
       id: 'stock',
       label: 'Ingredient stock',
       perDay: stock.pizzas,
-      detail: `${stockNote}${stock.refills ? `; restocked to ${r.restockTarget} units each morning` : '; no standing order'}`,
-      fix: stock.refills ? 'Raise the restock target, or order more from a vendor.' : 'Order stock from a vendor or set up a standing order.',
+      detail: `${stockNote}${stock.refills ? `; restocked to ${r.restockDays} day${r.restockDays === 1 ? '' : 's'} of expected use each morning` : '; no standing order'}`,
+      fix: stock.refills ? 'Keep more days of stock in the standing order, add a fridge so perishables last, or order more from a vendor.' : 'Order stock from a vendor or set up a standing order.',
     },
     {
       id: 'cooks',

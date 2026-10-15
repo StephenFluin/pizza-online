@@ -4,7 +4,8 @@ import { GameService } from '../game/game.service';
 import { IngredientCategory, formatMoney } from '../game/model';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
-import { Vendor, cityVendors, dailyUsage, daysOfSupply, vendorPrice } from '../game/vendors';
+import { Vendor, cityVendors, daysOfSupply, vendorPrice } from '../game/vendors';
+import { MAX_RESTOCK_DAYS, forecastGuests, forecastUsage, freshDays, restockTargets } from '../game/simulation';
 import { BULK_DISCOUNT, BULK_UNITS, warehouseIn } from '../game/warehouse';
 import { ARGUMENTS, Argument, PATIENCE, Terms, argue, contractMinimum, dailyListPrice, deliveryCost, openingTerms, relationOf, salesRep } from '../game/contracts';
 import { PortraitComponent } from '../characters/portrait';
@@ -44,8 +45,9 @@ const AMOUNT_STEP = 10;
           @case ('overview') {
             <section aria-labelledby="stock-title">
               <h3 id="stock-title">Current stock</h3>
+              <p class="forecast">{{ forecastText() }}</p>
               <table class="ledger">
-                <thead><tr><th scope="col">Ingredient</th><th scope="col">Stock</th><th scope="col">Quality</th><th scope="col">Per day</th><th scope="col">Days</th></tr></thead>
+                <thead><tr><th scope="col">Ingredient</th><th scope="col">Stock</th><th scope="col">Quality</th><th scope="col">Use a day</th><th scope="col">Days</th>@if (r.autoRestock) {<th scope="col">Restock to</th>}</tr></thead>
                 <tbody>
                   @for (row of overview(); track row.id) {
                     <tr [class.low]="row.days !== null && row.days < 2">
@@ -53,13 +55,17 @@ const AMOUNT_STEP = 10;
                       <td>{{ row.stock }}</td>
                       <td>{{ row.quality ?? '—' }}</td>
                       <td>{{ row.perDay }}</td>
-                      <td>{{ row.days ?? '—' }}</td>
+                      <td class="days">{{ row.days ?? '—' }}</td>
+                      @if (r.autoRestock) {<td [attr.title]="row.capped ? 'Kept to ' + row.fresh + ' days so it doesn’t spoil' : null">{{ row.target ?? '—' }}{{ row.capped ? '*' : '' }}</td>}
                     </tr>
                   } @empty {
-                    <tr><td colspan="5">No stock. Choose a category above to order from a vendor.</td></tr>
+                    <tr><td [attr.colspan]="r.autoRestock ? 6 : 5">No stock. Choose a category above to order from a vendor.</td></tr>
                   }
                 </tbody>
               </table>
+              @if (r.autoRestock && anyCapped()) {
+                <p class="note">* Perishable: kept to as many days as it stays fresh. A fridge in the kitchen doubles that.</p>
+              }
 
               <h3>Deliveries</h3>
               <ul class="orders">
@@ -87,9 +93,9 @@ const AMOUNT_STEP = 10;
 
               <label class="check">
                 <input type="checkbox" [checked]="r.autoRestock" (change)="setAutoRestock($any($event.target).checked)" />
-                Standing order: top every menu ingredient up to
-                <input class="qty" type="number" min="10" max="800" step="10" [value]="r.restockTarget" (change)="setTarget($any($event.target).valueAsNumber)" aria-label="Restock target in units" />
-                units each morning from your preferred vendor
+                Standing order: each morning, top every menu ingredient up to
+                <input class="qty" type="number" min="1" [max]="maxDays" step="1" [value]="r.restockDays" (change)="setDays($any($event.target).valueAsNumber)" aria-label="Days of stock to keep" />
+                days of expected use from your preferred vendor
               </label>
             </section>
           }
@@ -230,7 +236,7 @@ const AMOUNT_STEP = 10;
     .ledger th, .ledger td { padding: 2px 8px; border-bottom: 1px solid var(--line); text-align: right; }
     .ledger th[scope='row'], .ledger thead th:first-child { text-align: left; }
     .ledger thead th { background: #2b1d14; color: var(--lcd-text); font-weight: 400; text-transform: uppercase; }
-    .ledger tr.low td:last-child { color: var(--tomato); font-weight: 700; }
+    .ledger tr.low td.days { color: var(--tomato); font-weight: 700; }
     .ledger tr.unavailable { color: #999; }
     .amount { white-space: nowrap; }
     .amount input { width: 70px; font: inherit; text-align: right; padding: 0 4px; }
@@ -239,7 +245,9 @@ const AMOUNT_STEP = 10;
     .orders li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
     .small { padding: 2px 10px; font-size: 0.85rem; }
     .check { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .qty { width: 70px; font: inherit; }
+    .qty { width: 56px; font: inherit; }
+    .forecast { margin: 0 0 6px; }
+    .note { margin: 4px 0 0; font-size: 0.85rem; color: #555; }
     .vendors { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .vendor { width: 100%; display: grid; gap: 4px; text-align: left; background: #fffaf0; color: var(--ink); border: 2px solid var(--line); font-weight: 400; padding: 10px; }
     .vendor:hover { border-color: var(--wood); }
@@ -314,11 +322,31 @@ export class StockScreenComponent {
     const v = this.view();
     return v.kind === 'order' ? (this.allVendors().find((x) => x.id === v.vendorId) ?? null) : null;
   });
+  /** Expected use a day, from the demand forecast (the same figures the standing order works from). */
   private readonly usage = computed(() => {
     const st = this.game.state();
     const r = this.restaurant();
-    return st && r ? dailyUsage(st, r) : {};
+    return st && r ? forecastUsage(st, r) : {};
   });
+  private readonly targets = computed(() => {
+    const st = this.game.state();
+    const r = this.restaurant();
+    return st && r ? restockTargets(st, r) : {};
+  });
+  protected readonly maxDays = MAX_RESTOCK_DAYS;
+  protected readonly forecastText = computed(() => {
+    const st = this.game.state();
+    const r = this.restaurant();
+    if (!st || !r) return '';
+    const f = forecastGuests(st, r);
+    if (r.menu.length === 0) return 'The menu is empty, so nothing is needed.';
+    if (r.closedDays) return 'Closed for repairs: nothing is needed until it reopens.';
+    const who = f.assumedStaff ? 'a cook and a waiter' : 'your staff, kitchen and seats';
+    return f.capacity < f.demand
+      ? `About ${f.demand} guests a day want to come, but ${who} can serve about ${f.capacity}, so the standing order plans for ${f.guests}.`
+      : `Expect about ${f.guests} guests a day (${who} could serve about ${f.capacity}).`;
+  });
+  protected readonly anyCapped = computed(() => this.overview().some((x) => x.capped));
 
   protected readonly overview = computed(() => {
     const r = this.restaurant();
@@ -328,7 +356,8 @@ export class StockScreenComponent {
     return INGREDIENTS.filter((i) => ids.has(i.id)).map((i) => {
       const stock = Math.floor(r.stock[i.id] ?? 0);
       const perDay = usage[i.id] ?? 0;
-      return { id: i.id, name: i.name, stock, quality: r.stockQuality[i.id] ?? null, perDay: Math.ceil(perDay), days: daysOfSupply(stock, perDay) };
+      const fresh = freshDays(r, i.id);
+      return { id: i.id, name: i.name, stock, quality: r.stockQuality[i.id] ?? null, perDay: Math.ceil(perDay), days: daysOfSupply(stock, perDay), target: this.targets()[i.id] ?? null, fresh, capped: perDay > 0 && fresh < r.restockDays };
     });
   });
 
@@ -584,9 +613,9 @@ export class StockScreenComponent {
     if (r) this.game.updateRestaurant(r.id, (x) => (x.autoRestock = on));
   }
 
-  protected setTarget(n: number): void {
+  protected setDays(n: number): void {
     const r = this.restaurant();
-    if (r && Number.isFinite(n)) this.game.updateRestaurant(r.id, (x) => (x.restockTarget = Math.max(10, Math.min(800, Math.round(n)))));
+    if (r && Number.isFinite(n)) this.game.updateRestaurant(r.id, (x) => (x.restockDays = Math.max(1, Math.min(MAX_RESTOCK_DAYS, Math.round(n)))));
   }
 
   protected stocked(v: Vendor): number {

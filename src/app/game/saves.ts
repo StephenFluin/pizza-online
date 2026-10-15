@@ -1,7 +1,7 @@
 import { CITIES } from './data';
 import { generateCity } from './city-gen';
 import { DEFAULT_FLOOR, applyRoom, layoutIsCurrent, starterLayout } from './furniture';
-import { emptyPopularity, emptyStats } from './simulation';
+import { DEFAULT_RESTOCK_DAYS, emptyPopularity, emptyStats } from './simulation';
 import { jobMarket, upgradeStaff } from './staff';
 import { District, GameState, formatDate } from './model';
 
@@ -70,6 +70,9 @@ export function deserialize(text: string): GameState {
     r.stockQuality ??= {};
     r.popularity ??= emptyPopularity();
     r.preferredVendors ??= {};
+    // Standing orders used to top up to a fixed number of units; they now keep days of expected use.
+    r.restockDays ??= DEFAULT_RESTOCK_DAYS;
+    delete (r as { restockTarget?: number }).restockTarget;
     const lot = cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
     r.storage ??= [];
     r.floorId ??= DEFAULT_FLOOR;

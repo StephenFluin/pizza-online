@@ -1,6 +1,5 @@
 import { cityDef, ingredient } from './data';
 import { GameState, Player, Restaurant } from './model';
-import { recipeUsage } from './recipes';
 
 /**
  * Warehouses: cold storage in a city that takes bulk deliveries and supplies
@@ -77,7 +76,11 @@ export function syncPriority(st: GameState, p: Player, w: Warehouse): void {
 }
 
 /** Morning: cold-store spoilage, arriving shipments, then each restaurant is topped up in priority order. */
-export function warehouseMorning(st: GameState, addStock: (r: Restaurant, id: string, units: number, quality: number) => void): void {
+export function warehouseMorning(
+  st: GameState,
+  addStock: (r: Restaurant, id: string, units: number, quality: number) => void,
+  targets: (r: Restaurant) => Record<string, number>,
+): void {
   for (const p of st.players) {
     for (const w of Object.values(p.warehouses ?? {})) {
       for (const id of Object.keys(w.stock)) {
@@ -104,7 +107,7 @@ export function warehouseMorning(st: GameState, addStock: (r: Restaurant, id: st
       for (const rid of w.priority) {
         const r = st.restaurants.find((x) => x.id === rid);
         if (!r) continue;
-        for (const [id, need] of Object.entries(menuNeeds(st, r))) {
+        for (const [id, need] of Object.entries(needs(r, targets(r)))) {
           const take = Math.min(need, w.stock[id] ?? 0);
           if (take <= 0) continue;
           addStock(r, id, take, w.stockQuality[id] ?? 50);
@@ -116,18 +119,14 @@ export function warehouseMorning(st: GameState, addStock: (r: Restaurant, id: st
   }
 }
 
-/** Units of each menu ingredient a restaurant needs to reach its restock target. */
-function menuNeeds(st: GameState, r: Restaurant): Record<string, number> {
-  const needs: Record<string, number> = {};
-  for (const m of r.menu) {
-    const recipe = st.recipes.find((x) => x.id === m.recipeId);
-    if (!recipe) continue;
-    for (const id of Object.keys(recipeUsage(recipe))) {
-      const missing = Math.floor(r.restockTarget - (r.stock[id] ?? 0));
-      if (missing > 0) needs[id] = missing;
-    }
+/** Units of each ingredient a restaurant is short of its restock targets. */
+function needs(r: Restaurant, targets: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [id, target] of Object.entries(targets)) {
+    const missing = Math.floor(target - (r.stock[id] ?? 0));
+    if (missing > 0) out[id] = missing;
   }
-  return needs;
+  return out;
 }
 
 /** Sends stock to another of the owner's warehouses; it arrives after a couple of days. */

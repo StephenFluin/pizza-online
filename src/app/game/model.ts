@@ -165,9 +165,9 @@ export interface Restaurant {
   preferredVendors: Partial<Record<IngredientCategory, string>>;
   /** 0..1 reputation, rises with satisfied customers. */
   reputation: number;
-  /** Top stock up to `restockTarget` portions per used ingredient each morning. */
+  /** Standing order: each morning, top menu ingredients up to this many days of expected use. */
   autoRestock: boolean;
-  restockTarget: number;
+  restockDays: number;
   /** Popularity components, refreshed every hour while open. */
   popularity: Popularity;
   /** Days the restaurant stays shut (after a fire). */

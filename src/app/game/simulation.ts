@@ -396,7 +396,7 @@ export function startDay(state: GameState): void {
     canPay: (p, amount) => p.cash - amount >= -OVERDRAFT,
   });
   // Warehouses supply restaurants first; vendors only fill what is still missing.
-  warehouseMorning(state, addStock);
+  warehouseMorning(state, addStock, (r) => restockTargets(state, r));
   // Managers do the shopping even without a standing order, unless told not to.
   for (const r of state.restaurants) if (r.autoRestock || (activeManager(r) && managerSettings(r).shopping)) restock(state, r);
   staffMorning(state);
@@ -447,18 +447,100 @@ function deliverOrders(state: GameState): void {
   }
 }
 
-/** Tops every ingredient on the menu up to the restock target from the preferred (or cheapest) vendor. */
+/** Days of expected use a standing order keeps in stock unless the owner picks otherwise. */
+export const DEFAULT_RESTOCK_DAYS = 2;
+export const MAX_RESTOCK_DAYS = 7;
+/** Extra on top of the forecast, for busier days than expected. */
+const RESTOCK_MARGIN = 1.15;
+
+export interface GuestForecast {
+  /** Guests who'd want to eat here in a day: the customer model, blended with yesterday's actual orders. */
+  demand: number;
+  /** Guests the staff, kitchen and seats can serve in a day. */
+  capacity: number;
+  /** What the restaurant should expect to serve: the smaller of the two. */
+  guests: number;
+  /** Capacity assumes a cook and a waiter because none are hired yet. */
+  assumedStaff: boolean;
+}
+
+/** How many guests a restaurant should plan for tomorrow, from demand and what it can serve. */
+export function forecastGuests(state: GameState, r: Restaurant): GuestForecast {
+  const city = state.cities.find((c) => c.id === r.cityId);
+  if (!city || r.menu.length === 0 || r.closedDays) return { demand: 0, capacity: 0, guests: 0, assumedStaff: false };
+  const rates = hourlyRates(r, roomStats(r.layout, city.lots[r.lotId], r.floorId));
+  // A pizzeria still hiring plans for one cook and one waiter, so it has stock when they start.
+  const assumedStaff = rates.cooks === 0 || rates.waiters === 0;
+  const cooks = rates.cooks || PIZZAS_PER_COOK_HOUR * 0.9;
+  const waiters = rates.waiters || GUESTS_PER_WAITER_HOUR * 0.9;
+  const capacity = Math.min(cooks, rates.ovens, waiters, rates.seats) * OPEN_HOURS;
+  const modelled = estimateDailyDemand(state, r);
+  const ordered = Object.values(r.lastDay.pizzas ?? {}).reduce((n, s) => n + s.ordered, 0);
+  const demand = ordered > 0 ? (modelled + ordered) / 2 : modelled;
+  return { demand: Math.round(demand), capacity: Math.round(capacity), guests: Math.round(Math.min(demand, capacity)), assumedStaff };
+}
+
+/**
+ * Pizzas a restaurant expects to sell in a day, by recipe: the guest forecast
+ * split across the menu by how much the district's customer groups like each
+ * pizza, blended with what guests actually ordered yesterday.
+ */
+export function forecastSales(state: GameState, r: Restaurant): Record<string, number> {
+  const city = state.cities.find((c) => c.id === r.cityId);
+  const { guests } = forecastGuests(state, r);
+  if (!city || guests <= 0) return {};
+  const district = city.districts[city.lots[r.lotId].district];
+  const menu = menuChoices(state, r, district, cityDef(city.id).costOfLiving);
+  const modelShare: Record<string, number> = {};
+  for (const g of CUSTOMER_GROUPS) {
+    const total = menu.reduce((n, o) => n + o.weights[g.id], 0);
+    if (total <= 0) continue;
+    for (const o of menu) modelShare[o.recipe.id] = (modelShare[o.recipe.id] ?? 0) + (district.groupMix?.[g.id] ?? 1 / CUSTOMER_GROUPS.length) * (o.weights[g.id] / total);
+  }
+  const orders = menu.map((o) => r.lastDay.pizzas?.[o.recipe.id]?.ordered ?? 0);
+  const ordered = orders.reduce((n, x) => n + x, 0);
+  const sales: Record<string, number> = {};
+  menu.forEach((o, i) => {
+    const share = ordered > 0 ? ((modelShare[o.recipe.id] ?? 0) + orders[i] / ordered) / 2 : (modelShare[o.recipe.id] ?? 0);
+    sales[o.recipe.id] = guests * share;
+  });
+  return sales;
+}
+
+/** Units of each ingredient a restaurant expects to use in a day. */
+export function forecastUsage(state: GameState, r: Restaurant): Record<string, number> {
+  const usage: Record<string, number> = {};
+  for (const [recipeId, pizzas] of Object.entries(forecastSales(state, r))) {
+    const recipe = state.recipes.find((x) => x.id === recipeId);
+    if (!recipe) continue;
+    for (const [id, n] of Object.entries(recipeUsage(recipe))) usage[id] = (usage[id] ?? 0) + n * pizzas;
+  }
+  return usage;
+}
+
+/** Most days of an ingredient worth keeping before too much of it spoils; a fridge doubles it. */
+export function freshDays(r: Restaurant, id: string): number {
+  const chill = r.layout.some((p) => p.itemId === 'fridge') ? 0.5 : 1;
+  return Math.max(1, Math.floor(ingredient(id).shelfLife / chill / 3));
+}
+
+/** Units of each menu ingredient a standing order keeps: the chosen days of expected use, perishables only as long as they keep. */
+export function restockTargets(state: GameState, r: Restaurant): Record<string, number> {
+  const days = r.restockDays ?? DEFAULT_RESTOCK_DAYS;
+  const targets: Record<string, number> = {};
+  for (const [id, perDay] of Object.entries(forecastUsage(state, r))) {
+    if (perDay > 0) targets[id] = Math.ceil(perDay * Math.min(days, freshDays(r, id)) * RESTOCK_MARGIN);
+  }
+  return targets;
+}
+
+/** Tops every menu ingredient up to its restock target from the preferred (or cheapest) vendor. */
 export function restock(state: GameState, r: Restaurant): void {
   const owner = state.players.find((p) => p.id === r.ownerId);
   if (!owner) return;
-  const needed = new Set<string>();
-  for (const m of r.menu) {
-    const recipe = state.recipes.find((x) => x.id === m.recipeId);
-    if (recipe) for (const id of Object.keys(recipeUsage(recipe))) needed.add(id);
-  }
   const vendors = cityVendors(r.cityId, state.seed);
-  for (const id of needed) {
-    const missing = Math.ceil(r.restockTarget - (r.stock[id] ?? 0));
+  for (const [id, target] of Object.entries(restockTargets(state, r))) {
+    const missing = Math.ceil(target - (r.stock[id] ?? 0));
     if (missing <= 0) continue;
     const category = ingredient(id).category;
     const preferred = vendors.find((v) => v.id === r.preferredVendors[category] && vendorPrice(v, id, state.day) !== null);
@@ -583,7 +665,7 @@ export function openRestaurantAt(
     reputation: startReputation(statsOf(owner)),
     popularity: emptyPopularity(),
     autoRestock: true,
-    restockTarget: 250,
+    restockDays: DEFAULT_RESTOCK_DAYS,
     today: emptyStats(st.day),
     lastDay: emptyStats(st.day - 1),
     history: [],

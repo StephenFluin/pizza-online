@@ -7,7 +7,7 @@ import { generateCandidate } from './staff';
 import { GameState, PlacedItem, Player, Restaurant, StaffRole } from './model';
 import { applyRoom, autoPlace, catalogItem, placeDiningSet } from './furniture';
 import { cityTaste, fairPrice } from './recipes';
-import { addLedger, openRestaurantAt } from './simulation';
+import { DEFAULT_RESTOCK_DAYS, MAX_RESTOCK_DAYS, addLedger, openRestaurantAt } from './simulation';
 
 /** Three rival characters: the ones chosen on the selection screen, or random others from the cast. */
 export function createRivals(firstId: number, startCash: number, exclude: string, chosen: string[] = []): Player[] {
@@ -87,7 +87,8 @@ function expand(st: GameState, p: Player, own: Restaurant[]): void {
 function manage(st: GameState, p: Player, r: Restaurant): void {
   const d = r.lastDay;
   if (d.noStaff > 15 && r.staff.length < 8) hire(st, r, r.staff.filter((s) => s.role === 'cook').length <= r.staff.filter((s) => s.role === 'waiter').length ? 'cook' : 'waiter');
-  if (d.noStock > 10) r.restockTarget = Math.min(600, r.restockTarget + 60);
+  // Running out means the standing order should keep more days in hand.
+  if (d.noStock > 10) r.restockDays = Math.min(MAX_RESTOCK_DAYS, (r.restockDays ?? DEFAULT_RESTOCK_DAYS) + 1);
   // Nudge prices: busy restaurants charge more, quiet ones less.
   const factor = d.turnedAway > d.customers * 0.3 ? 1.05 : d.customers < 25 ? 0.95 : 1;
   for (const m of r.menu) m.price = Math.max(3, Math.round(m.price * factor * 2) / 2);

@@ -99,7 +99,7 @@ const DECOR_NAMES = ['Bare', 'Cosy', 'Stylish', 'Luxurious'];
         }
         @case ('stock') {
           <p>{{ stockSummary() }}</p>
-          <p>{{ r.autoRestock ? 'A standing order tops up menu ingredients to ' + r.restockTarget + ' units each morning.' : 'No standing order: stock only arrives when you order it.' }}</p>
+          <p>{{ r.autoRestock ? 'A standing order keeps ' + r.restockDays + ' day' + (r.restockDays === 1 ? '' : 's') + ' of expected use in stock, topped up each morning.' : 'No standing order: stock only arrives when you order it.' }}</p>
           <button type="button" (click)="ui.open({ kind: 'stock', restaurantId: r.id })">Buy stock</button>
         }
       }

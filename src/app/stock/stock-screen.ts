@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { INGREDIENTS, INGREDIENT_CATEGORIES, ingredient } from '../game/data';
 import { GameService } from '../game/game.service';
 import { IngredientCategory, formatMoney } from '../game/model';
@@ -9,7 +9,7 @@ import { MAX_RESTOCK_DAYS, forecastGuests, forecastUsage, freshDays, restockTarg
 import { BULK_DISCOUNT, BULK_UNITS, warehouseIn } from '../game/warehouse';
 import { ARGUMENTS, Argument, PATIENCE, Terms, argue, contractMinimum, dailyListPrice, deliveryCost, openingTerms, relationOf, salesRep } from '../game/contracts';
 import { PortraitComponent } from '../characters/portrait';
-import { ShopPickerComponent, shopCycleTools } from '../screens/shop-picker';
+import { shopCycleTools } from '../screens/shop-nav';
 
 type View = { kind: 'overview' } | { kind: 'vendors'; category: IngredientCategory } | { kind: 'order'; vendorId: string };
 
@@ -22,12 +22,11 @@ const AMOUNT_STEP = 10;
  */
 @Component({
   selector: 'app-stock-screen',
-  imports: [PortraitComponent, ShopPickerComponent],
+  imports: [PortraitComponent],
   template: `
     @if (restaurant(); as r) {
       <div class="stock">
         <header class="head">
-          <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="selectRestaurant($event)" />
           <button type="button" class="secondary small" (click)="ui.open({ kind: 'warehouse', cityId: r.cityId })">{{ hasWarehouse() ? 'Warehouse' : 'Rent a warehouse' }}</button>
           <nav class="cats" aria-label="Categories">
             @for (c of categories; track c.id) {
@@ -276,7 +275,6 @@ export class StockScreenComponent {
   protected readonly game = inject(GameService);
   private readonly shell = inject(ShellService);
   protected readonly ui = inject(UiService);
-  readonly restaurantId = input<number | undefined>(undefined);
 
   protected readonly categories = INGREDIENT_CATEGORIES;
   protected readonly step = AMOUNT_STEP;
@@ -294,7 +292,7 @@ export class StockScreenComponent {
     const me = this.game.human();
     return (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
   }, { equal: () => false });
-  private readonly chosenId = linkedSignal(() => this.restaurantId() ?? null);
+  private readonly chosenId = this.ui.shopId;
   protected readonly restaurant = computed(() => {
     const list = this.mine();
     return list.find((r) => r.id === this.chosenId()) ?? list[0] ?? null;

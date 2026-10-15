@@ -39,6 +39,8 @@ export class UiService {
   readonly dialog = signal<Dialog | null>(null);
   readonly overlay = signal<MapOverlay>('none');
   readonly markers = signal<ReadonlySet<MapMarker>>(new Set(['locations', 'properties']));
+  /** The pizzeria the screens about one pizzeria are showing, shared so it carries from screen to screen. */
+  readonly shopId = signal<number | null>(null);
   /** District under the mouse pointer on the city map, for the info panel. */
   readonly hoverDistrict = signal<string | null>(null);
 
@@ -52,6 +54,8 @@ export class UiService {
   }
 
   open(dialog: Dialog): void {
+    // Opening a screen for a particular pizzeria makes it the current one everywhere.
+    if ('restaurantId' in dialog && dialog.restaurantId != null) this.shopId.set(dialog.restaurantId);
     this.dialog.set(dialog);
   }
 

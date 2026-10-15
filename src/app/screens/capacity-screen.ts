@@ -1,8 +1,8 @@
-import { Component, DestroyRef, computed, inject, input, linkedSignal } from '@angular/core';
+import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { CapacityReport, restaurantCapacity } from '../game/capacity';
 import { GameService } from '../game/game.service';
 import { Popularity, Restaurant } from '../game/model';
-import { ShopPickerComponent, shopCycleTools } from './shop-picker';
+import { shopCycleTools } from './shop-nav';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 
@@ -22,13 +22,11 @@ const POPULARITY_ROWS: { key: keyof Popularity; label: string }[] = [
  */
 @Component({
   selector: 'app-capacity-screen',
-  imports: [ShopPickerComponent],
   template: `
     @if (restaurant(); as r) {
       @let rep = report()!;
       <div class="cap">
         <header class="head">
-          <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="chosenId.set($event)" />
           <p class="verdict" [class.ok]="rep.limitedBy === 'popularity'" role="status">{{ verdict() }}</p>
         </header>
 
@@ -144,13 +142,12 @@ export class CapacityScreenComponent {
   private readonly game = inject(GameService);
   private readonly ui = inject(UiService);
   private readonly shell = inject(ShellService);
-  readonly restaurantId = input<number | undefined>(undefined);
 
   protected readonly mine = computed(() => {
     const me = this.game.human();
     return (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
   }, { equal: () => false });
-  protected readonly chosenId = linkedSignal(() => this.restaurantId() ?? null);
+  private readonly chosenId = this.ui.shopId;
   protected readonly restaurant = computed<Restaurant | null>(() => {
     const list = this.mine();
     return list.find((r) => r.id === this.chosenId()) ?? list[0] ?? null;

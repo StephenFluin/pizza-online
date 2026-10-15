@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, inject } from '@angular/core';
+import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
 import { Recipe } from '../game/model';
 import { UiService } from '../game/ui.service';
@@ -28,6 +29,9 @@ import { RestaurantsDialogComponent } from './restaurants-dialog';
 import { SavesDialogComponent } from './saves-dialog';
 import { WorldDialogComponent } from './world-dialog';
 
+/** Screens about a single pizzeria: they show which one in the title and switch with Prev shop and Next shop. */
+const SHOP_SCREENS = new Set(['interior', 'stock', 'shop', 'staff', 'capacity', 'stats', 'restaurants']);
+
 const TITLES: Record<string, string> = {
   cookbook: 'Cook book',
   designer: 'Pizza designer',
@@ -35,6 +39,7 @@ const TITLES: Record<string, string> = {
   bank: 'Advertising',
   saves: 'Disk',
   restaurants: 'Your pizzerias',
+  interior: 'Inside',
   finances: 'Finances and standing',
   news: 'Newspaper',
   phone: 'Telephone',
@@ -95,6 +100,9 @@ const TITLES: Record<string, string> = {
         <section class="sheet" [class.with-tabs]="isReport()" [attr.aria-label]="title()">
           <header class="title">
             <h2>{{ title() }}</h2>
+            @if (shop(); as s) {
+              <p class="shop" aria-live="polite"><b>{{ s.name }}</b> · {{ s.city }} · {{ s.position }}</p>
+            }
             <button type="button" class="back" (click)="back()">Back</button>
           </header>
           @if (isReport()) {
@@ -114,18 +122,18 @@ const TITLES: Record<string, string> = {
               @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" [placeItemId]="d.placeItemId" /> }
               @case ('phone') { <app-phone-dialog /> }
               @case ('news') { <app-news-dialog /> }
-              @case ('staff') { <app-staff-screen [restaurantId]="d.restaurantId" /> }
+              @case ('staff') { <app-staff-screen /> }
               @case ('incident') { <app-incident-screen /> }
               @case ('contest') { <app-contest-screen /> }
               @case ('underworld') { <app-underworld-screen /> }
               @case ('ending') { <app-ending-screen /> }
               @case ('highscores') { <app-high-scores /> }
               @case ('research') { <app-research-screen [startDistrict]="d.districtId" [startPage]="d.page" /> }
-              @case ('stats') { <app-stats-screen [restaurantId]="d.restaurantId" /> }
+              @case ('stats') { <app-stats-screen /> }
               @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
-              @case ('capacity') { <app-capacity-screen [restaurantId]="d.restaurantId" /> }
+              @case ('capacity') { <app-capacity-screen /> }
               @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }
-              @case ('stock') { <app-stock-screen [restaurantId]="d.restaurantId" /> }
+              @case ('stock') { <app-stock-screen /> }
               @case ('saves') { <app-saves-dialog /> }
               @case ('designer') {
                 <app-pizza-designer [recipe]="d.recipe" (saved)="saveRecipe($event)" (cancelled)="ui.open({ kind: 'cookbook' })" />
@@ -142,6 +150,8 @@ const TITLES: Record<string, string> = {
     .sheet { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); background: #f3efe6; border: 4px solid var(--wood-dark); color: var(--ink); }
     .title { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 12px; background: linear-gradient(180deg, #e8dcc0, #cdb98e); border-bottom: 3px solid var(--wood); }
     .title h2 { margin: 0; font-family: Georgia, serif; font-size: 1.4rem; }
+    /* Which pizzeria a per-pizzeria screen is showing; Prev shop and Next shop change it. */
+    .shop { margin: 0 auto 0 4px; font-size: 0.95rem; }
     .sheet.with-tabs { grid-template-rows: auto auto minmax(0, 1fr); }
     .back { padding: 4px 14px; }
     .reports { display: flex; gap: 2px; padding: 6px 12px 0; background: #e3d6b8; border-bottom: 2px solid var(--wood); flex-wrap: wrap; }
@@ -158,9 +168,19 @@ export class DialogHostComponent {
   protected readonly reports = REPORTS;
   protected readonly isReport = computed(() => REPORTS.some((r) => r.kind === this.ui.dialog()?.kind));
 
+  /** The current pizzeria, shown in the title of every screen about one pizzeria. */
+  protected readonly shop = computed(() => {
+    const kind = this.ui.dialog()?.kind;
+    if (!kind || !SHOP_SCREENS.has(kind)) return null;
+    const me = this.game.human();
+    const mine = (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
+    const i = Math.max(0, mine.findIndex((r) => r.id === this.ui.shopId()));
+    const r = mine[i];
+    return r ? { name: r.name, city: cityDef(r.cityId).name, position: `${i + 1} of ${mine.length}` } : null;
+  });
+
   protected readonly title = computed(() => {
     const d = this.ui.dialog();
-    if (d?.kind === 'interior') return this.game.state()?.restaurants.find((r) => r.id === d.restaurantId)?.name ?? 'Restaurant';
     return TITLES[d?.kind ?? ''] ?? '';
   });
 

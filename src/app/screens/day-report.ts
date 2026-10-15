@@ -1,10 +1,10 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { GameService } from '../game/game.service';
 import { formatDate, formatMoney } from '../game/model';
 import { RestaurantReview, reviewCompany } from '../game/report';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
-import { shopCycleTools } from './shop-picker';
+import { shopCycleTools } from './shop-nav';
 
 /**
  * Full-screen end-of-day report: every restaurant at a glance, and a detailed
@@ -25,10 +25,11 @@ import { shopCycleTools } from './shop-picker';
       </header>
 
       <div class="body">
-        <ul class="list" aria-label="Your restaurants">
+        <!-- An overview of every pizzeria; Prev shop and Next shop in the tool grid choose which one is reviewed. -->
+        <ol class="list" aria-label="All your pizzerias today">
           @for (r of reviews(); track r.id) {
             <li>
-              <button type="button" class="row" [attr.aria-current]="selected()?.id === r.id" (click)="selectedId.set(r.id)">
+              <div class="row" [attr.aria-current]="selected()?.id === r.id ? 'true' : null">
                 <span class="name">{{ r.name }}</span>
                 <span class="city">{{ r.city }}</span>
                 <span class="nums">{{ r.day.customers }} guests · <b [class.neg]="r.profit < 0">{{ money(r.profit) }}</b></span>
@@ -38,14 +39,14 @@ import { shopCycleTools } from './shop-picker';
                 @if (problems(r) > 0) {
                   <span class="badge" [attr.aria-label]="problems(r) + ' problems'">{{ problems(r) }}</span>
                 }
-              </button>
+              </div>
             </li>
           }
-        </ul>
+        </ol>
 
         @if (selected(); as r) {
           <section class="detail" [attr.aria-label]="'Review of ' + r.name">
-            <h3>{{ r.name }} <small>{{ r.city }}</small></h3>
+            <h3>{{ r.name }} <small>{{ r.city }} · {{ position() }}</small></h3>
             <div class="kpis">
               <div><span>Guests</span><b>{{ r.day.customers }}</b></div>
               <div><span>Turned away</span><b>{{ r.day.turnedAway }}</b></div>
@@ -112,7 +113,7 @@ import { shopCycleTools } from './shop-picker';
     .list { list-style: none; margin: 0; padding: 0; overflow: auto; display: grid; gap: 6px; align-content: start; }
     .row { position: relative; width: 100%; display: grid; grid-template-columns: 1fr 70px; grid-template-areas: 'name spark' 'city spark' 'nums spark'; text-align: left; gap: 0 8px;
       background: #fffaf0; color: var(--ink); border: 2px solid var(--line); font-weight: 400; padding: 6px 8px; }
-    .row[aria-current='true'] { border-color: var(--wood); background: #fff3d6; }
+    .row[aria-current='true'] { border-color: var(--wood); background: #fff3d6; box-shadow: inset 4px 0 0 var(--wood); }
     .name { grid-area: name; font-weight: 700; }
     .city { grid-area: city; font-size: 0.85rem; }
     .nums { grid-area: nums; font-size: 0.9rem; }
@@ -156,11 +157,14 @@ export class DayReportComponent {
     const st = this.game.state();
     return st ? reviewCompany(st) : [];
   });
-  protected readonly selectedId = signal<number | null>(null);
   protected readonly selected = computed(() => {
     const list = this.reviews();
-    // Default to the restaurant with the most problems.
-    return list.find((r) => r.id === this.selectedId()) ?? [...list].sort((a, b) => this.problems(b) - this.problems(a))[0] ?? null;
+    // The pizzeria chosen on any screen, or else the one with the most problems.
+    return list.find((r) => r.id === this.ui.shopId()) ?? [...list].sort((a, b) => this.problems(b) - this.problems(a))[0] ?? null;
+  });
+  protected readonly position = computed(() => {
+    const list = this.reviews();
+    return `${list.findIndex((r) => r.id === this.selected()?.id) + 1} of ${list.length}`;
   });
   protected readonly date = computed(() => formatDate(this.game.dayReport() ?? this.game.state()?.day ?? 0));
   protected readonly totals = computed(() =>
@@ -186,7 +190,7 @@ export class DayReportComponent {
     const sel = this.selected();
     return [
       { id: 'continue', label: 'Next day', icon: ICONS.sun, action: () => this.continue() },
-      ...shopCycleTools(list.map((r) => r.id), sel?.id, (id) => this.selectedId.set(id)),
+      ...shopCycleTools(list.map((r) => r.id), sel?.id, (id) => this.ui.shopId.set(id)),
       { id: 'view', label: 'View inside', icon: ICONS.restaurant, disabled: !sel, action: () => sel && this.ui.open({ kind: 'interior', restaurantId: sel.id }) },
       { id: 'staff', label: 'Staff', icon: ICONS.staff, action: () => this.ui.open({ kind: 'staff', restaurantId: sel?.id }) },
       { id: 'capacity', label: 'Capacity', icon: ICONS.zoom, disabled: !sel, action: () => sel && this.ui.open({ kind: 'capacity', restaurantId: sel.id }) },

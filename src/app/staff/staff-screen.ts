@@ -1,6 +1,6 @@
-import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { PortraitComponent } from '../characters/portrait';
-import { ShopPickerComponent, shopCycleTools } from '../screens/shop-picker';
+import { shopCycleTools } from '../screens/shop-nav';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
 import { ManagerSettings, Staff, StaffRole, formatMoney } from '../game/model';
@@ -13,12 +13,11 @@ type Filter = StaffRole | 'all';
 /** Staff for one restaurant: the team, the city's job market, training and pay. */
 @Component({
   selector: 'app-staff-screen',
-  imports: [PortraitComponent, ShopPickerComponent],
+  imports: [PortraitComponent],
   template: `
     @if (restaurant(); as r) {
       <div class="staff">
         <header class="head">
-          <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="chosenId.set($event)" />
           <div class="filters" role="radiogroup" aria-label="Show">
             @for (f of filters; track f.id) {
               <button type="button" role="radio" class="plate" [attr.aria-checked]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
@@ -154,7 +153,6 @@ export class StaffScreenComponent {
   protected readonly game = inject(GameService);
   private readonly ui = inject(UiService);
   private readonly shell = inject(ShellService);
-  readonly restaurantId = input<number | undefined>(undefined);
 
   protected readonly filters: { id: Filter; label: string }[] = [
     { id: 'all', label: 'All' },
@@ -172,7 +170,7 @@ export class StaffScreenComponent {
     const me = this.game.human();
     return (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
   }, { equal: () => false });
-  protected readonly chosenId = linkedSignal(() => this.restaurantId() ?? null);
+  private readonly chosenId = this.ui.shopId;
   protected readonly restaurant = computed(() => {
     const list = this.mine();
     return list.find((r) => r.id === this.chosenId()) ?? list[0] ?? null;

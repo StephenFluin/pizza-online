@@ -1,8 +1,8 @@
-import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { UiService } from '../game/ui.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { reportTools } from './reports';
-import { ShopPickerComponent, shopCycleTools } from './shop-picker';
+import { shopCycleTools } from './shop-nav';
 import { netWorth, rankOf } from '../game/awards';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
@@ -27,7 +27,6 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
 /** Statistics: a restaurant's last month as a curve, its week in numbers, and comparisons across shops and chains. */
 @Component({
   selector: 'app-stats-screen',
-  imports: [ShopPickerComponent],
   template: `
     <div class="tabs" role="tablist" aria-label="Statistics">
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'restaurant'" (click)="tab.set('restaurant')">Restaurant</button>
@@ -39,7 +38,6 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
       @case ('restaurant') {
         @if (restaurant(); as r) {
           <div class="bar">
-            <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="open($event)" />
             <div class="metrics" role="radiogroup" aria-label="Show on the curve">
               @for (m of metrics; track m.id) {
                 <button type="button" role="radio" class="small" [class.secondary]="metric() !== m.id" [attr.aria-checked]="metric() === m.id" (click)="metric.set(m.id)">{{ m.label }}</button>
@@ -125,7 +123,7 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
           <tbody>
             @for (row of chain(); track row.id) {
               <tr [class.best]="row.best" [class.worst]="row.worst">
-                <th scope="row"><button type="button" class="link" (click)="open(row.id)">{{ row.name }}</button><br /><small>{{ row.city }}</small></th>
+                <th scope="row">{{ row.name }}<br /><small>{{ row.city }}</small></th>
                 <td>{{ row.customers }}</td>
                 <td>{{ row.lost }}</td>
                 <td>{{ money(row.revenue) }}</td>
@@ -206,7 +204,6 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
 export class StatsScreenComponent {
   private readonly game = inject(GameService);
   private readonly ui = inject(UiService);
-  readonly restaurantId = input<number | undefined>(undefined);
 
   protected readonly metrics = METRICS;
   protected readonly chartW = CHART_W;
@@ -219,7 +216,7 @@ export class StatsScreenComponent {
     const me = this.game.human();
     return (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
   });
-  private readonly chosenId = linkedSignal(() => this.restaurantId() ?? null);
+  private readonly chosenId = this.ui.shopId;
   protected readonly restaurant = computed<Restaurant | null>(() => {
     const list = this.mine();
     return list.find((r) => r.id === this.chosenId()) ?? list[0] ?? null;

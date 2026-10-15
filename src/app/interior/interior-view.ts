@@ -10,7 +10,7 @@ import { UiService } from '../game/ui.service';
 import { ArtCacheService } from '../shell/art-cache.service';
 import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { CELL, WALL, drawItem, drawItemAt, drawRoom } from './interior-art';
-import { ShopPickerComponent, shopCycleTools } from '../screens/shop-picker';
+import { shopCycleTools } from '../screens/shop-nav';
 
 /** What clicking on the floor plan does. */
 type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'move'; index: number };
@@ -23,7 +23,6 @@ type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'mo
  */
 @Component({
   selector: 'app-interior-view',
-  imports: [ShopPickerComponent],
   template: `
     @if (restaurant(); as r) {
       <div class="interior">
@@ -50,10 +49,6 @@ type Mode = { kind: 'select' } | { kind: 'place'; itemId: string } | { kind: 'mo
         </div>
 
         <div class="tray">
-          <section aria-label="Pizzeria">
-            <h3>Pizzeria</h3>
-            <app-shop-picker [shops]="mine()" [selected]="r.id" (picked)="switchTo($event)" />
-          </section>
           <section aria-labelledby="storage-title">
           <h3 id="storage-title">Storage</h3>
           <ul class="stored">

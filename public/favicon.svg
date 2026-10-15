@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9442b"/>
+      <stop offset="1" stop-color="#a8291a"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- A slice of pepperoni pizza, drawn big and simple so it reads in a browser tab. -->
+  <path d="M7 15 Q32 3 57 15 L33.5 60 Q32 62.5 30.5 60 Z" fill="#ffd666" stroke="#6b3410" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M5 14.5 Q32 0 59 14.5 Q60 21 55 22 Q32 11 9 22 Q4 21 5 14.5 Z" fill="#e0a24e" stroke="#6b3410" stroke-width="3.5" stroke-linejoin="round"/>
+  <circle cx="23" cy="28" r="6.5" fill="#b3261e"/>
+  <circle cx="41" cy="29" r="6" fill="#b3261e"/>
+  <circle cx="32" cy="45" r="5" fill="#b3261e"/>
+</svg>

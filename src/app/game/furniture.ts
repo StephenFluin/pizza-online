@@ -261,6 +261,29 @@ export interface RoomStats {
   groupAppeal: Record<CustomerGroup, number>;
 }
 
+/** Daily running cost of each kind of piece (power, gas, water, upkeep), before the city's cost of living. */
+const RUNNING_COST: Partial<Record<ItemKind, number>> = {
+  oven: 16,
+  'stone-oven': 12,
+  fridge: 6,
+  dishwasher: 7,
+  counter: 2,
+  bar: 3,
+  jukebox: 3,
+  arcade: 4,
+  aquarium: 3,
+  lamp: 1,
+};
+/** Cleaning, linen, water and lights for the dining room, per seat per day. */
+const RUNNING_PER_SEAT = 2.5;
+const RUNNING_BASE = 25;
+
+/** What a pizzeria costs to keep running for a day it's open, in dollars. */
+export function runningCost(layout: PlacedItem[], seats: number, costOfLiving: number): number {
+  const equipment = layout.reduce((n, p) => n + (RUNNING_COST[catalogItem(p.itemId).kind] ?? 0), 0);
+  return Math.round((RUNNING_BASE + seats * RUNNING_PER_SEAT + equipment) * costOfLiving);
+}
+
 export function roomStats(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, floorId?: string): RoomStats {
   let oven = 0;
   let ovens = 0;

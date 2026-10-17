@@ -35,10 +35,16 @@ export function runAiWeek(st: GameState): void {
   for (const p of st.players.filter((x) => !x.isHuman)) {
     const own = st.restaurants.filter((r) => r.ownerId === p.id);
     for (const r of own) manage(st, p, r);
-    // Expand when there is a comfortable cash cushion.
-    // Pushier rivals (harder difficulty) expand on thinner cushions.
-    const reserve = (15000 + own.length * 6000) / difficulty(st).rivals;
-    if (p.cash > reserve && own.length < 14 && Math.random() < 0.55) expand(st, p, own);
+    // Expand when there is a comfortable cash cushion, and not every week: a new pizzeria
+    // takes time to find, fit out and staff. Pushier rivals (harder difficulty) expand on thinner cushions.
+    const reserve = (25000 + own.length * 12000) / difficulty(st).rivals;
+    const settled = st.day - (p.lastExpansion ?? -Infinity) >= 30 / difficulty(st).rivals;
+    // Only grow on the back of a profitable month (or to get started at all).
+    const earning = own.length === 0 || (p.lastMonthProfit ?? 0) > 0;
+    if (settled && earning && p.cash > reserve && own.length < 14 && Math.random() < 0.5) {
+      expand(st, p, own);
+      p.lastExpansion = st.day;
+    }
     if (p.cash < -3000) {
       // Shed the weakest restaurant when money runs out.
       const worst = [...own].sort((a, b) => a.lastDay.revenue - b.lastDay.revenue)[0];
@@ -89,9 +95,13 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
   if (d.noStaff > 15 && r.staff.length < 8) hire(st, r, r.staff.filter((s) => s.role === 'cook').length <= r.staff.filter((s) => s.role === 'waiter').length ? 'cook' : 'waiter');
   // Running out means the standing order should keep more days in hand.
   if (d.noStock > 10) r.restockDays = Math.min(MAX_RESTOCK_DAYS, (r.restockDays ?? DEFAULT_RESTOCK_DAYS) + 1);
-  // Nudge prices: busy restaurants charge more, quiet ones less.
+  // Nudge prices: busy restaurants charge more, quiet ones less, within sight of what the district thinks is fair.
   const factor = d.turnedAway > d.customers * 0.3 ? 1.05 : d.customers < 25 ? 0.95 : 1;
-  for (const m of r.menu) m.price = Math.max(3, Math.round(m.price * factor * 2) / 2);
+  const city = st.cities.find((c) => c.id === r.cityId);
+  const district = city?.districts[city.lots[r.lotId].district];
+  // Pushier rivals (harder difficulty) also get away with dearer pizzas.
+  const ceiling = district ? fairPrice(district, cityDef(r.cityId).costOfLiving) * (1 + 0.15 * difficulty(st).rivals) : Infinity;
+  for (const m of r.menu) m.price = Math.max(3, Math.min(ceiling, Math.round(m.price * factor * 2) / 2));
   // Fit out the room: more tables when full, a better oven when the kitchen is the bottleneck, decor when rich.
   if (d.lostSeats > 0 && p.cash > 8000) furnish(st, p, r, 'tables', 2);
   if (d.lostKitchen > 10 && p.cash > 12000) furnish(st, p, r, 'kitchen', 1);

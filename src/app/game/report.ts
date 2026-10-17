@@ -1,6 +1,7 @@
 import { cityDef, ingredient } from './data';
 import { DAYS_PER_MONTH, DayStats, GameState, Restaurant } from './model';
 import { recipeUsage } from './recipes';
+import { runningCost } from './furniture';
 
 export interface Finding {
   tone: 'good' | 'bad' | 'tip';
@@ -39,9 +40,10 @@ export interface RestaurantReview {
 
 const COOK_RATE = 10;
 
+/** A day's share of rent and wages, plus the day's running costs. */
 function dailyOverhead(r: Restaurant): number {
   const wages = r.staff.reduce((n, s) => n + s.wagePerMonth, 0);
-  return (wages + (r.owned ? 0 : r.rentPerMonth)) / DAYS_PER_MONTH;
+  return (wages + (r.owned ? 0 : r.rentPerMonth)) / DAYS_PER_MONTH + runningCost(r.layout, r.seats, cityDef(r.cityId).costOfLiving);
 }
 
 function dayProfit(d: DayStats, overhead: number): number {
@@ -80,9 +82,9 @@ export function reviewRestaurant(st: GameState, r: Restaurant): RestaurantReview
   if (cooks.length === 0 || waiters.length === 0) {
     findings.push({ tone: 'bad', text: `Closed for business: you need at least one cook and one waiter. Call the staff agency.` });
   } else if (profit >= 0) {
-    findings.push({ tone: 'good', text: `Made ${money(profit)} after ingredients (${money(d.foodCost)}), rent and wages (${money(overhead)} a day).` });
+    findings.push({ tone: 'good', text: `Made ${money(profit)} after ingredients (${money(d.foodCost)}), rent, wages and running costs (${money(overhead)} a day).` });
   } else {
-    findings.push({ tone: 'bad', text: `Lost ${money(profit)} after ingredients (${money(d.foodCost)}), rent and wages (${money(overhead)} a day).` });
+    findings.push({ tone: 'bad', text: `Lost ${money(profit)} after ingredients (${money(d.foodCost)}), rent, wages and running costs (${money(overhead)} a day).` });
   }
 
   const pop = r.popularity;

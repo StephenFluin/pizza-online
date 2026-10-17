@@ -46,7 +46,7 @@ export function isAvailable(s: Staff): boolean {
 export function fairWage(s: Pick<Staff, 'role' | 'cooking' | 'serving' | 'management' | 'pizzasPerDay' | 'trustworthiness' | 'intelligence'>, costOfLiving: number): number {
   const main = s.role === 'cook' ? s.cooking : s.role === 'waiter' ? s.serving : s.management * 3;
   const base = s.serving * 0.5 + main + s.pizzasPerDay / 3 + s.trustworthiness / 2;
-  return Math.round((base * (1 + s.intelligence / 200) * 9 * costOfLiving) / 10) * 10;
+  return Math.round((base * (1 + s.intelligence / 200) * 14 * costOfLiving) / 10) * 10;
 }
 
 /** Generates a job seeker. `bonus` (-0.2..0.2) shifts their main skill. */

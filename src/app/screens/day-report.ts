@@ -52,7 +52,7 @@ import { shopCycleTools } from './shop-nav';
               <div><span>Turned away</span><b>{{ r.day.turnedAway }}</b></div>
               <div><span>Takings</span><b>{{ money(r.day.revenue) }}</b></div>
               <div><span>Ingredients</span><b>{{ money(r.day.foodCost) }}</b></div>
-              <div><span>Rent + wages</span><b>{{ money(r.overhead) }}</b></div>
+              <div><span>Overheads</span><b>{{ money(r.overhead) }}</b></div>
               <div><span>Profit</span><b [class.neg]="r.profit < 0">{{ money(r.profit) }}</b></div>
               <div><span>Capacity used</span><b>{{ pct(r.utilisation) }}</b></div>
               <div><span>Reputation</span><b>{{ pct(r.reputation) }} <small [class.neg]="r.reputationTrend < 0">{{ trend(r.reputationTrend) }}</small></b></div>

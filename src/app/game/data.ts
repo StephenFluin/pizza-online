@@ -1,6 +1,9 @@
 import { Ingredient, IngredientCategory, Recipe, Topping } from './model';
 
-export const INGREDIENTS: readonly Ingredient[] = [
+/** Wholesale price level applied to every ingredient's base cost. */
+export const INGREDIENT_PRICE_LEVEL = 1.6;
+
+const BASE_INGREDIENTS: readonly Ingredient[] = [
   { id: 'tomato', category: 'vegetables', name: 'Tomato', cost: 0.3, shelfLife: 6, color: 0xd63a2f, shape: 'circle', grams: [25, 12, 5], calories: 18, intensity: 4, fat: 0, sweet: 4, salty: 1, hot: 0 },
   { id: 'mozzarella', category: 'cheese', name: 'Mozzarella', cost: 0.5, shelfLife: 8, color: 0xf6f0d8, shape: 'circle', grams: [20, 10, 4], calories: 280, intensity: 3, fat: 7, sweet: 1, salty: 3, hot: 0 },
   { id: 'salami', category: 'meat', name: 'Salami', cost: 0.6, shelfLife: 20, color: 0xa3283a, shape: 'circle', grams: [12, 6, 3], calories: 400, intensity: 7, fat: 8, sweet: 0, salty: 8, hot: 3 },
@@ -56,6 +59,8 @@ export const INGREDIENTS: readonly Ingredient[] = [
   { id: 'cheddar', category: 'cheese', name: 'Cheddar', cost: 0.6, shelfLife: 40, color: 0xf9a825, shape: 'cube', grams: [10, 5, 2], calories: 403, intensity: 6, fat: 8, sweet: 0, salty: 6, hot: 0 },
   { id: 'buffalo-mozzarella', category: 'cheese', name: 'Buffalo mozzarella', cost: 1.1, shelfLife: 5, color: 0xffffff, shape: 'circle', grams: [25, 12, 5], calories: 250, intensity: 3, fat: 7, sweet: 1, salty: 2, hot: 0 },
 ];
+export const INGREDIENTS: readonly Ingredient[] = BASE_INGREDIENTS.map((i) => ({ ...i, cost: Math.round(i.cost * INGREDIENT_PRICE_LEVEL * 100) / 100 }));
+
 
 export const INGREDIENT_CATEGORIES: { id: IngredientCategory; label: string }[] = [
   { id: 'vegetables', label: 'Vegetables' },

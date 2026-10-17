@@ -187,7 +187,7 @@ describes the systems being reproduced (in our own code, text and art).
 ### Phase 21 – Polish
 
 - [x] Usability pass: getting-started goals on the map, speed control beside the clock on every screen, a Reports hub (finances, statistics, research, newspaper), clearer map toggles, actionable set-up warnings, title-screen contrast
-- [ ] Balancing pass: mature shops currently earn ~$20k/month, so rivals snowball
+- [x] Balancing pass: running costs, a yearly profit tax, dearer rent, wages and ingredients, and paced rival growth (rivals end year one around $300–800k instead of $2–4M)
 - [ ] Keyboard navigation and screen-reader labels for every panel (WCAG AA)
 - [ ] Sound effects via Web Audio (generated, no samples)
 - [ ] Balancing pass and tutorial hints

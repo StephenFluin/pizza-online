@@ -1,25 +1,31 @@
 import { firstName } from './characters';
 import { adBonus, cookingBonus, ingredientPriceFactor, ownerStats, startReputation, statsOf, supervisable } from './owner-stats';
 import { cityDef, ingredient } from './data';
-import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, starterLayout } from './furniture';
+import { DEFAULT_FLOOR, RoomStats, TURNOVER_PER_SEAT, applyRoom, roomStats, runningCost, starterLayout } from './furniture';
 import { CityMap, CustomerGroup, DAYS_PER_MONTH, DayStats, GameState, OPEN_MINUTE, Player, Popularity, Recipe, Restaurant, formatMoney } from './model';
 import { cityLifeMorning, cityPrestige } from './awards';
 import { mayorMorning } from './inspections';
 import { inJail, jobsMorning, rivalMischief, troublePoints, underworldMorning } from './underworld';
 import { InsuranceType, POLICIES, insured, monthlyLoanPayments, morningRisks, premium } from './insurance';
 import { demandFactor, morningNews } from './newspaper';
+import { difficulty } from './difficulty';
 import { CUSTOMER_GROUPS } from './pizza-stats';
 import { activeManager, effectiveSkill, isAvailable, managerSettings, staffMorning } from './staff';
 import { cityVendors, vendorById, vendorPrice } from './vendors';
 import { storeInWarehouse, warehouseIn, warehouseMorning, warehouseRent } from './warehouse';
 import { contractsMorning } from './contracts';
-import { clamp01, groupAppeal, itemAppeal, recipeCost, recipeUsage } from './recipes';
+import { clamp01, fairPrice, groupAppeal, itemAppeal, recipeCost, recipeUsage } from './recipes';
+
+/** Overall appetite for eating out, scaling the hourly shares below. */
+const DEMAND_LEVEL = 1;
 
 /** Share of residents who eat out at a given hour; lunch and dinner peaks. */
-const HOURLY_RATE: Record<number, number> = {
-  11: 0.0001, 12: 0.0005, 13: 0.0004, 14: 0.00015, 15: 0.0001, 16: 0.0001,
-  17: 0.0002, 18: 0.0005, 19: 0.0006, 20: 0.0005, 21: 0.00025, 22: 0.0001,
-};
+const HOURLY_RATE: Record<number, number> = Object.fromEntries(
+  Object.entries({
+    11: 0.0001, 12: 0.0005, 13: 0.0004, 14: 0.00015, 15: 0.0001, 16: 0.0001,
+    17: 0.0002, 18: 0.0005, 19: 0.0006, 20: 0.0005, 21: 0.00025, 22: 0.0001,
+  }).map(([hour, share]) => [hour, share * DEMAND_LEVEL]),
+);
 
 /** Weight of "eat somewhere else" in the customer's choice. */
 const OUTSIDE_OPTION = 1.5;
@@ -59,8 +65,14 @@ export function addMessage(state: GameState, text: string): void {
   if (state.messages.length > MAX_MESSAGES) state.messages.splice(0, state.messages.length - MAX_MESSAGES);
 }
 
+/** Money that isn't trading profit: borrowing and repaying, property, off-the-books cash, and the tax itself. */
+const UNTAXED = new Set(['Loan', 'Loan repayment', 'Cash loan', 'Cash loan repaid', 'Collected by force', 'Property purchase', 'Property sale', 'Rent deposit', 'Investment', 'Investment return', 'Cash income', 'Cash purchases', 'Taxes']);
+/** Share of a year's operating profit the tax office takes at the end of the year. */
+export const TAX_RATE = 0.2;
+
 export function addLedger(player: Player, day: number, label: string, amount: number): void {
   player.cash += amount;
+  if (!UNTAXED.has(label)) player.taxable = (player.taxable ?? 0) + amount;
   const last = player.ledger[player.ledger.length - 1];
   // Merge same-day entries with the same label to keep the ledger compact.
   if (last && last.day === day && last.label === label) last.amount += amount;
@@ -185,7 +197,9 @@ function scoreRestaurants(state: GameState, city: CityMap, restaurants: Restaura
       if (!best) return null;
       // Atmosphere, and whether this district's groups like the furniture's style.
       const look = districtLookAppeal(rooms.get(r.id)!, district);
-      const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * (0.9 + look * 0.2) * Math.exp(-dist / 14);
+      // Difficulty makes customers warmer or cooler towards the player's own pizzerias.
+      const favour = state.players.find((p) => p.id === r.ownerId)?.isHuman ? difficulty(state).demand : 1;
+      const score = best.appeal * popularityMultiplier(r.popularity) * (0.85 + r.decor * 0.12) * (0.9 + look * 0.2) * Math.exp(-dist / 14) * favour;
       return { r, best, score };
     })
     .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0);
@@ -581,6 +595,7 @@ export function endDay(state: GameState): void {
   for (const r of state.restaurants) {
     const owner = state.players.find((p) => p.id === r.ownerId);
     if (owner && r.today.revenue > 0) addLedger(owner, state.day, 'Sales', r.today.revenue);
+    if (owner && !r.closedDays) addLedger(owner, state.day, 'Running costs', -runningCost(r.layout, r.seats, cityDef(r.cityId).costOfLiving));
     const served = r.today.customers;
     if (served > 0) {
       const avg = r.today.satisfaction / served;
@@ -613,6 +628,15 @@ function endMonth(state: GameState): void {
     for (const w of Object.values(player.warehouses ?? {})) addLedger(player, state.day, 'Warehouse rent', -warehouseRent(w));
     monthlyLoanPayments(state, player, (label, amount) => addLedger(player, state.day, label, amount));
     for (const type of Object.keys(POLICIES) as InsuranceType[]) if (insured(player, type)) addLedger(player, state.day, 'Insurance', -premium(state, player, type));
+    player.lastMonthProfit = (player.taxable ?? 0) - (player.taxableAtMonthStart ?? 0);
+    // At the end of the year the tax office takes its share of the year's profit.
+    if ((state.day + 1) % (DAYS_PER_MONTH * 12) === 0) {
+      const tax = Math.round(Math.max(0, player.taxable ?? 0) * TAX_RATE);
+      if (tax > 0) addLedger(player, state.day, 'Taxes', -tax);
+      if (player.isHuman) addMessage(state, tax > 0 ? `The tax office takes ${Math.round(TAX_RATE * 100)}% of this year's profit: ${formatMoney(tax)}.` : 'No tax to pay this year: the business made no profit.');
+      player.taxable = 0;
+    }
+    player.taxableAtMonthStart = player.taxable ?? 0;
     if (player.isHuman) {
       const month = player.ledger.filter((e) => e.day > state.day - DAYS_PER_MONTH);
       const net = month.reduce((n, e) => n + e.amount, 0);
@@ -654,11 +678,8 @@ export function openRestaurantAt(
     kitchenCapacity: 0,
     rentPerMonth: buy ? 0 : price,
     staff: [],
-    menu: [
-      { recipeId: 'std-margherita', price: Math.round(8 * cityDef(city.id).costOfLiving) },
-      { recipeId: 'std-salami', price: Math.round(9 * cityDef(city.id).costOfLiving) },
-      { recipeId: 'std-funghi', price: Math.round(9 * cityDef(city.id).costOfLiving) },
-    ],
+    // The starter menu is priced at what the district thinks is fair.
+    menu: ['std-margherita', 'std-salami', 'std-funghi'].map((recipeId) => ({ recipeId, price: Math.round(fairPrice(city.districts[lot.district], cityDef(city.id).costOfLiving) * 2) / 2 })),
     stock: {},
     stockQuality: {},
     preferredVendors: {},

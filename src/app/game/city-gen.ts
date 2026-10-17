@@ -130,7 +130,7 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
   }
   for (const lot of lots) {
     const d = districts[lot.district];
-    const base = 600 + lot.w * lot.h * 150;
+    const base = 1200 + lot.w * lot.h * 280;
     lot.rentPerMonth = Math.round((base * (0.6 + d.wealth) * def.costOfLiving) / 10) * 10;
     lot.purchasePrice = Math.round((lot.rentPerMonth * 40) / 1000) * 1000;
   }

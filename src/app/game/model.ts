@@ -316,6 +316,13 @@ export interface Player {
   boosts?: Boost[];
   /** Highest business rank reached (index into RANKS). */
   rank?: number;
+  /** Operating profit so far this year, taxed at the year's end. */
+  taxable?: number;
+  /** Day a computer player last opened a pizzeria; they open at most about one a month. */
+  lastExpansion?: number;
+  /** Operating profit of the last finished month, and the year's running total when this month began. */
+  lastMonthProfit?: number;
+  taxableAtMonthStart?: number;
   /** An outstanding loan from a loan shark. */
   shark?: SharkLoan;
   /** Day the player gets out of jail, and how many times they've been caught. */

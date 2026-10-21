@@ -38,7 +38,11 @@ export function serialize(st: GameState): string {
     savedAt: new Date().toISOString(),
     state: {
       ...st,
-      cities: st.cities.map((c) => ({ id: c.id, districts: c.districts, lotRestaurants: c.lots.map((l) => l.restaurantId) })),
+      cities: st.cities.map((c) => ({
+        id: c.id,
+        districts: c.districts,
+        lotRestaurants: c.lots.map((l) => l.restaurantId),
+      })),
     },
   };
   return JSON.stringify(file);
@@ -46,14 +50,22 @@ export function serialize(st: GameState): string {
 
 export function deserialize(text: string): GameState {
   const file = JSON.parse(text) as SaveFile;
-  if (file?.format !== 'pizza-online-save' || !file.state || !Array.isArray(file.state.cities)) throw new Error('Not a Pizza Online save file');
+  if (file?.format !== 'pizza-online-save' || !file.state || !Array.isArray(file.state.cities))
+    throw new Error('Not a Pizza Online save file');
   const st = file.state;
   const cities = CITIES.map((def) => {
     const city = generateCity(def, st.seed);
     const saved = st.cities.find((c) => c.id === def.id);
     if (saved) {
       // Older saves lack the customer-group fields; take them from the regenerated city.
-      city.districts = saved.districts.map((d, i) => ({ ...city.districts[i], ...d, groupMix: d.groupMix ?? city.districts[i].groupMix, serviceMinutes: d.serviceMinutes ?? city.districts[i].serviceMinutes, desiredStandard: d.desiredStandard ?? city.districts[i].desiredStandard, desiredOwn: d.desiredOwn ?? city.districts[i].desiredOwn }));
+      city.districts = saved.districts.map((d, i) => ({
+        ...city.districts[i],
+        ...d,
+        groupMix: d.groupMix ?? city.districts[i].groupMix,
+        serviceMinutes: d.serviceMinutes ?? city.districts[i].serviceMinutes,
+        desiredStandard: d.desiredStandard ?? city.districts[i].desiredStandard,
+        desiredOwn: d.desiredOwn ?? city.districts[i].desiredOwn,
+      }));
       saved.lotRestaurants.forEach((rid, i) => {
         if (city.lots[i]) city.lots[i].restaurantId = rid;
       });
@@ -83,12 +95,32 @@ export function deserialize(text: string): GameState {
     }
   }
   // Campaigns from before the advertising channels existed are dropped.
-  for (const p of st.players) p.ads = (p.ads ?? []).filter((a) => typeof a.channel === 'string' && typeof a.effectiveness === 'number');
+  for (const p of st.players)
+    p.ads = (p.ads ?? []).filter(
+      (a) => typeof a.channel === 'string' && typeof a.effectiveness === 'number',
+    );
   // Older saves kept a single loan balance; turn it into a two-year loan.
   for (const p of st.players) {
-    if (!p.loans && p.loan > 0) p.loans = [{ id: st.nextId++, principal: p.loan, remaining: p.loan, termMonths: 24, monthsLeft: 24 }];
+    if (!p.loans && p.loan > 0)
+      p.loans = [
+        { id: st.nextId++, principal: p.loan, remaining: p.loan, termMonths: 24, monthsLeft: 24 },
+      ];
   }
-  const loaded: GameState = { ...st, cities, outcome: st.outcome ?? null, orders: st.orders ?? [], vendorSpend: st.vendorSpend ?? {}, jobMarket: st.jobMarket ?? {}, staffEvents: st.staffEvents ?? [], cityConditions: st.cityConditions ?? {}, newspaper: st.newspaper ?? null, charts: st.charts ?? {}, contest: st.contest ?? null, phoneQueue: st.phoneQueue ?? [], shipments: st.shipments ?? [] };
+  const loaded: GameState = {
+    ...st,
+    cities,
+    outcome: st.outcome ?? null,
+    orders: st.orders ?? [],
+    vendorSpend: st.vendorSpend ?? {},
+    jobMarket: st.jobMarket ?? {},
+    staffEvents: st.staffEvents ?? [],
+    cityConditions: st.cityConditions ?? {},
+    newspaper: st.newspaper ?? null,
+    charts: st.charts ?? {},
+    contest: st.contest ?? null,
+    phoneQueue: st.phoneQueue ?? [],
+    shipments: st.shipments ?? [],
+  };
   for (const c of CITIES) jobMarket(loaded, c.id);
   return loaded;
 }

@@ -10,9 +10,17 @@ import { cityTaste, fairPrice } from './recipes';
 import { DEFAULT_RESTOCK_DAYS, MAX_RESTOCK_DAYS, addLedger, openRestaurantAt } from './simulation';
 
 /** Three rival characters: the ones chosen on the selection screen, or random others from the cast. */
-export function createRivals(firstId: number, startCash: number, exclude: string, chosen: string[] = []): Player[] {
+export function createRivals(
+  firstId: number,
+  startCash: number,
+  exclude: string,
+  chosen: string[] = [],
+): Player[] {
   const pool = CHARACTERS.filter((c) => c.id !== exclude);
-  const picked: typeof pool = chosen.map((id) => pool.find((c) => c.id === id)).filter((c): c is (typeof pool)[number] => !!c).slice(0, 3);
+  const picked: typeof pool = chosen
+    .map((id) => pool.find((c) => c.id === id))
+    .filter((c): c is (typeof pool)[number] => !!c)
+    .slice(0, 3);
   while (picked.length < 3) {
     const c = pool[Math.floor(Math.random() * pool.length)];
     if (!picked.includes(c)) picked.push(c);
@@ -56,7 +64,9 @@ export function runAiWeek(st: GameState): void {
 function expand(st: GameState, p: Player, own: Restaurant[]): void {
   // Prefer the human's current city early on, then spread to cities with the fewest of our shops.
   const counts = new Map(CITIES.map((c) => [c.id, own.filter((r) => r.cityId === c.id).length]));
-  const candidates = [...CITIES].sort((a, b) => (counts.get(a.id) ?? 0) - (counts.get(b.id) ?? 0) + (Math.random() - 0.5));
+  const candidates = [...CITIES].sort(
+    (a, b) => (counts.get(a.id) ?? 0) - (counts.get(b.id) ?? 0) + (Math.random() - 0.5),
+  );
   const cityId = own.length < 2 && Math.random() < 0.7 ? st.currentCityId : candidates[0].id;
   const city = st.cities.find((c) => c.id === cityId);
   if (!city) return;
@@ -66,7 +76,8 @@ function expand(st: GameState, p: Player, own: Restaurant[]): void {
   const score = (lotIdx: number) => {
     const lot = city.lots[lotIdx];
     let s = 0;
-    for (const d of city.districts) s += (d.population * (0.5 + d.wealth)) * Math.exp(-Math.hypot(lot.x - d.cx, lot.y - d.cy) / 12);
+    for (const d of city.districts)
+      s += d.population * (0.5 + d.wealth) * Math.exp(-Math.hypot(lot.x - d.cx, lot.y - d.cy) / 12);
     for (const r of st.restaurants.filter((x) => x.cityId === cityId)) {
       const o = city.lots[r.lotId];
       s *= 1 - 0.35 * Math.exp(-Math.hypot(lot.x - o.x, lot.y - o.y) / 6);
@@ -87,21 +98,36 @@ function expand(st: GameState, p: Player, own: Restaurant[]): void {
     .map((x) => ({ x, t: cityTaste(x, city.districts) }))
     .sort((a, b) => b.t - a.t)
     .slice(0, 3)
-    .map(({ x }) => ({ recipeId: x.id, price: Math.round(fair * (0.9 + Math.random() * 0.2) * 2) / 2 }));
+    .map(({ x }) => ({
+      recipeId: x.id,
+      price: Math.round(fair * (0.9 + Math.random() * 0.2) * 2) / 2,
+    }));
 }
 
 function manage(st: GameState, p: Player, r: Restaurant): void {
   const d = r.lastDay;
-  if (d.noStaff > 15 && r.staff.length < 8) hire(st, r, r.staff.filter((s) => s.role === 'cook').length <= r.staff.filter((s) => s.role === 'waiter').length ? 'cook' : 'waiter');
+  if (d.noStaff > 15 && r.staff.length < 8)
+    hire(
+      st,
+      r,
+      r.staff.filter((s) => s.role === 'cook').length <=
+        r.staff.filter((s) => s.role === 'waiter').length
+        ? 'cook'
+        : 'waiter',
+    );
   // Running out means the standing order should keep more days in hand.
-  if (d.noStock > 10) r.restockDays = Math.min(MAX_RESTOCK_DAYS, (r.restockDays ?? DEFAULT_RESTOCK_DAYS) + 1);
+  if (d.noStock > 10)
+    r.restockDays = Math.min(MAX_RESTOCK_DAYS, (r.restockDays ?? DEFAULT_RESTOCK_DAYS) + 1);
   // Nudge prices: busy restaurants charge more, quiet ones less, within sight of what the district thinks is fair.
   const factor = d.turnedAway > d.customers * 0.3 ? 1.05 : d.customers < 25 ? 0.95 : 1;
   const city = st.cities.find((c) => c.id === r.cityId);
   const district = city?.districts[city.lots[r.lotId].district];
   // Pushier rivals (harder difficulty) also get away with dearer pizzas.
-  const ceiling = district ? fairPrice(district, cityDef(r.cityId).costOfLiving) * (1 + 0.15 * difficulty(st).rivals) : Infinity;
-  for (const m of r.menu) m.price = Math.max(3, Math.min(ceiling, Math.round(m.price * factor * 2) / 2));
+  const ceiling = district
+    ? fairPrice(district, cityDef(r.cityId).costOfLiving) * (1 + 0.15 * difficulty(st).rivals)
+    : Infinity;
+  for (const m of r.menu)
+    m.price = Math.max(3, Math.min(ceiling, Math.round(m.price * factor * 2) / 2));
   // Fit out the room: more tables when full, a better oven when the kitchen is the bottleneck, decor when rich.
   if (d.lostSeats > 0 && p.cash > 8000) furnish(st, p, r, 'tables', 2);
   if (d.lostKitchen > 10 && p.cash > 12000) furnish(st, p, r, 'kitchen', 1);
@@ -110,16 +136,32 @@ function manage(st: GameState, p: Player, r: Restaurant): void {
   if (p.cash > 30000 && Math.random() < 0.08 && !p.ads.some((a) => a.cityId === r.cityId)) {
     const posters = Math.random() < 0.5;
     const poster = POSTERS[Math.floor(Math.random() * POSTERS.length)];
-    const rate = posters ? { effectiveness: poster.effectiveness, weeklyCost: poster.weeklyCost } : flyerRate(300);
+    const rate = posters
+      ? { effectiveness: poster.effectiveness, weeklyCost: poster.weeklyCost }
+      : flyerRate(300);
     const cost = campaignCost(rate.weeklyCost, 14, cityDef(r.cityId).costOfLiving);
     addLedger(p, st.day, 'Advertising', -cost);
-    p.ads.push({ cityId: r.cityId, channel: posters ? 'posters' : 'flyers', daysLeft: 14, effectiveness: rate.effectiveness, cost, ...(posters ? { posterId: poster.id } : { flyers: 300 }) });
+    p.ads.push({
+      cityId: r.cityId,
+      channel: posters ? 'posters' : 'flyers',
+      daysLeft: 14,
+      effectiveness: rate.effectiveness,
+      cost,
+      ...(posters ? { posterId: poster.id } : { flyers: 300 }),
+    });
   }
 }
 
 function hire(st: GameState, r: Restaurant, role: StaffRole): void {
   // Rivals hire straight from the agency rather than the public job market.
-  r.staff.push(generateCandidate(st.nextId++, role, cityDef(r.cityId).costOfLiving, applicantSkillBonus(ownerStats(st, r.ownerId))));
+  r.staff.push(
+    generateCandidate(
+      st.nextId++,
+      role,
+      cityDef(r.cityId).costOfLiving,
+      applicantSkillBonus(ownerStats(st, r.ownerId)),
+    ),
+  );
 }
 
 function closeFor(st: GameState, r: Restaurant): void {
@@ -129,16 +171,35 @@ function closeFor(st: GameState, r: Restaurant): void {
 }
 
 /** Rivals buy and place pieces directly from a store matching their budget. */
-function furnish(st: GameState, p: Player, r: Restaurant, what: 'tables' | 'kitchen' | 'decor', count: number): void {
+function furnish(
+  st: GameState,
+  p: Player,
+  r: Restaurant,
+  what: 'tables' | 'kitchen' | 'decor',
+  count: number,
+): void {
   const lot = st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
   if (!lot) return;
   const col = cityDef(r.cityId).costOfLiving;
   const line = p.cash > 60000 ? 'nordlicht' : p.cash > 25000 ? 'bistro' : 'timber';
   const placed: PlacedItem[] = [];
   for (let i = 0; i < count; i++) {
-    if (what === 'tables') placed.push(...placeDiningSet(r.layout, lot, `${line}:table-large`, `${line}:chair`, 4));
-    else if (what === 'kitchen') placed.push(...autoPlace(r.layout, lot, 'chefline:counter', 1), ...autoPlace(r.layout, lot, 'chefline:oven', 1));
-    else placed.push(...autoPlace(r.layout, lot, ['greenthumb:plant', 'greenthumb:lamp', 'gallery:painting', 'arcade:jukebox'][i % 4], 1));
+    if (what === 'tables')
+      placed.push(...placeDiningSet(r.layout, lot, `${line}:table-large`, `${line}:chair`, 4));
+    else if (what === 'kitchen')
+      placed.push(
+        ...autoPlace(r.layout, lot, 'chefline:counter', 1),
+        ...autoPlace(r.layout, lot, 'chefline:oven', 1),
+      );
+    else
+      placed.push(
+        ...autoPlace(
+          r.layout,
+          lot,
+          ['greenthumb:plant', 'greenthumb:lamp', 'gallery:painting', 'arcade:jukebox'][i % 4],
+          1,
+        ),
+      );
   }
   const cost = placed.reduce((n, it) => n + catalogItem(it.itemId).price * col, 0);
   if (cost > 0) addLedger(p, st.day, 'Furniture', -cost);

@@ -19,10 +19,36 @@ export interface Vendor {
 }
 
 const NAMES: Record<IngredientCategory, string[]> = {
-  vegetables: ['Green Valley Produce', 'Sunny Acres Farm', 'Market Garden Co.', 'Root & Leaf', 'Hilltop Growers', 'Riverside Greens'],
-  meat: ['Butcher Brothers', 'Prime Cuts', 'Harbour Fish & Meat', 'Smokehouse Supply', 'Coastal Catch', 'Hearth & Hook'],
-  fruit: ['Orchard Direct', 'Tropical Imports', 'Golden Grove', 'Fruit Basket Traders', 'Blossom Lane'],
-  cheese: ['Dairy Dell', 'Alpine Creamery', 'Old Cellar Cheeses', 'Meadow Milk Co.', 'Wheel & Rind'],
+  vegetables: [
+    'Green Valley Produce',
+    'Sunny Acres Farm',
+    'Market Garden Co.',
+    'Root & Leaf',
+    'Hilltop Growers',
+    'Riverside Greens',
+  ],
+  meat: [
+    'Butcher Brothers',
+    'Prime Cuts',
+    'Harbour Fish & Meat',
+    'Smokehouse Supply',
+    'Coastal Catch',
+    'Hearth & Hook',
+  ],
+  fruit: [
+    'Orchard Direct',
+    'Tropical Imports',
+    'Golden Grove',
+    'Fruit Basket Traders',
+    'Blossom Lane',
+  ],
+  cheese: [
+    'Dairy Dell',
+    'Alpine Creamery',
+    'Old Cellar Cheeses',
+    'Meadow Milk Co.',
+    'Wheel & Rind',
+  ],
 };
 
 export const VENDORS_PER_CATEGORY = 3;
@@ -40,10 +66,14 @@ export function cityVendors(cityId: string, seed: number): Vendor[] {
       const priceLevels: Record<string, number> = {};
       for (const ing of items) {
         // Most vendors stock most items; better vendors charge more.
-        if (rng.chance(0.78)) priceLevels[ing.id] = Math.round((0.65 + (quality / 100) * 0.6 + rng.range(-0.12, 0.12)) * 100) / 100;
+        if (rng.chance(0.78))
+          priceLevels[ing.id] =
+            Math.round((0.65 + (quality / 100) * 0.6 + rng.range(-0.12, 0.12)) * 100) / 100;
       }
       // Always stock at least three items.
-      for (const ing of items) if (Object.keys(priceLevels).length < 3 && !(ing.id in priceLevels)) priceLevels[ing.id] = 1;
+      for (const ing of items)
+        if (Object.keys(priceLevels).length < 3 && !(ing.id in priceLevels))
+          priceLevels[ing.id] = 1;
       vendors.push({
         id: `${cityId}:${category}:${i}`,
         cityId,
@@ -70,7 +100,11 @@ export function vendorPrice(v: Vendor, ingredientId: string, day: number): numbe
   if (level === undefined) return null;
   const week = Math.floor(day / 7);
   const wobble = 0.92 + new Rng(hashString(`${v.id}:${ingredientId}:${week}`)).next() * 0.16;
-  return Math.round(ingredient(ingredientId).cost * cityDef(v.cityId).costOfLiving * level * wobble * 100) / 100;
+  return (
+    Math.round(
+      ingredient(ingredientId).cost * cityDef(v.cityId).costOfLiving * level * wobble * 100,
+    ) / 100
+  );
 }
 
 /** Days the given stock lasts at the restaurant's daily usage, or null when it isn't used. */

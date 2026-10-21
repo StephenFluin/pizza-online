@@ -33,7 +33,8 @@ export const applicantSkillBonus = (s: CharacterStats) => (s.management - 50) / 
 export const startReputation = (s: CharacterStats) => 0.2 + s.popularity / 500;
 
 /** How much the bank will lend: more for popular owners and bigger chains. */
-export const creditLimit = (s: CharacterStats, restaurants: number) => Math.round((20000 + s.popularity * 800 + restaurants * 30000) / 10000) * 10000;
+export const creditLimit = (s: CharacterStats, restaurants: number) =>
+  Math.round((20000 + s.popularity * 800 + restaurants * 30000) / 10000) * 10000;
 
 /** Restaurants the owner can supervise personally before the rest suffer (energy 0–100 → 1–5). */
 export const supervisable = (s: CharacterStats) => 1 + Math.floor(s.energy / 25);

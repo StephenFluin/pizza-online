@@ -1,6 +1,24 @@
-import { Component, DestroyRef, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  signal,
+} from '@angular/core';
 import { cityDef } from '../game/data';
-import { CATALOG, CatalogItem, FLOORS, FloorType, STORES, StoreKind, diningCells, floorType, store } from '../game/furniture';
+import {
+  CATALOG,
+  CatalogItem,
+  FLOORS,
+  FloorType,
+  STORES,
+  StoreKind,
+  diningCells,
+  floorType,
+  store,
+} from '../game/furniture';
 import { GameService } from '../game/game.service';
 import { Restaurant, formatMoney } from '../game/model';
 import { CUSTOMER_GROUPS } from '../game/pizza-stats';
@@ -30,13 +48,27 @@ const PREVIEW = 2;
       <div class="stores">
         <nav class="kinds" aria-label="Kind of store">
           @for (k of kinds; track k.id) {
-            <button type="button" class="plate" [attr.aria-pressed]="kind() === k.id" (click)="selectKind(k.id)">{{ k.label }}</button>
+            <button
+              type="button"
+              class="plate"
+              [attr.aria-pressed]="kind() === k.id"
+              (click)="selectKind(k.id)"
+            >
+              {{ k.label }}
+            </button>
           }
         </nav>
         <ul class="fronts" aria-label="Stores">
           @for (s of storesOfKind(); track s.id) {
             <li>
-              <button type="button" class="front" [attr.aria-current]="storeId() === s.id" [style.--c1]="hex(s.colors[0])" [style.--c2]="hex(s.colors[1])" (click)="storeId.set(s.id)">
+              <button
+                type="button"
+                class="front"
+                [attr.aria-current]="storeId() === s.id"
+                [style.--c1]="hex(s.colors[0])"
+                [style.--c2]="hex(s.colors[1])"
+                (click)="storeId.set(s.id)"
+              >
                 <span class="awning" aria-hidden="true"></span>
                 <b>{{ s.name }}</b>
                 <small>quality {{ s.quality }} · {{ s.style }}</small>
@@ -53,14 +85,28 @@ const PREVIEW = 2;
             <ul class="cards">
               @for (f of floors(); track f.id) {
                 <li class="card">
-                  @if (floorImage(f); as src) {<img [src]="src" alt="" class="pic floor" />} @else {<span class="pic ph"></span>}
+                  @if (floorImage(f); as src) {
+                    <img [src]="src" alt="" class="pic floor" />
+                  } @else {
+                    <span class="pic ph"></span>
+                  }
                   <b>{{ f.name }}</b>
-                  <span>{{ money2(f.pricePerCell * col()) }} per square · quality {{ f.quality }}</span>
-                  <span>Whole dining room: <b>{{ money(floorCost(f)) }}</b></span>
+                  <span
+                    >{{ money2(f.pricePerCell * col()) }} per square · quality {{ f.quality }}</span
+                  >
+                  <span
+                    >Whole dining room: <b>{{ money(floorCost(f)) }}</b></span
+                  >
                   @if (r.floorId === f.id) {
                     <span class="tag">Your current floor</span>
                   } @else {
-                    <button type="button" (click)="layFloor(f.id)" [disabled]="cash() < floorCost(f)">Lay this floor</button>
+                    <button
+                      type="button"
+                      (click)="layFloor(f.id)"
+                      [disabled]="cash() < floorCost(f)"
+                    >
+                      Lay this floor
+                    </button>
                   }
                 </li>
               }
@@ -69,15 +115,40 @@ const PREVIEW = 2;
             <ul class="cards">
               @for (it of items(); track it.id) {
                 <li class="card">
-                  @if (itemImage(it); as src) {<img [src]="src" alt="" class="pic" />} @else {<span class="pic ph"></span>}
+                  @if (itemImage(it); as src) {
+                    <img [src]="src" alt="" class="pic" />
+                  } @else {
+                    <span class="pic ph"></span>
+                  }
                   <b>{{ it.name }}</b>
                   <span>{{ describe(it) }}</span>
                   <span>{{ money(price(it)) }} · {{ it.w }}×{{ it.h }} squares</span>
                   <div class="qty">
-                    <button type="button" class="tiny" (click)="changeQty(it.id, -1)" [attr.aria-label]="'One fewer ' + it.name">−</button>
+                    <button
+                      type="button"
+                      class="tiny"
+                      (click)="changeQty(it.id, -1)"
+                      [attr.aria-label]="'One fewer ' + it.name"
+                    >
+                      −
+                    </button>
                     <span>{{ qty(it.id) }}</span>
-                    <button type="button" class="tiny" (click)="changeQty(it.id, 1)" [attr.aria-label]="'One more ' + it.name">+</button>
-                    <button type="button" class="buy" (click)="buy(it)" [disabled]="cash() < price(it) * qty(it.id)">Buy {{ money(price(it) * qty(it.id)) }}</button>
+                    <button
+                      type="button"
+                      class="tiny"
+                      (click)="changeQty(it.id, 1)"
+                      [attr.aria-label]="'One more ' + it.name"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      class="buy"
+                      (click)="buy(it)"
+                      [disabled]="cash() < price(it) * qty(it.id)"
+                    >
+                      Buy {{ money(price(it) * qty(it.id)) }}
+                    </button>
                   </div>
                 </li>
               }
@@ -89,34 +160,140 @@ const PREVIEW = 2;
           @if (lastBought(); as id) {
             <button type="button" (click)="placeNow(id)">Place them now</button>
           }
-          <button type="button" class="secondary" (click)="openRoom()">Go to the restaurant to place furniture ({{ r.storage.length }} in storage)</button>
+          <button type="button" class="secondary" (click)="openRoom()">
+            Go to the restaurant to place furniture ({{ r.storage.length }} in storage)
+          </button>
         </div>
       </div>
     }
   `,
   styles: `
-    .stores { display: grid; gap: 10px; }
-    .kinds { display: flex; gap: 8px; flex-wrap: wrap; }
-    .plate { font-family: var(--font-lcd); font-size: 1.25rem; text-transform: uppercase; padding: 2px 12px; color: #2b1d0e; font-weight: 400;
-      background: linear-gradient(180deg, #ffe08a, #e0b23c); border: 3px solid; border-color: #b07a2a #5c3a12 #5c3a12 #b07a2a; border-radius: 2px; }
-    .plate[aria-pressed='true'] { background: linear-gradient(180deg, #fff3c4, #f2c14e); outline: 2px solid #7a4a1c; }
-    .fronts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
-    .front { width: 100%; display: grid; gap: 2px; text-align: left; padding: 0 0 8px; overflow: hidden; background: #fffaf0; color: var(--ink); border: 2px solid var(--line); font-weight: 400; }
-    .front b, .front small { padding: 0 8px; }
-    .front[aria-current='true'] { border-color: var(--wood); box-shadow: 0 0 0 2px var(--wood); }
-    .awning { height: 14px; background: repeating-linear-gradient(90deg, var(--c1) 0 14px, var(--c2) 14px 28px); margin-bottom: 4px; }
-    .likes { margin: 0; }
-    .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-    .card { display: grid; gap: 4px; align-content: start; background: #fffaf0; border: 2px solid var(--line); padding: 10px; }
-    .pic { width: 100%; height: 130px; object-fit: contain; background: radial-gradient(circle, #f3efe6, #d9d2c3); border-radius: 4px; }
-    .pic.floor { object-fit: cover; }
-    .ph { display: block; }
-    .qty { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .tiny { padding: 0 8px; }
-    .buy { margin-left: auto; padding: 4px 10px; }
-    .tag { justify-self: start; background: var(--basil); color: #fff; font-size: 0.8rem; padding: 1px 6px; border-radius: 3px; }
-    .foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; position: sticky; bottom: 0; background: #f3efe6; padding: 6px 0; }
-    .msg { margin: 0 auto 0 0; min-height: 1.3em; }
+    .stores {
+      display: grid;
+      gap: 10px;
+    }
+    .kinds {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .plate {
+      font-family: var(--font-lcd);
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      padding: 2px 12px;
+      color: #2b1d0e;
+      font-weight: 400;
+      background: linear-gradient(180deg, #ffe08a, #e0b23c);
+      border: 3px solid;
+      border-color: #b07a2a #5c3a12 #5c3a12 #b07a2a;
+      border-radius: 2px;
+    }
+    .plate[aria-pressed='true'] {
+      background: linear-gradient(180deg, #fff3c4, #f2c14e);
+      outline: 2px solid #7a4a1c;
+    }
+    .fronts {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 8px;
+    }
+    .front {
+      width: 100%;
+      display: grid;
+      gap: 2px;
+      text-align: left;
+      padding: 0 0 8px;
+      overflow: hidden;
+      background: #fffaf0;
+      color: var(--ink);
+      border: 2px solid var(--line);
+      font-weight: 400;
+    }
+    .front b,
+    .front small {
+      padding: 0 8px;
+    }
+    .front[aria-current='true'] {
+      border-color: var(--wood);
+      box-shadow: 0 0 0 2px var(--wood);
+    }
+    .awning {
+      height: 14px;
+      background: repeating-linear-gradient(90deg, var(--c1) 0 14px, var(--c2) 14px 28px);
+      margin-bottom: 4px;
+    }
+    .likes {
+      margin: 0;
+    }
+    .cards {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .card {
+      display: grid;
+      gap: 4px;
+      align-content: start;
+      background: #fffaf0;
+      border: 2px solid var(--line);
+      padding: 10px;
+    }
+    .pic {
+      width: 100%;
+      height: 130px;
+      object-fit: contain;
+      background: radial-gradient(circle, #f3efe6, #d9d2c3);
+      border-radius: 4px;
+    }
+    .pic.floor {
+      object-fit: cover;
+    }
+    .ph {
+      display: block;
+    }
+    .qty {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tiny {
+      padding: 0 8px;
+    }
+    .buy {
+      margin-left: auto;
+      padding: 4px 10px;
+    }
+    .tag {
+      justify-self: start;
+      background: var(--basil);
+      color: #fff;
+      font-size: 0.8rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .foot {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      position: sticky;
+      bottom: 0;
+      background: #f3efe6;
+      padding: 6px 0;
+    }
+    .msg {
+      margin: 0 auto 0 0;
+      min-height: 1.3em;
+    }
   `,
 })
 export class StoreScreenComponent {
@@ -129,22 +306,30 @@ export class StoreScreenComponent {
 
   protected readonly kinds = KINDS;
   protected readonly kind = linkedSignal(() => this.storeKind());
-  protected readonly storeId = linkedSignal(() => STORES.find((s) => s.kind === this.kind())?.id ?? '');
+  protected readonly storeId = linkedSignal(
+    () => STORES.find((s) => s.kind === this.kind())?.id ?? '',
+  );
   protected readonly message = signal('');
   /** The last piece bought, for the "Place them now" link. */
   protected readonly lastBought = signal<string | null>(null);
   private readonly quantities = signal<Record<string, number>>({});
 
   protected readonly restaurant = computed(
-    () => (this.game.state()?.restaurants.find((r) => r.id === this.restaurantId()) ?? null) as Restaurant | null,
+    () =>
+      (this.game.state()?.restaurants.find((r) => r.id === this.restaurantId()) ??
+        null) as Restaurant | null,
     { equal: () => false },
   );
   private readonly lot = computed(() => {
     const r = this.restaurant();
-    return r ? (this.game.state()?.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] ?? null) : null;
+    return r
+      ? (this.game.state()?.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] ?? null)
+      : null;
   });
   protected readonly cash = computed(() => this.game.human()?.cash ?? 0);
-  protected readonly col = computed(() => cityDef(this.restaurant()?.cityId ?? 'rome').costOfLiving);
+  protected readonly col = computed(
+    () => cityDef(this.restaurant()?.cityId ?? 'rome').costOfLiving,
+  );
   protected readonly storesOfKind = computed(() => STORES.filter((s) => s.kind === this.kind()));
   protected readonly current = computed(() => STORES.find((s) => s.id === this.storeId()) ?? null);
   protected readonly items = computed(() => CATALOG.filter((c) => c.storeId === this.storeId()));
@@ -166,15 +351,45 @@ export class StoreScreenComponent {
     const list = this.storesOfKind();
     const i = list.findIndex((s) => s.id === this.storeId());
     return [
-      ...KINDS.map((k) => ({ id: k.id, label: k.label, icon: { furniture: ICONS.shop, flooring: ICONS.box, extras: ICONS.sun, kitchen: ICONS.pizza }[k.id], pressed: this.kind() === k.id, action: () => this.selectKind(k.id) })),
-      { id: 'prev', label: 'Prev store', icon: ICONS.left, disabled: list.length < 2, action: () => this.storeId.set(list[(i - 1 + list.length) % list.length].id) },
-      { id: 'next', label: 'Next store', icon: ICONS.right, disabled: list.length < 2, action: () => this.storeId.set(list[(i + 1) % list.length].id) },
-      { id: 'room', label: 'Place items', icon: ICONS.restaurant, action: () => (this.lastBought() ? this.placeNow(this.lastBought()!) : this.openRoom()) },
+      ...KINDS.map((k) => ({
+        id: k.id,
+        label: k.label,
+        icon: {
+          furniture: ICONS.shop,
+          flooring: ICONS.box,
+          extras: ICONS.sun,
+          kitchen: ICONS.pizza,
+        }[k.id],
+        pressed: this.kind() === k.id,
+        action: () => this.selectKind(k.id),
+      })),
+      {
+        id: 'prev',
+        label: 'Prev store',
+        icon: ICONS.left,
+        disabled: list.length < 2,
+        action: () => this.storeId.set(list[(i - 1 + list.length) % list.length].id),
+      },
+      {
+        id: 'next',
+        label: 'Next store',
+        icon: ICONS.right,
+        disabled: list.length < 2,
+        action: () => this.storeId.set(list[(i + 1) % list.length].id),
+      },
+      {
+        id: 'room',
+        label: 'Place items',
+        icon: ICONS.restaurant,
+        action: () => (this.lastBought() ? this.placeNow(this.lastBought()!) : this.openRoom()),
+      },
     ];
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(this.shell.register(this, { lines: this.lines, tools: this.tools }));
+    inject(DestroyRef).onDestroy(
+      this.shell.register(this, { lines: this.lines, tools: this.tools }),
+    );
   }
 
   protected selectKind(k: StoreKind): void {
@@ -215,7 +430,10 @@ export class StoreScreenComponent {
   }
 
   protected changeQty(id: string, delta: number): void {
-    this.quantities.update((q) => ({ ...q, [id]: Math.max(1, Math.min(20, (q[id] ?? 1) + delta)) }));
+    this.quantities.update((q) => ({
+      ...q,
+      [id]: Math.max(1, Math.min(20, (q[id] ?? 1) + delta)),
+    }));
   }
 
   protected price(it: CatalogItem): number {
@@ -247,7 +465,8 @@ export class StoreScreenComponent {
   }
 
   protected layFloor(id: string): void {
-    if (this.game.layFloor(this.restaurantId(), id)) this.message.set(`New floor laid: ${floorType(id).name}.`);
+    if (this.game.layFloor(this.restaurantId(), id))
+      this.message.set(`New floor laid: ${floorType(id).name}.`);
     else this.message.set('Not enough cash.');
   }
 

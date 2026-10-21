@@ -25,28 +25,51 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
     <div class="phone">
       <nav class="book" aria-label="Phone book">
         @for (g of groups(); track g.kind) {
-          @if (g.label) {<h3>{{ g.label }}</h3>}
+          @if (g.label) {
+            <h3>{{ g.label }}</h3>
+          }
           <ul>
             @for (c of g.contacts; track c.id) {
               <li>
-                <button type="button" class="link" [attr.aria-current]="phone.call()?.contact?.id === c.id" (click)="phone.connect(c)">
+                <button
+                  type="button"
+                  class="link"
+                  [attr.aria-current]="phone.call()?.contact?.id === c.id"
+                  (click)="phone.connect(c)"
+                >
                   {{ c.name }}<br /><small>{{ c.company }}</small>
                 </button>
               </li>
             }
           </ul>
         }
-        <button type="button" class="streets" (click)="ui.open({ kind: 'underworld' })" title="Loan sharks, the fixer, jobs for the boss and sabotage">Back-street dealings…</button>
+        <button
+          type="button"
+          class="streets"
+          (click)="ui.open({ kind: 'underworld' })"
+          title="Loan sharks, the fixer, jobs for the boss and sabotage"
+        >
+          Back-street dealings…
+        </button>
       </nav>
 
       <section class="call" aria-label="Call">
         @if (!phone.call() && phone.ringing(); as ring) {
           @if (phone.caller(ring); as who) {
             <div class="ringing" role="alert">
-              <app-portrait [cacheKey]="'contact-' + who.id" [look]="who.look" [background]="who.color" [size]="72" [alt]="who.name" />
+              <app-portrait
+                [cacheKey]="'contact-' + who.id"
+                [look]="who.look"
+                [background]="who.color"
+                [size]="72"
+                [alt]="who.name"
+              />
               <div>
                 <p class="ring-title">☎ The phone is ringing…</p>
-                <p><b>{{ who.name }}</b>, {{ who.company }}</p>
+                <p>
+                  <b>{{ who.name }}</b
+                  >, {{ who.company }}
+                </p>
                 <button type="button" (click)="phone.answer(ring)">Answer</button>
               </div>
             </div>
@@ -54,9 +77,16 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
         }
         @if (phone.call(); as call) {
           <header class="who">
-            <app-portrait [cacheKey]="'contact-' + call.contact.id" [look]="call.contact.look" [background]="call.contact.color" [size]="72" [alt]="call.contact.name" />
+            <app-portrait
+              [cacheKey]="'contact-' + call.contact.id"
+              [look]="call.contact.look"
+              [background]="call.contact.color"
+              [size]="72"
+              [alt]="call.contact.name"
+            />
             <div>
-              <b>{{ call.contact.name }}</b><br />
+              <b>{{ call.contact.name }}</b
+              ><br />
               {{ call.contact.company }}<br />
               <small>{{ call.ended ? 'Call ended' : 'Connected' }}</small>
             </div>
@@ -68,41 +98,154 @@ const GROUPS: { kind: ContactKind; label: string }[] = [
           </ol>
           <div class="options">
             @for (o of call.options; track o.id) {
-              <button type="button" class="option" (click)="phone.choose(o.id)">{{ o.label }}</button>
+              <button type="button" class="option" (click)="phone.choose(o.id)">
+                {{ o.label }}
+              </button>
             }
             @if (newShop(); as shop) {
               <button type="button" (click)="visit(shop.lotId)">Go to {{ shop.name }}</button>
             }
-            <button type="button" class="secondary" (click)="phone.hangUp()">{{ call.ended ? 'Put the phone down' : 'Hang up' }}</button>
+            <button type="button" class="secondary" (click)="phone.hangUp()">
+              {{ call.ended ? 'Put the phone down' : 'Hang up' }}
+            </button>
           </div>
         } @else {
-          <p class="idle" [hidden]="!!phone.ringing()">Pick someone from the phone book to call them. Tip: select a lot on the map and use “Call realtor” to talk about that property.</p>
+          <p class="idle" [hidden]="!!phone.ringing()">
+            Pick someone from the phone book to call them. Tip: select a lot on the map and use
+            “Call realtor” to talk about that property.
+          </p>
         }
       </section>
     </div>
   `,
   styles: `
-    .phone { display: grid; grid-template-columns: 220px minmax(320px, 460px); gap: 16px; }
-    .book { max-height: calc(100dvh - 150px); overflow: auto; border-right: 1px solid var(--line); padding-right: 8px; }
-    .streets { width: 100%; margin-top: 12px; background: #2b2d42; border-color: #2b2d42; font-size: 0.85rem; }
-    .book h3 { margin: 8px 0 4px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .book ul { list-style: none; margin: 0; padding: 0; }
-    .book button[aria-current='true'] { background: var(--cream); }
-    .call { display: grid; gap: 8px; align-content: start; }
-    .who { display: flex; gap: 12px; align-items: center; }
-    .transcript { list-style: none; margin: 0; padding: 8px; background: #2b1d14; border-radius: 8px; max-height: 40dvh; min-height: 120px; overflow: auto; display: grid; gap: 6px; align-content: start; }
-    .transcript li { padding: 6px 10px; border-radius: 10px; max-width: 85%; }
-    .transcript .them { background: var(--cream); color: var(--ink); justify-self: start; }
-    .transcript .me { background: #f4d58d; color: #2b1d14; justify-self: end; }
-    .options { display: grid; gap: 6px; }
-    .option { text-align: left; font-weight: 400; background: var(--panel); color: var(--ink); border-color: var(--ink-soft); }
-    .idle { margin: 0; }
-    .ringing { display: flex; gap: 12px; align-items: center; background: #fff3d6; border: 3px solid var(--brass); border-radius: 8px; padding: 10px; animation: shake 0.6s ease-in-out 3; }
-    .ringing p { margin: 0 0 6px; }
-    .ring-title { font-weight: 700; font-size: 1.1rem; }
-    @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
-    @media (prefers-reduced-motion: reduce) { .ringing { animation: none; } }
-    @media (max-width: 700px) { .phone { grid-template-columns: 1fr; } .book { max-height: 30dvh; border-right: none; } }
+    .phone {
+      display: grid;
+      grid-template-columns: 220px minmax(320px, 460px);
+      gap: 16px;
+    }
+    .book {
+      max-height: calc(100dvh - 150px);
+      overflow: auto;
+      border-right: 1px solid var(--line);
+      padding-right: 8px;
+    }
+    .streets {
+      width: 100%;
+      margin-top: 12px;
+      background: #2b2d42;
+      border-color: #2b2d42;
+      font-size: 0.85rem;
+    }
+    .book h3 {
+      margin: 8px 0 4px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .book ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .book button[aria-current='true'] {
+      background: var(--cream);
+    }
+    .call {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .who {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .transcript {
+      list-style: none;
+      margin: 0;
+      padding: 8px;
+      background: #2b1d14;
+      border-radius: 8px;
+      max-height: 40dvh;
+      min-height: 120px;
+      overflow: auto;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+    .transcript li {
+      padding: 6px 10px;
+      border-radius: 10px;
+      max-width: 85%;
+    }
+    .transcript .them {
+      background: var(--cream);
+      color: var(--ink);
+      justify-self: start;
+    }
+    .transcript .me {
+      background: #f4d58d;
+      color: #2b1d14;
+      justify-self: end;
+    }
+    .options {
+      display: grid;
+      gap: 6px;
+    }
+    .option {
+      text-align: left;
+      font-weight: 400;
+      background: var(--panel);
+      color: var(--ink);
+      border-color: var(--ink-soft);
+    }
+    .idle {
+      margin: 0;
+    }
+    .ringing {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: #fff3d6;
+      border: 3px solid var(--brass);
+      border-radius: 8px;
+      padding: 10px;
+      animation: shake 0.6s ease-in-out 3;
+    }
+    .ringing p {
+      margin: 0 0 6px;
+    }
+    .ring-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    @keyframes shake {
+      0%,
+      100% {
+        transform: rotate(0);
+      }
+      25% {
+        transform: rotate(-1.5deg);
+      }
+      75% {
+        transform: rotate(1.5deg);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ringing {
+        animation: none;
+      }
+    }
+    @media (max-width: 700px) {
+      .phone {
+        grid-template-columns: 1fr;
+      }
+      .book {
+        max-height: 30dvh;
+        border-right: none;
+      }
+    }
   `,
 })
 export class PhoneDialogComponent {
@@ -118,7 +261,8 @@ export class PhoneDialogComponent {
     const st = this.game.state();
     if (!call?.ended || call.contact.kind !== 'realtor' || call.lotId === null || !st) return null;
     const lot = st.cities.find((c) => c.id === call.contact.cityId)?.lots[call.lotId];
-    const r = lot?.restaurantId != null ? st.restaurants.find((x) => x.id === lot.restaurantId) : null;
+    const r =
+      lot?.restaurantId != null ? st.restaurants.find((x) => x.id === lot.restaurantId) : null;
     return r && r.ownerId === this.game.human()?.id ? { lotId: r.lotId, name: r.name } : null;
   });
 

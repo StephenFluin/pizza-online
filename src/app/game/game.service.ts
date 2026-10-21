@@ -3,20 +3,64 @@ import { CITIES, STANDARD_RECIPES, cityDef } from './data';
 import { generateCity } from './city-gen';
 import { createRivals, runAiWeek } from './ai';
 import { DIFFICULTIES, DifficultyId } from './difficulty';
-import { JobOffer, SabotageKind, acceptJob, attemptSabotage, hireFee, inJail, visitJobTile } from './underworld';
+import {
+  JobOffer,
+  SabotageKind,
+  acceptJob,
+  attemptSabotage,
+  hireFee,
+  inJail,
+  visitJobTile,
+} from './underworld';
 import { Contest, donate, judgeContest } from './awards';
 import { InsuranceType, repayLoan, takeLoan } from './insurance';
 import { ingredientPriceFactor, statsOf } from './owner-stats';
-import { Course, jobMarket, managerSettings, resolveStaffEvent, rotateJobMarkets, startCourse } from './staff';
+import {
+  Course,
+  jobMarket,
+  managerSettings,
+  resolveStaffEvent,
+  rotateJobMarkets,
+  startCourse,
+} from './staff';
 import { vendorById, vendorPrice } from './vendors';
 import { Terms, cancelContract, relation, signContract } from './contracts';
-import { BULK_DISCOUNT, BULK_UNITS, Warehouse, WarehouseSize, ship, syncPriority, warehouseIn, warehouseRent } from './warehouse';
+import {
+  BULK_DISCOUNT,
+  BULK_UNITS,
+  Warehouse,
+  WarehouseSize,
+  ship,
+  syncPriority,
+  warehouseIn,
+  warehouseRent,
+} from './warehouse';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
 import { character } from './characters';
-import { AdCampaign, CLOSE_MINUTE, ManagerSettings, DAYS_PER_MONTH, GameState, Lot, OPEN_MINUTE, Player, Recipe, Restaurant, Staff, StaffRole } from './model';
+import {
+  AdCampaign,
+  CLOSE_MINUTE,
+  ManagerSettings,
+  DAYS_PER_MONTH,
+  GameState,
+  Lot,
+  OPEN_MINUTE,
+  Player,
+  Recipe,
+  Restaurant,
+  Staff,
+} from './model';
 import { deserialize, loadFromSlot, saveToSlot } from './saves';
 import { checkOutcome } from './world';
-import { addLedger, addMessage, buyStock, endDay, openRestaurantAt, simulateHour, startDay } from './simulation';
+import {
+  addLedger,
+  addMessage,
+  buyStock,
+  endDay,
+  openRestaurantAt,
+  simulateHour,
+  startDay,
+} from './simulation';
 
 export type GameSpeed = 0 | 1 | 2 | 4;
 
@@ -30,7 +74,6 @@ export const PLAYER_COLORS = [0xe63946];
 export const START_CASH = 50000;
 export const MAX_LOAN = 150000;
 export const LOAN_STEP = 10000;
-
 
 /**
  * Owns the game state. The state object is mutated in place for performance
@@ -55,7 +98,9 @@ export class GameService {
     },
     { equal: () => false },
   );
-  readonly human = computed(() => this.state()?.players.find((p) => p.isHuman) ?? null, { equal: () => false });
+  readonly human = computed(() => this.state()?.players.find((p) => p.isHuman) ?? null, {
+    equal: () => false,
+  });
   readonly selectedLot = computed(
     () => {
       const id = this.selectedLotId();
@@ -66,7 +111,9 @@ export class GameService {
   readonly selectedRestaurant = computed(
     () => {
       const lot = this.selectedLot();
-      return lot?.restaurantId != null ? (this.state()?.restaurants.find((r) => r.id === lot.restaurantId) ?? null) : null;
+      return lot?.restaurantId != null
+        ? (this.state()?.restaurants.find((r) => r.id === lot.restaurantId) ?? null)
+        : null;
     },
     { equal: () => false },
   );
@@ -80,7 +127,14 @@ export class GameService {
   };
   private readonly saveOnExit = () => this.autosaveNow();
 
-  newGame(playerName: string, cityId: string, characterId = 'gianna', seed = Math.floor(Math.random() * 2 ** 31), rivalIds: string[] = [], difficultyId: DifficultyId = 'normal'): void {
+  newGame(
+    playerName: string,
+    cityId: string,
+    characterId = 'gianna',
+    seed = Math.floor(Math.random() * 2 ** 31),
+    rivalIds: string[] = [],
+    difficultyId: DifficultyId = 'normal',
+  ): void {
     const level = DIFFICULTIES.find((d) => d.id === difficultyId) ?? DIFFICULTIES[1];
     const hero = character(characterId);
     const human: Player = {
@@ -105,7 +159,12 @@ export class GameService {
       restaurants: [],
       recipes: STANDARD_RECIPES.map((r) => structuredClone(r)),
       nextId: 1,
-      messages: [{ day: 0, text: `Welcome to ${cityDef(cityId).name}, ${human.name}! Pick an empty lot to open your first pizzeria.` }],
+      messages: [
+        {
+          day: 0,
+          text: `Welcome to ${cityDef(cityId).name}, ${human.name}! Pick an empty lot to open your first pizzeria.`,
+        },
+      ],
       outcome: null,
       orders: [],
       vendorSpend: {},
@@ -217,13 +276,18 @@ export class GameService {
     if (st.minute === OPEN_MINUTE) {
       startDay(st);
       // Staff incidents and the pizza contest need the owner's answer before the day gets going.
-      if (st.staffEvents.length > 0 || st.contest?.phase === 'entry' || (st.phoneQueue?.length ?? 0) > 0) {
+      if (
+        st.staffEvents.length > 0 ||
+        st.contest?.phase === 'entry' ||
+        (st.phoneQueue?.length ?? 0) > 0
+      ) {
         this.resumeSpeed = this.speed() || this.resumeSpeed;
         this.speed.set(0);
         return true;
       }
     }
-    if (st.minute % 60 === 0 && st.minute > OPEN_MINUTE && st.minute <= CLOSE_MINUTE) simulateHour(st, st.minute / 60 - 1);
+    if (st.minute % 60 === 0 && st.minute > OPEN_MINUTE && st.minute <= CLOSE_MINUTE)
+      simulateHour(st, st.minute / 60 - 1);
     if (st.minute === CLOSE_MINUTE) {
       endDay(st);
       if ((st.day + 1) % 7 === 0) runAiWeek(st);
@@ -269,7 +333,8 @@ export class GameService {
       const owner = st.players.find((p) => p.id === r.ownerId);
       if (lot) {
         lot.restaurantId = null;
-        if (r.owned && owner) addLedger(owner, st.day, 'Property sale', Math.round(lot.purchasePrice * 0.8));
+        if (r.owned && owner)
+          addLedger(owner, st.day, 'Property sale', Math.round(lot.purchasePrice * 0.8));
       }
       st.restaurants = st.restaurants.filter((x) => x.id !== restaurantId);
       if (owner?.isHuman) addMessage(st, `${r.name} has closed its doors.`);
@@ -321,7 +386,8 @@ export class GameService {
       const s = r?.staff.find((x) => x.id === staffId);
       const owner = st.players.find((p) => p.id === r?.ownerId);
       const cost = course.cost * cityDef(r?.cityId ?? 'rome').costOfLiving;
-      if (!r || !s || !owner || s.course || owner.cash < cost || s[course.stat] >= course.maxStat) return;
+      if (!r || !s || !owner || s.course || owner.cash < cost || s[course.stat] >= course.maxStat)
+        return;
       addLedger(owner, st.day, 'Training', -cost);
       startCourse(s, course);
       ok = true;
@@ -332,7 +398,9 @@ export class GameService {
   /** Gives a raise (e.g. 0.1 for 10%), which lifts motivation. */
   raise(restaurantId: number, staffId: number, pct: number): void {
     this.mutate((st) => {
-      const s = st.restaurants.find((x) => x.id === restaurantId)?.staff.find((x) => x.id === staffId);
+      const s = st.restaurants
+        .find((x) => x.id === restaurantId)
+        ?.staff.find((x) => x.id === staffId);
       if (!s) return;
       s.wagePerMonth = Math.round((s.wagePerMonth * (1 + pct)) / 10) * 10;
       s.motivation = Math.min(100, Math.round(s.motivation + pct * 150));
@@ -346,7 +414,12 @@ export class GameService {
       const event = st.staffEvents[0];
       if (event) result = resolveStaffEvent(st, event, choice);
     });
-    if ((this.state()?.staffEvents.length ?? 0) === 0 && this.speed() === 0 && this.dayReport() === null) this.speed.set(this.resumeSpeed || 1);
+    if (
+      (this.state()?.staffEvents.length ?? 0) === 0 &&
+      this.speed() === 0 &&
+      this.dayReport() === null
+    )
+      this.speed.set(this.resumeSpeed || 1);
     return result;
   }
 
@@ -375,7 +448,10 @@ export class GameService {
   }
 
   /** Runs `fn` on one restaurant, its owner and its lot, then refreshes the room's cached stats. */
-  private withRoom(restaurantId: number, fn: (r: Restaurant, owner: Player, lot: Lot, st: GameState) => void): void {
+  private withRoom(
+    restaurantId: number,
+    fn: (r: Restaurant, owner: Player, lot: Lot, st: GameState) => void,
+  ): void {
     this.mutate((st) => {
       const r = st.restaurants.find((x) => x.id === restaurantId);
       const owner = st.players.find((p) => p.id === r?.ownerId);
@@ -427,7 +503,12 @@ export class GameService {
     this.withRoom(restaurantId, (r, owner, _lot, st) => {
       const itemId = r.storage[storageIndex];
       if (!itemId) return;
-      addLedger(owner, st.day, 'Furniture sold', catalogItem(itemId).price * cityDef(r.cityId).costOfLiving * SELL_BACK);
+      addLedger(
+        owner,
+        st.day,
+        'Furniture sold',
+        catalogItem(itemId).price * cityDef(r.cityId).costOfLiving * SELL_BACK,
+      );
       r.storage.splice(storageIndex, 1);
     });
   }
@@ -470,7 +551,12 @@ export class GameService {
       const lot = r ? st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId] : undefined;
       const item = r?.layout[index];
       if (!r || !owner || !lot || !item) return;
-      addLedger(owner, st.day, 'Furniture sold', catalogItem(item.itemId).price * cityDef(r.cityId).costOfLiving * SELL_BACK);
+      addLedger(
+        owner,
+        st.day,
+        'Furniture sold',
+        catalogItem(item.itemId).price * cityDef(r.cityId).costOfLiving * SELL_BACK,
+      );
       r.layout.splice(index, 1);
       applyRoom(r, lot);
     });
@@ -484,7 +570,11 @@ export class GameService {
       if (idx >= 0) {
         st.recipes[idx] = structuredClone(recipe);
       } else {
-        saved = { ...structuredClone(recipe), id: `r${st.nextId++}`, ownerId: this.human()?.id ?? 0 };
+        saved = {
+          ...structuredClone(recipe),
+          id: `r${st.nextId++}`,
+          ownerId: this.human()?.id ?? 0,
+        };
         st.recipes.push(saved);
       }
     });
@@ -541,7 +631,10 @@ export class GameService {
       if (p.ads.some((a) => a.cityId === campaign.cityId && a.channel === campaign.channel)) return;
       addLedger(p, st.day, 'Advertising', -campaign.cost);
       p.ads.push(campaign);
-      addMessage(st, `New ${campaign.channel === 'tv' ? 'TV' : campaign.channel} campaign in ${cityDef(campaign.cityId).name}: ${campaign.effectiveness}% effective for ${campaign.daysLeft} days.`);
+      addMessage(
+        st,
+        `New ${campaign.channel === 'tv' ? 'TV' : campaign.channel} campaign in ${cityDef(campaign.cityId).name}: ${campaign.effectiveness}% effective for ${campaign.daysLeft} days.`,
+      );
       ok = true;
     });
     return ok;
@@ -594,7 +687,8 @@ export class GameService {
       this.autosaveFailed = false;
     } catch {
       // Report the first failure only, not every 90 seconds.
-      if (!this.autosaveFailed) addMessage(st, 'Autosave failed: browser storage is full or unavailable.');
+      if (!this.autosaveFailed)
+        addMessage(st, 'Autosave failed: browser storage is full or unavailable.');
       this.autosaveFailed = true;
     }
   }
@@ -604,7 +698,12 @@ export class GameService {
    * vendor's minimum order. The vendor becomes the restaurant's preferred one
    * for automatic restocking in that category.
    */
-  placeOrder(restaurantId: number, vendorId: string, items: Record<string, number>, toWarehouse = false): string | null {
+  placeOrder(
+    restaurantId: number,
+    vendorId: string,
+    items: Record<string, number>,
+    toWarehouse = false,
+  ): string | null {
     let error: string | null = 'Order failed.';
     this.mutate((st) => {
       const r = st.restaurants.find((x) => x.id === restaurantId);
@@ -612,10 +711,18 @@ export class GameService {
       const owner = st.players.find((p) => p.id === r?.ownerId);
       if (!r || !v || !owner) return;
       const thrifty = ingredientPriceFactor(statsOf(owner));
-      const lines = Object.entries(items).filter(([id, n]) => n > 0 && vendorPrice(v, id, st.day) !== null);
+      const lines = Object.entries(items).filter(
+        ([id, n]) => n > 0 && vendorPrice(v, id, st.day) !== null,
+      );
       const units = lines.reduce((n, [, u]) => n + u, 0);
       const bulk = toWarehouse && units >= BULK_UNITS ? 1 - BULK_DISCOUNT : 1;
-      const total = Math.round(lines.reduce((n, [id, u]) => n + vendorPrice(v, id, st.day)! * u, 0) * thrifty * bulk * 100) / 100;
+      const total =
+        Math.round(
+          lines.reduce((n, [id, u]) => n + vendorPrice(v, id, st.day)! * u, 0) *
+            thrifty *
+            bulk *
+            100,
+        ) / 100;
       if (lines.length === 0) {
         error = 'Nothing to order.';
         return;
@@ -628,7 +735,15 @@ export class GameService {
         error = `You have no warehouse in ${cityDef(v.cityId).name}.`;
         return;
       }
-      st.orders.push({ id: st.nextId++, restaurantId, vendorId, items: Object.fromEntries(lines), total, deliverDay: st.day + 1, toWarehouse });
+      st.orders.push({
+        id: st.nextId++,
+        restaurantId,
+        vendorId,
+        items: Object.fromEntries(lines),
+        total,
+        deliverDay: st.day + 1,
+        toWarehouse,
+      });
       r.preferredVendors[v.category] = v.id;
       error = null;
     });
@@ -636,7 +751,12 @@ export class GameService {
   }
 
   /** Signs a negotiated supply contract for one of the player's restaurants. */
-  signContract(restaurantId: number, vendorId: string, items: Record<string, number>, terms: Terms): string | null {
+  signContract(
+    restaurantId: number,
+    vendorId: string,
+    items: Record<string, number>,
+    terms: Terms,
+  ): string | null {
     let error: string | null = 'Could not sign.';
     this.mutate((st) => {
       const me = st.players.find((p) => p.isHuman);
@@ -658,7 +778,9 @@ export class GameService {
     this.mutate((st) => {
       const me = st.players.find((p) => p.isHuman);
       if (!me) return;
-      const text = cancelContract(st, me, contractId, (amount) => addLedger(me, st.day, 'Contract penalties', -amount));
+      const text = cancelContract(st, me, contractId, (amount) =>
+        addLedger(me, st.day, 'Contract penalties', -amount),
+      );
       if (text) addMessage(st, text);
     });
   }
@@ -679,7 +801,14 @@ export class GameService {
   finishIncomingCall(callId: number): void {
     this.mutate((st) => (st.phoneQueue = (st.phoneQueue ?? []).filter((c) => c.id !== callId)));
     const st = this.state();
-    if (st && this.speed() === 0 && this.dayReport() === null && st.staffEvents.length === 0 && !(st.contest?.phase === 'entry') && (st.phoneQueue?.length ?? 0) === 0) {
+    if (
+      st &&
+      this.speed() === 0 &&
+      this.dayReport() === null &&
+      st.staffEvents.length === 0 &&
+      !(st.contest?.phase === 'entry') &&
+      (st.phoneQueue?.length ?? 0) === 0
+    ) {
       this.speed.set(this.resumeSpeed || 1);
     }
   }
@@ -694,7 +823,12 @@ export class GameService {
   /** Closes the contest screen and lets the day carry on. */
   finishContest(): void {
     this.mutate((st) => (st.contest = null));
-    if (this.speed() === 0 && this.dayReport() === null && (this.state()?.staffEvents.length ?? 0) === 0) this.speed.set(this.resumeSpeed || 1);
+    if (
+      this.speed() === 0 &&
+      this.dayReport() === null &&
+      (this.state()?.staffEvents.length ?? 0) === 0
+    )
+      this.speed.set(this.resumeSpeed || 1);
   }
 
   /** A donation to a city's mayor; returns the new favour. */
@@ -748,7 +882,12 @@ export class GameService {
   }
 
   /** Ships stock from one of the player's warehouses to another. */
-  shipStock(fromCityId: string, toCityId: string, ingredientId: string, units: number): string | null {
+  shipStock(
+    fromCityId: string,
+    toCityId: string,
+    ingredientId: string,
+    units: number,
+  ): string | null {
     let error: string | null = 'No warehouse.';
     this.mutate((st) => {
       const p = st.players.find((x) => x.isHuman);
@@ -787,8 +926,12 @@ export class GameService {
       const stats = statsOf(me);
       const r = attemptSabotage(st, me, target, kind, stats.dexterity, stats.courage, hire);
       result = r.success
-        ? r.caught ? 'It worked, but the police saw everything.' : 'It worked, and nobody saw a thing.'
-        : r.caught ? 'It went wrong and the police caught you in the act.' : 'It didn’t work out, but at least you got away.';
+        ? r.caught
+          ? 'It worked, but the police saw everything.'
+          : 'It worked, and nobody saw a thing.'
+        : r.caught
+          ? 'It went wrong and the police caught you in the act.'
+          : 'It didn’t work out, but at least you got away.';
     });
     return result;
   }

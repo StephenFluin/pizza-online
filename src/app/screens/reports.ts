@@ -13,5 +13,11 @@ export const REPORTS: { kind: ReportKind; label: string; short: string; icon: st
 
 /** Tool-grid buttons for switching between the reports. */
 export function reportTools(ui: UiService, current: string | undefined): Tool[] {
-  return REPORTS.map((r) => ({ id: r.kind, label: r.short, icon: r.icon, pressed: r.kind === current, action: () => ui.open({ kind: r.kind }) }));
+  return REPORTS.map((r) => ({
+    id: r.kind,
+    label: r.short,
+    icon: r.icon,
+    pressed: r.kind === current,
+    action: () => ui.open({ kind: r.kind }),
+  }));
 }

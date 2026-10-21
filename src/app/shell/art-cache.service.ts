@@ -21,12 +21,21 @@ export class ArtCacheService {
     if (typeof window !== 'undefined' && !this.pending.has(key)) {
       this.pending.add(key);
       // Rendering writes a signal, so defer it out of the current change detection pass.
-      queueMicrotask(() => this.render(key, width, height, build).catch((err) => console.error('Art render failed', err)));
+      queueMicrotask(() =>
+        this.render(key, width, height, build).catch((err) =>
+          console.error('Art render failed', err),
+        ),
+      );
     }
     return null;
   }
 
-  private async render(key: string, width: number, height: number, build: (pixi: Pixi) => Container): Promise<void> {
+  private async render(
+    key: string,
+    width: number,
+    height: number,
+    build: (pixi: Pixi) => Container,
+  ): Promise<void> {
     const app = await this.renderer();
     const PIXI = await import('pixi.js');
     const content = build(PIXI);
@@ -34,7 +43,11 @@ export class ArtCacheService {
     content.mask = mask;
     const root = new PIXI.Container();
     root.addChild(content, mask);
-    const url = await app.renderer.extract.base64({ target: root, frame: new PIXI.Rectangle(0, 0, width, height), resolution: 2 });
+    const url = await app.renderer.extract.base64({
+      target: root,
+      frame: new PIXI.Rectangle(0, 0, width, height),
+      resolution: 2,
+    });
     root.destroy({ children: true });
     this.pending.delete(key);
     this.images.update((m) => ({ ...m, [key]: url }));
@@ -44,7 +57,13 @@ export class ArtCacheService {
     this.app ??= (async () => {
       const PIXI = await import('pixi.js');
       const app = new PIXI.Application();
-      await app.init({ width: 64, height: 64, antialias: true, autoStart: false, backgroundAlpha: 0 });
+      await app.init({
+        width: 64,
+        height: 64,
+        antialias: true,
+        autoStart: false,
+        backgroundAlpha: 0,
+      });
       return app;
     })();
     return this.app;

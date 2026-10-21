@@ -30,7 +30,15 @@ import { SavesDialogComponent } from './saves-dialog';
 import { WorldDialogComponent } from './world-dialog';
 
 /** Screens about a single pizzeria: they show which one in the title and switch with Prev shop and Next shop. */
-const SHOP_SCREENS = new Set(['interior', 'stock', 'shop', 'staff', 'capacity', 'stats', 'restaurants']);
+const SHOP_SCREENS = new Set([
+  'interior',
+  'stock',
+  'shop',
+  'staff',
+  'capacity',
+  'stats',
+  'restaurants',
+]);
 
 const TITLES: Record<string, string> = {
   cookbook: 'Cook book',
@@ -93,71 +101,183 @@ const TITLES: Record<string, string> = {
   template: `
     <!-- Screens load in their own chunk, fetched right after start-up, to keep the first download small. -->
     @defer (on immediate) {
-    @if (ui.dialog(); as d) {
-      @if (d.kind === 'report') {
-        <app-day-report />
-      } @else {
-        <section class="sheet" [class.with-tabs]="isReport()" [attr.aria-label]="title()">
-          <header class="title">
-            <h2>{{ title() }}</h2>
-            @if (shop(); as s) {
-              <p class="shop" aria-live="polite"><b>{{ s.name }}</b> · {{ s.city }} · {{ s.position }}</p>
-            }
-            <button type="button" class="back" (click)="back()">Back</button>
-          </header>
-          @if (isReport()) {
-            <nav class="reports" aria-label="Reports">
-              @for (r of reports; track r.kind) {
-                <button type="button" [attr.aria-current]="d.kind === r.kind ? 'page' : null" (click)="ui.open({ kind: r.kind })">{{ r.label }}</button>
+      @if (ui.dialog(); as d) {
+        @if (d.kind === 'report') {
+          <app-day-report />
+        } @else {
+          <section class="sheet" [class.with-tabs]="isReport()" [attr.aria-label]="title()">
+            <header class="title">
+              <h2>{{ title() }}</h2>
+              @if (shop(); as s) {
+                <p class="shop" aria-live="polite">
+                  <b>{{ s.name }}</b> · {{ s.city }} · {{ s.position }}
+                </p>
               }
-            </nav>
-          }
-          <div class="content">
-            @switch (d.kind) {
-              @case ('cookbook') { <app-cookbook /> }
-              @case ('world') { <app-world-dialog /> }
-              @case ('bank') { <app-advertising-screen /> }
-              @case ('restaurants') { <app-restaurants-dialog /> }
-              @case ('finances') { <app-finance-panel /> }
-              @case ('interior') { <app-interior-view [restaurantId]="d.restaurantId" [placeItemId]="d.placeItemId" /> }
-              @case ('phone') { <app-phone-dialog /> }
-              @case ('news') { <app-news-dialog /> }
-              @case ('staff') { <app-staff-screen /> }
-              @case ('incident') { <app-incident-screen /> }
-              @case ('contest') { <app-contest-screen /> }
-              @case ('underworld') { <app-underworld-screen /> }
-              @case ('ending') { <app-ending-screen /> }
-              @case ('highscores') { <app-high-scores /> }
-              @case ('research') { <app-research-screen [startDistrict]="d.districtId" [startPage]="d.page" /> }
-              @case ('stats') { <app-stats-screen /> }
-              @case ('warehouse') { <app-warehouse-screen [startCity]="d.cityId" /> }
-              @case ('capacity') { <app-capacity-screen /> }
-              @case ('shop') { <app-store-screen [restaurantId]="d.restaurantId" [storeKind]="d.storeKind ?? 'furniture'" /> }
-              @case ('stock') { <app-stock-screen /> }
-              @case ('saves') { <app-saves-dialog /> }
-              @case ('designer') {
-                <app-pizza-designer [recipe]="d.recipe" (saved)="saveRecipe($event)" (cancelled)="ui.open({ kind: 'cookbook' })" />
-              }
+              <button type="button" class="back" (click)="back()">Back</button>
+            </header>
+            @if (isReport()) {
+              <nav class="reports" aria-label="Reports">
+                @for (r of reports; track r.kind) {
+                  <button
+                    type="button"
+                    [attr.aria-current]="d.kind === r.kind ? 'page' : null"
+                    (click)="ui.open({ kind: r.kind })"
+                  >
+                    {{ r.label }}
+                  </button>
+                }
+              </nav>
             }
-          </div>
-        </section>
+            <div class="content">
+              @switch (d.kind) {
+                @case ('cookbook') {
+                  <app-cookbook />
+                }
+                @case ('world') {
+                  <app-world-dialog />
+                }
+                @case ('bank') {
+                  <app-advertising-screen />
+                }
+                @case ('restaurants') {
+                  <app-restaurants-dialog />
+                }
+                @case ('finances') {
+                  <app-finance-panel />
+                }
+                @case ('interior') {
+                  <app-interior-view
+                    [restaurantId]="d.restaurantId"
+                    [placeItemId]="d.placeItemId"
+                  />
+                }
+                @case ('phone') {
+                  <app-phone-dialog />
+                }
+                @case ('news') {
+                  <app-news-dialog />
+                }
+                @case ('staff') {
+                  <app-staff-screen />
+                }
+                @case ('incident') {
+                  <app-incident-screen />
+                }
+                @case ('contest') {
+                  <app-contest-screen />
+                }
+                @case ('underworld') {
+                  <app-underworld-screen />
+                }
+                @case ('ending') {
+                  <app-ending-screen />
+                }
+                @case ('highscores') {
+                  <app-high-scores />
+                }
+                @case ('research') {
+                  <app-research-screen [startDistrict]="d.districtId" [startPage]="d.page" />
+                }
+                @case ('stats') {
+                  <app-stats-screen />
+                }
+                @case ('warehouse') {
+                  <app-warehouse-screen [startCity]="d.cityId" />
+                }
+                @case ('capacity') {
+                  <app-capacity-screen />
+                }
+                @case ('shop') {
+                  <app-store-screen
+                    [restaurantId]="d.restaurantId"
+                    [storeKind]="d.storeKind ?? 'furniture'"
+                  />
+                }
+                @case ('stock') {
+                  <app-stock-screen />
+                }
+                @case ('saves') {
+                  <app-saves-dialog />
+                }
+                @case ('designer') {
+                  <app-pizza-designer
+                    [recipe]="d.recipe"
+                    (saved)="saveRecipe($event)"
+                    (cancelled)="ui.open({ kind: 'cookbook' })"
+                  />
+                }
+              }
+            </div>
+          </section>
+        }
       }
-    }
     }
   `,
   styles: `
-    :host { display: block; height: 100%; }
-    .sheet { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); background: #f3efe6; border: 4px solid var(--wood-dark); color: var(--ink); }
-    .title { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 12px; background: linear-gradient(180deg, #e8dcc0, #cdb98e); border-bottom: 3px solid var(--wood); }
-    .title h2 { margin: 0; font-family: Georgia, serif; font-size: 1.4rem; }
+    :host {
+      display: block;
+      height: 100%;
+    }
+    .sheet {
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: #f3efe6;
+      border: 4px solid var(--wood-dark);
+      color: var(--ink);
+    }
+    .title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 12px;
+      background: linear-gradient(180deg, #e8dcc0, #cdb98e);
+      border-bottom: 3px solid var(--wood);
+    }
+    .title h2 {
+      margin: 0;
+      font-family: Georgia, serif;
+      font-size: 1.4rem;
+    }
     /* Which pizzeria a per-pizzeria screen is showing; Prev shop and Next shop change it. */
-    .shop { margin: 0 auto 0 4px; font-size: 0.95rem; }
-    .sheet.with-tabs { grid-template-rows: auto auto minmax(0, 1fr); }
-    .back { padding: 4px 14px; }
-    .reports { display: flex; gap: 2px; padding: 6px 12px 0; background: #e3d6b8; border-bottom: 2px solid var(--wood); flex-wrap: wrap; }
-    .reports button { background: #cdbb92; color: var(--ink); border: 2px solid var(--wood); border-bottom: 0; border-radius: 6px 6px 0 0; padding: 4px 12px; font-weight: 600; }
-    .reports button[aria-current='page'] { background: #f3efe6; position: relative; top: 2px; }
-    .content { overflow: auto; padding: 14px; min-height: 0; }
+    .shop {
+      margin: 0 auto 0 4px;
+      font-size: 0.95rem;
+    }
+    .sheet.with-tabs {
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+    .back {
+      padding: 4px 14px;
+    }
+    .reports {
+      display: flex;
+      gap: 2px;
+      padding: 6px 12px 0;
+      background: #e3d6b8;
+      border-bottom: 2px solid var(--wood);
+      flex-wrap: wrap;
+    }
+    .reports button {
+      background: #cdbb92;
+      color: var(--ink);
+      border: 2px solid var(--wood);
+      border-bottom: 0;
+      border-radius: 6px 6px 0 0;
+      padding: 4px 12px;
+      font-weight: 600;
+    }
+    .reports button[aria-current='page'] {
+      background: #f3efe6;
+      position: relative;
+      top: 2px;
+    }
+    .content {
+      overflow: auto;
+      padding: 14px;
+      min-height: 0;
+    }
   `,
 })
 export class DialogHostComponent {
@@ -166,7 +286,9 @@ export class DialogHostComponent {
   private readonly shell = inject(ShellService);
 
   protected readonly reports = REPORTS;
-  protected readonly isReport = computed(() => REPORTS.some((r) => r.kind === this.ui.dialog()?.kind));
+  protected readonly isReport = computed(() =>
+    REPORTS.some((r) => r.kind === this.ui.dialog()?.kind),
+  );
 
   /** The current pizzeria, shown in the title of every screen about one pizzeria. */
   protected readonly shop = computed(() => {
@@ -174,9 +296,14 @@ export class DialogHostComponent {
     if (!kind || !SHOP_SCREENS.has(kind)) return null;
     const me = this.game.human();
     const mine = (this.game.state()?.restaurants ?? []).filter((r) => r.ownerId === me?.id);
-    const i = Math.max(0, mine.findIndex((r) => r.id === this.ui.shopId()));
+    const i = Math.max(
+      0,
+      mine.findIndex((r) => r.id === this.ui.shopId()),
+    );
     const r = mine[i];
-    return r ? { name: r.name, city: cityDef(r.cityId).name, position: `${i + 1} of ${mine.length}` } : null;
+    return r
+      ? { name: r.name, city: cityDef(r.cityId).name, position: `${i + 1} of ${mine.length}` }
+      : null;
   });
 
   protected readonly title = computed(() => {
@@ -191,12 +318,23 @@ export class DialogHostComponent {
     const back: Tool = { id: 'back', label: 'Back', icon: ICONS.back, action: () => this.back() };
     // The reports switch between each other from the tool grid as well as the tabs.
     if (this.isReport()) return [...reportTools(this.ui, kind), back];
-    if (kind === 'phone') return [{ id: 'streets', label: 'Back streets', icon: ICONS.person, action: () => this.ui.open({ kind: 'underworld' }) }, back];
+    if (kind === 'phone')
+      return [
+        {
+          id: 'streets',
+          label: 'Back streets',
+          icon: ICONS.person,
+          action: () => this.ui.open({ kind: 'underworld' }),
+        },
+        back,
+      ];
     return [back];
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(this.shell.register(this, { lines: this.lines, tools: this.tools }));
+    inject(DestroyRef).onDestroy(
+      this.shell.register(this, { lines: this.lines, tools: this.tools }),
+    );
   }
 
   protected back(): void {
@@ -207,8 +345,7 @@ export class DialogHostComponent {
       // A finished career has nowhere to go back to.
       this.ui.close();
       this.game.quit();
-    }
-    else if (this.game.dayReport() !== null) this.ui.open({ kind: 'report' });
+    } else if (this.game.dayReport() !== null) this.ui.open({ kind: 'report' });
     else this.ui.close();
   }
 

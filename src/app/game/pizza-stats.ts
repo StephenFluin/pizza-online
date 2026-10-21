@@ -28,12 +28,72 @@ interface GroupTaste {
 
 /** Our own taste profiles for each group. */
 export const GROUP_TASTES: Record<CustomerGroup, GroupTaste> = {
-  children: { fat: 45, sweet: 70, salty: 30, hot: 5, appearance: 0.2, refinement: 0, normality: 0.1, trend: 0.05, imitation: 0.05 },
-  young: { fat: 50, sweet: 40, salty: 45, hot: 45, appearance: 0.05, refinement: 0.05, normality: 0.05, trend: 0.25, imitation: 0 },
-  blueCollar: { fat: 70, sweet: 15, salty: 60, hot: 55, appearance: 0, refinement: 0, normality: 0.25, trend: 0, imitation: 0.05 },
-  whiteCollar: { fat: 40, sweet: 25, salty: 55, hot: 35, appearance: 0.1, refinement: 0.2, normality: 0.05, trend: 0.05, imitation: 0 },
-  business: { fat: 30, sweet: 30, salty: 50, hot: 20, appearance: 0.2, refinement: 0.15, normality: 0, trend: 0.05, imitation: 0 },
-  seniors: { fat: 45, sweet: 30, salty: 50, hot: 10, appearance: 0.05, refinement: 0.05, normality: 0.15, trend: 0, imitation: 0.15 },
+  children: {
+    fat: 45,
+    sweet: 70,
+    salty: 30,
+    hot: 5,
+    appearance: 0.2,
+    refinement: 0,
+    normality: 0.1,
+    trend: 0.05,
+    imitation: 0.05,
+  },
+  young: {
+    fat: 50,
+    sweet: 40,
+    salty: 45,
+    hot: 45,
+    appearance: 0.05,
+    refinement: 0.05,
+    normality: 0.05,
+    trend: 0.25,
+    imitation: 0,
+  },
+  blueCollar: {
+    fat: 70,
+    sweet: 15,
+    salty: 60,
+    hot: 55,
+    appearance: 0,
+    refinement: 0,
+    normality: 0.25,
+    trend: 0,
+    imitation: 0.05,
+  },
+  whiteCollar: {
+    fat: 40,
+    sweet: 25,
+    salty: 55,
+    hot: 35,
+    appearance: 0.1,
+    refinement: 0.2,
+    normality: 0.05,
+    trend: 0.05,
+    imitation: 0,
+  },
+  business: {
+    fat: 30,
+    sweet: 30,
+    salty: 50,
+    hot: 20,
+    appearance: 0.2,
+    refinement: 0.15,
+    normality: 0,
+    trend: 0.05,
+    imitation: 0,
+  },
+  seniors: {
+    fat: 45,
+    sweet: 30,
+    salty: 50,
+    hot: 10,
+    appearance: 0.05,
+    refinement: 0.05,
+    normality: 0.15,
+    trend: 0,
+    imitation: 0.15,
+  },
 };
 
 /** Weight of the base, sauce and cheese layers, and what they bring to the flavour. */
@@ -109,7 +169,8 @@ function appearance(recipe: Pick<Recipe, 'toppings'>): number {
   const dev = quads.reduce((s, q) => s + Math.abs(q - mean), 0) / (2 * n);
   const ringBalance = 1 - Math.abs(inner / n - 0.3) * 1.5;
   const coverage = Math.min(1, n / 14);
-  const score = ((1 - dev) * 0.45 + ringBalance * 0.3 + coverage * 0.25 - (offBase / n) * 1.2) * 100;
+  const score =
+    ((1 - dev) * 0.45 + ringBalance * 0.3 + coverage * 0.25 - (offBase / n) * 1.2) * 100;
   return Math.round(Math.max(0, Math.min(100, score)));
 }
 
@@ -129,8 +190,14 @@ function refinement(recipe: Pick<Recipe, 'toppings'>): number {
 function normality(weights: Record<string, number>, toppingGrams: number): number {
   const kinds = Object.keys(weights).length;
   // A hearty but sensible amount of topping and a handful of different things.
-  const weightScore = toppingGrams < 120 ? toppingGrams / 120 : toppingGrams <= 450 ? 1 : Math.max(0, 1 - (toppingGrams - 450) / 450);
-  const varietyScore = kinds === 0 ? 0 : kinds <= 5 ? 0.6 + kinds * 0.08 : Math.max(0.3, 1 - (kinds - 5) * 0.12);
+  const weightScore =
+    toppingGrams < 120
+      ? toppingGrams / 120
+      : toppingGrams <= 450
+        ? 1
+        : Math.max(0, 1 - (toppingGrams - 450) / 450);
+  const varietyScore =
+    kinds === 0 ? 0 : kinds <= 5 ? 0.6 + kinds * 0.08 : Math.max(0.3, 1 - (kinds - 5) * 0.12);
   return Math.round(Math.min(100, (weightScore * 0.6 + varietyScore * 0.4) * 100));
 }
 
@@ -163,14 +230,20 @@ function cityTasteFor(id: string, districts: District[]): number {
 }
 
 /** Full stats for a recipe; `districts` (the current city) is needed for the trend. */
-export function pizzaStats(recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>, districts: District[] = []): PizzaStats {
+export function pizzaStats(
+  recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>,
+  districts: District[] = [],
+): PizzaStats {
   const weights = toppingWeights(recipe);
   const toppingGrams = Object.values(weights).reduce((n, g) => n + g, 0);
 
   let calories = (DOUGH.grams * DOUGH.calories) / 100;
   const flavour = { fat: 0, sweet: 0, salty: 0, hot: 0 };
   let flavourWeight = 0;
-  const addFlavour = (grams: number, f: { intensity: number; fat: number; sweet: number; salty: number; hot: number }) => {
+  const addFlavour = (
+    grams: number,
+    f: { intensity: number; fat: number; sweet: number; salty: number; hot: number },
+  ) => {
     const w = grams * f.intensity;
     flavour.fat += f.fat * w;
     flavour.sweet += f.sweet * w;
@@ -200,7 +273,11 @@ export function pizzaStats(recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>
     .map(([id, g]) => ({ id, w: g * ingredient(id).intensity }))
     .sort((a, b) => b.w - a.w)
     .slice(0, 4);
-  const trend = defining.length ? Math.round((defining.reduce((n, d) => n + cityTasteFor(d.id, districts), 0) / defining.length) * 100) : 0;
+  const trend = defining.length
+    ? Math.round(
+        (defining.reduce((n, d) => n + cityTasteFor(d.id, districts), 0) / defining.length) * 100,
+      )
+    : 0;
 
   const stats: Omit<PizzaStats, 'groups'> = {
     calories: Math.round(calories),
@@ -227,11 +304,20 @@ export function pizzaStats(recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>
 function groupPopularity(s: Omit<PizzaStats, 'groups'>, t: GroupTaste): number {
   if (s.toppingGrams === 0) return 0;
   // Flavour match: 100 when the mix matches the group's taste exactly.
-  const miss = (Math.abs(s.fat - t.fat) + Math.abs(s.sweet - t.sweet) + Math.abs(s.salty - t.salty) + Math.abs(s.hot - t.hot)) / 4;
+  const miss =
+    (Math.abs(s.fat - t.fat) +
+      Math.abs(s.sweet - t.sweet) +
+      Math.abs(s.salty - t.salty) +
+      Math.abs(s.hot - t.hot)) /
+    4;
   const flavour = Math.max(0, 100 - miss * 1.6);
   const qualityWeight = t.appearance + t.refinement + t.normality + t.trend + t.imitation;
   const quality =
-    s.appearance * t.appearance + s.refinement * t.refinement + s.normality * t.normality + ((s.trend + 100) / 2) * t.trend + s.imitation * t.imitation;
+    s.appearance * t.appearance +
+    s.refinement * t.refinement +
+    s.normality * t.normality +
+    ((s.trend + 100) / 2) * t.trend +
+    s.imitation * t.imitation;
   return Math.round(flavour * (1 - qualityWeight) + quality);
 }
 
@@ -258,7 +344,8 @@ export function cachedPizzaStats(recipe: Recipe, districts: District[] = NO_CITY
 /** How much a district's mix of customer groups likes a recipe, 0..1. */
 export function districtGroupScore(stats: PizzaStats, district: District): number {
   let score = 0;
-  for (const g of CUSTOMER_GROUPS) score += (district.groupMix?.[g.id] ?? 1 / 6) * stats.groups[g.id];
+  for (const g of CUSTOMER_GROUPS)
+    score += (district.groupMix?.[g.id] ?? 1 / 6) * stats.groups[g.id];
   return score / 100;
 }
 
@@ -271,44 +358,108 @@ export interface QualityTip {
 const FLAVOURS = ['fat', 'sweet', 'salty', 'hot'] as const;
 
 /** Plain-language advice for the weakest parts of a pizza, most useful first. */
-export function qualityTips(recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>, s: PizzaStats): QualityTip[] {
+export function qualityTips(
+  recipe: Pick<Recipe, 'sauce' | 'cheese' | 'toppings'>,
+  s: PizzaStats,
+): QualityTip[] {
   const tips: QualityTip[] = [];
   const n = recipe.toppings.length;
-  if (n === 0) return [{ area: 'appearance', text: 'Pick an ingredient from the tray and click the pizza to place it.' }];
+  if (n === 0)
+    return [
+      {
+        area: 'appearance',
+        text: 'Pick an ingredient from the tray and click the pizza to place it.',
+      },
+    ];
 
   if (s.appearance < 70) {
     const off = recipe.toppings.filter((t) => Math.hypot(t.x, t.y) > 0.92).length;
     const quads = [0, 0, 0, 0];
     for (const t of recipe.toppings) quads[(t.x >= 0 ? 1 : 0) + (t.y >= 0 ? 2 : 0)]++;
     const inner = recipe.toppings.filter((t) => Math.hypot(t.x, t.y) < 0.5).length / n;
-    if (off) tips.push({ area: 'appearance', text: `${off} piece${off === 1 ? ' hangs' : 's hang'} off the base. Keep everything on the sauce.` });
-    if (Math.max(...quads) - Math.min(...quads) > Math.max(2, n / 4)) tips.push({ area: 'appearance', text: 'The toppings bunch up on one side. Spread them across all four quarters.' });
-    if (inner > 0.5) tips.push({ area: 'appearance', text: 'Too much is piled in the middle. Move some pieces out towards the rim.' });
-    else if (inner < 0.15) tips.push({ area: 'appearance', text: 'The middle is bare. About a third of the pieces should sit near the centre.' });
-    if (n < 14) tips.push({ area: 'appearance', text: `Only ${n} pieces. Around 14 or more covers the base properly.` });
+    if (off)
+      tips.push({
+        area: 'appearance',
+        text: `${off} piece${off === 1 ? ' hangs' : 's hang'} off the base. Keep everything on the sauce.`,
+      });
+    if (Math.max(...quads) - Math.min(...quads) > Math.max(2, n / 4))
+      tips.push({
+        area: 'appearance',
+        text: 'The toppings bunch up on one side. Spread them across all four quarters.',
+      });
+    if (inner > 0.5)
+      tips.push({
+        area: 'appearance',
+        text: 'Too much is piled in the middle. Move some pieces out towards the rim.',
+      });
+    else if (inner < 0.15)
+      tips.push({
+        area: 'appearance',
+        text: 'The middle is bare. About a third of the pieces should sit near the centre.',
+      });
+    if (n < 14)
+      tips.push({
+        area: 'appearance',
+        text: `Only ${n} pieces. Around 14 or more covers the base properly.`,
+      });
   }
 
   const kinds = new Set(recipe.toppings.map((t) => t.ingredient)).size;
-  if (s.toppingGrams < 120) tips.push({ area: 'normality', text: `Only ${s.toppingGrams} g of toppings. Aim for 120–450 g (chopped and minced pieces weigh less, so you need more of them).` });
-  else if (s.toppingGrams > 450) tips.push({ area: 'normality', text: `${s.toppingGrams} g of toppings is a lot. Under 450 g scores best.` });
-  if (kinds > 5) tips.push({ area: 'normality', text: `${kinds} different toppings is too many. Two to five works best.` });
-  else if (kinds === 1) tips.push({ area: 'normality', text: 'Just one topping. A second or third ingredient makes a more rounded pizza.' });
+  if (s.toppingGrams < 120)
+    tips.push({
+      area: 'normality',
+      text: `Only ${s.toppingGrams} g of toppings. Aim for 120–450 g (chopped and minced pieces weigh less, so you need more of them).`,
+    });
+  else if (s.toppingGrams > 450)
+    tips.push({
+      area: 'normality',
+      text: `${s.toppingGrams} g of toppings is a lot. Under 450 g scores best.`,
+    });
+  if (kinds > 5)
+    tips.push({
+      area: 'normality',
+      text: `${kinds} different toppings is too many. Two to five works best.`,
+    });
+  else if (kinds === 1)
+    tips.push({
+      area: 'normality',
+      text: 'Just one topping. A second or third ingredient makes a more rounded pizza.',
+    });
 
   const choppable = recipe.toppings.filter((t) => maxCut(t.ingredient) > 0);
-  if (choppable.length && s.refinement < 30) tips.push({ area: 'refinement', text: 'Nothing is chopped. Use the knife on some pieces: refinement impresses business people, office workers and the contest chef.' });
+  if (choppable.length && s.refinement < 30)
+    tips.push({
+      area: 'refinement',
+      text: 'Nothing is chopped. Use the knife on some pieces: refinement impresses business people, office workers and the contest chef.',
+    });
 
-  if (!recipe.sauce) tips.push({ area: 'base', text: 'No tomato sauce: that costs about 10% of the quality.' });
-  if (!recipe.cheese) tips.push({ area: 'base', text: 'No mozzarella: that costs about 10% of the quality.' });
+  if (!recipe.sauce)
+    tips.push({ area: 'base', text: 'No tomato sauce: that costs about 10% of the quality.' });
+  if (!recipe.cheese)
+    tips.push({ area: 'base', text: 'No mozzarella: that costs about 10% of the quality.' });
 
   // The group that likes it least, and the flavour that puts them off most.
   const worst = CUSTOMER_GROUPS.reduce((a, b) => (s.groups[b.id] < s.groups[a.id] ? b : a));
   if (s.groups[worst.id] < 60) {
     const taste = GROUP_TASTES[worst.id];
-    const flavour = FLAVOURS.reduce((a, b) => (Math.abs(s[b] - taste[b]) > Math.abs(s[a] - taste[a]) ? b : a));
+    const flavour = FLAVOURS.reduce((a, b) =>
+      Math.abs(s[b] - taste[b]) > Math.abs(s[a] - taste[a]) ? b : a,
+    );
     const more = s[flavour] < taste[flavour];
-    tips.push({ area: 'taste', text: `${worst.label} like it least (${s.groups[worst.id]}): they'd want it ${more ? 'more' : 'less'} ${flavour === 'fat' ? 'rich' : flavour} (${s[flavour]}% now, they like about ${taste[flavour]}%).` });
+    tips.push({
+      area: 'taste',
+      text: `${worst.label} like it least (${s.groups[worst.id]}): they'd want it ${more ? 'more' : 'less'} ${flavour === 'fat' ? 'rich' : flavour} (${s[flavour]}% now, they like about ${taste[flavour]}%).`,
+    });
   }
-  if (s.trend < -15) tips.push({ area: 'trend', text: 'Some of its main ingredients are out of fashion in this city right now. Check the newspaper.' });
-  if (s.calories > 1300) tips.push({ area: 'calories', text: `${s.calories} calories is heavy. The contest's food scientist marks down anything over 1,300.` });
+  if (s.trend < -15)
+    tips.push({
+      area: 'trend',
+      text: 'Some of its main ingredients are out of fashion in this city right now. Check the newspaper.',
+    });
+  if (s.calories > 1300)
+    tips.push({
+      area: 'calories',
+      text: `${s.calories} calories is heavy. The contest's food scientist marks down anything over 1,300.`,
+    });
   return tips;
 }

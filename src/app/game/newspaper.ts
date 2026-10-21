@@ -46,11 +46,18 @@ type EventTemplate = (st: GameState, cityId: string) => Article | null;
 
 const pick = <T>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.length)];
 
-function startTrend(st: GameState, cityId: string, ingredientId: string, delta: number, days: number): void {
+function startTrend(
+  st: GameState,
+  cityId: string,
+  ingredientId: string,
+  delta: number,
+  days: number,
+): void {
   const c = conditions(st, cityId);
   const city = st.cities.find((x) => x.id === cityId);
   if (!city || c.trends.some((t) => t.ingredientId === ingredientId)) return;
-  for (const d of city.districts) d.tastes[ingredientId] = Math.max(-1, Math.min(1, (d.tastes[ingredientId] ?? 0) + delta));
+  for (const d of city.districts)
+    d.tastes[ingredientId] = Math.max(-1, Math.min(1, (d.tastes[ingredientId] ?? 0) + delta));
   c.trends.push({ ingredientId, delta, daysLeft: days });
   invalidatePizzaStats();
 }
@@ -59,17 +66,29 @@ const POPULAR: EventTemplate[] = [
   (st, cityId) => {
     const ing = pick(INGREDIENTS);
     startTrend(st, cityId, ing.id, 0.35, 21);
-    return { kind: 'event', title: `${ing.name} is the taste of the season`, body: `Food writers can't stop talking about ${ing.name.toLowerCase()}. Pizzerias that put it on the menu can expect hungry crowds for the next few weeks.` };
+    return {
+      kind: 'event',
+      title: `${ing.name} is the taste of the season`,
+      body: `Food writers can't stop talking about ${ing.name.toLowerCase()}. Pizzerias that put it on the menu can expect hungry crowds for the next few weeks.`,
+    };
   },
   (st, cityId) => {
     const ing = pick(INGREDIENTS.filter((i) => i.category === 'vegetables'));
     startTrend(st, cityId, ing.id, 0.3, 28);
-    return { kind: 'event', title: `Doctors praise the humble ${ing.name.toLowerCase()}`, body: `A new study links ${ing.name.toLowerCase()} to long life and good cheer. Greengrocers report queues around the block.` };
+    return {
+      kind: 'event',
+      title: `Doctors praise the humble ${ing.name.toLowerCase()}`,
+      body: `A new study links ${ing.name.toLowerCase()} to long life and good cheer. Greengrocers report queues around the block.`,
+    };
   },
   (st, cityId) => {
     const ing = pick(INGREDIENTS.filter((i) => i.category === 'cheese' || i.category === 'fruit'));
     startTrend(st, cityId, ing.id, 0.4, 14);
-    return { kind: 'event', title: `Celebrity chef swears by ${ing.name.toLowerCase()}`, body: `"Nothing beats ${ing.name.toLowerCase()} on a pizza," the star of a popular cooking show told reporters. Expect copycats.` };
+    return {
+      kind: 'event',
+      title: `Celebrity chef swears by ${ing.name.toLowerCase()}`,
+      body: `"Nothing beats ${ing.name.toLowerCase()} on a pizza," the star of a popular cooking show told reporters. Expect copycats.`,
+    };
   },
 ];
 
@@ -77,12 +96,20 @@ const UNPOPULAR: EventTemplate[] = [
   (st, cityId) => {
     const ing = pick(INGREDIENTS.filter((i) => i.category === 'meat'));
     startTrend(st, cityId, ing.id, -0.45, 21);
-    return { kind: 'event', title: `Health scare hits ${ing.name.toLowerCase()} sales`, body: `Inspectors are investigating a supplier after complaints. Many diners are steering clear of ${ing.name.toLowerCase()} until it blows over.` };
+    return {
+      kind: 'event',
+      title: `Health scare hits ${ing.name.toLowerCase()} sales`,
+      body: `Inspectors are investigating a supplier after complaints. Many diners are steering clear of ${ing.name.toLowerCase()} until it blows over.`,
+    };
   },
   (st, cityId) => {
     const ing = pick(INGREDIENTS);
     startTrend(st, cityId, ing.id, -0.3, 14);
-    return { kind: 'event', title: `Is ${ing.name.toLowerCase()} out of fashion?`, body: `A trendsetting magazine declares ${ing.name.toLowerCase()} "so last year". Younger diners seem to agree.` };
+    return {
+      kind: 'event',
+      title: `Is ${ing.name.toLowerCase()} out of fashion?`,
+      body: `A trendsetting magazine declares ${ing.name.toLowerCase()} "so last year". Younger diners seem to agree.`,
+    };
   },
 ];
 
@@ -91,25 +118,41 @@ const DEMAND: EventTemplate[] = [
     const c = conditions(st, cityId);
     c.demandBoost = 0.25;
     c.boostDays = 1;
-    return { kind: 'event', title: 'Cup final tonight', body: 'The whole city will be glued to the big match, and nobody wants to cook. Pizza ovens will be busy.' };
+    return {
+      kind: 'event',
+      title: 'Cup final tonight',
+      body: 'The whole city will be glued to the big match, and nobody wants to cook. Pizza ovens will be busy.',
+    };
   },
   (st, cityId) => {
     const c = conditions(st, cityId);
     c.demandBoost = -0.2;
     c.boostDays = 2;
-    return { kind: 'weather', title: 'Heatwave grips the city', body: 'Temperatures soar and appetites wilt. Ice cream parlours are doing better than pizzerias this week.' };
+    return {
+      kind: 'weather',
+      title: 'Heatwave grips the city',
+      body: 'Temperatures soar and appetites wilt. Ice cream parlours are doing better than pizzerias this week.',
+    };
   },
   (st, cityId) => {
     const c = conditions(st, cityId);
     c.demandBoost = 0.15;
     c.boostDays = 2;
-    return { kind: 'weather', title: 'Rain, rain and more rain', body: 'A soggy weekend ahead. Locals are expected to stay in town and treat themselves to comfort food.' };
+    return {
+      kind: 'weather',
+      title: 'Rain, rain and more rain',
+      body: 'A soggy weekend ahead. Locals are expected to stay in town and treat themselves to comfort food.',
+    };
   },
   (st, cityId) => {
     const c = conditions(st, cityId);
     c.demandBoost = 0.2;
     c.boostDays = 3;
-    return { kind: 'event', title: 'Street festival comes to town', body: 'Music, parades and thousands of visitors are expected over the next few days. Restaurants should stock up.' };
+    return {
+      kind: 'event',
+      title: 'Street festival comes to town',
+      body: 'Music, parades and thousands of visitors are expected over the next few days. Restaurants should stock up.',
+    };
   },
 ];
 
@@ -132,7 +175,12 @@ export function morningNews(st: GameState): void {
     const ended = c.trends.filter((t) => --t.daysLeft <= 0);
     if (ended.length) {
       const cityMap = st.cities.find((x) => x.id === city.id);
-      for (const t of ended) for (const d of cityMap?.districts ?? []) d.tastes[t.ingredientId] = Math.max(-1, Math.min(1, (d.tastes[t.ingredientId] ?? 0) - t.delta));
+      for (const t of ended)
+        for (const d of cityMap?.districts ?? [])
+          d.tastes[t.ingredientId] = Math.max(
+            -1,
+            Math.min(1, (d.tastes[t.ingredientId] ?? 0) - t.delta),
+          );
       c.trends = c.trends.filter((t) => t.daysLeft > 0);
       invalidatePizzaStats();
     }
@@ -151,7 +199,14 @@ export function morningNews(st: GameState): void {
     articles.push(economyArticle(st, st.currentCityId));
     updateCharts(st);
   }
-  st.newspaper = { cityId: st.currentCityId, day: st.day, articles: [...articles, ...(st.newspaper?.cityId === st.currentCityId ? (st.newspaper.articles ?? []) : [])].slice(0, 8) };
+  st.newspaper = {
+    cityId: st.currentCityId,
+    day: st.day,
+    articles: [
+      ...articles,
+      ...(st.newspaper?.cityId === st.currentCityId ? (st.newspaper.articles ?? []) : []),
+    ].slice(0, 8),
+  };
 }
 
 function weeklyEconomy(st: GameState): void {
@@ -165,11 +220,35 @@ function weeklyEconomy(st: GameState): void {
 function economyArticle(st: GameState, cityId: string): Article {
   const e = conditions(st, cityId).economy;
   const name = cityDef(cityId).name;
-  if (e > 0.4) return { kind: 'economy', title: `${name} is booming`, body: 'Shops are full and wallets are open. Restaurants report their best trade in years.' };
-  if (e > 0.1) return { kind: 'economy', title: `Steady growth in ${name}`, body: 'Business leaders are cautiously optimistic as spending edges up.' };
-  if (e > -0.1) return { kind: 'economy', title: `Business as usual in ${name}`, body: 'Analysts see no big changes this week.' };
-  if (e > -0.4) return { kind: 'economy', title: `${name} tightens its belt`, body: 'Households are spending less. Value for money matters more than ever.' };
-  return { kind: 'economy', title: `Slump deepens in ${name}`, body: 'Unemployment rises and restaurants report empty tables. Hard times ahead.' };
+  if (e > 0.4)
+    return {
+      kind: 'economy',
+      title: `${name} is booming`,
+      body: 'Shops are full and wallets are open. Restaurants report their best trade in years.',
+    };
+  if (e > 0.1)
+    return {
+      kind: 'economy',
+      title: `Steady growth in ${name}`,
+      body: 'Business leaders are cautiously optimistic as spending edges up.',
+    };
+  if (e > -0.1)
+    return {
+      kind: 'economy',
+      title: `Business as usual in ${name}`,
+      body: 'Analysts see no big changes this week.',
+    };
+  if (e > -0.4)
+    return {
+      kind: 'economy',
+      title: `${name} tightens its belt`,
+      body: 'Households are spending less. Value for money matters more than ever.',
+    };
+  return {
+    kind: 'economy',
+    title: `Slump deepens in ${name}`,
+    body: 'Unemployment rises and restaurants report empty tables. Hard times ahead.',
+  };
 }
 
 /** Weekly top five pizzas per city, by yesterday's sales across every chain. */
@@ -194,5 +273,8 @@ export function updateCharts(st: GameState): void {
 
 /** Articles about notable trends currently running in a city, for the paper's side column. */
 export function trendNotes(st: GameState, cityId: string): string[] {
-  return conditions(st, cityId).trends.map((t) => `${ingredient(t.ingredientId).name} ${t.delta > 0 ? 'in fashion' : 'out of favour'} (${t.daysLeft} more days)`);
+  return conditions(st, cityId).trends.map(
+    (t) =>
+      `${ingredient(t.ingredientId).name} ${t.delta > 0 ? 'in fashion' : 'out of favour'} (${t.daysLeft} more days)`,
+  );
 }

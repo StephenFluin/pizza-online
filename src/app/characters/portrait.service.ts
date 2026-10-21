@@ -23,7 +23,9 @@ export class PortraitService {
     if (typeof window !== 'undefined' && !this.pending.has(key)) {
       this.pending.add(key);
       // Rendering writes a signal, so defer it out of the current change detection pass.
-      queueMicrotask(() => this.render(key, look, background).catch((err) => console.error('Portrait failed', err)));
+      queueMicrotask(() =>
+        this.render(key, look, background).catch((err) => console.error('Portrait failed', err)),
+      );
     }
     return null;
   }
@@ -37,7 +39,10 @@ export class PortraitService {
     g.mask = mask;
     const container = new PIXI.Container();
     container.addChild(g, mask);
-    const url = await app.renderer.extract.base64({ target: container, frame: new PIXI.Rectangle(0, 0, SIZE, SIZE) });
+    const url = await app.renderer.extract.base64({
+      target: container,
+      frame: new PIXI.Rectangle(0, 0, SIZE, SIZE),
+    });
     container.destroy({ children: true });
     this.pending.delete(key);
     this.images.update((m) => ({ ...m, [key]: url }));
@@ -47,7 +52,13 @@ export class PortraitService {
     this.app ??= (async () => {
       const PIXI = await import('pixi.js');
       const app = new PIXI.Application();
-      await app.init({ width: SIZE, height: SIZE, antialias: true, autoStart: false, backgroundAlpha: 0 });
+      await app.init({
+        width: SIZE,
+        height: SIZE,
+        antialias: true,
+        autoStart: false,
+        backgroundAlpha: 0,
+      });
       return app;
     })();
     return this.app;

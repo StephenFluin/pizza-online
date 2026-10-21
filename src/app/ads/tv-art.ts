@@ -15,14 +15,26 @@ function pizza(g: Graphics, x: number, y: number, r: number, bites = 0): void {
   for (let i = 0; i < bites; i++) {
     const a0 = (i / 6) * Math.PI * 2;
     const a1 = a0 + Math.PI / 3;
-    g.poly([x, y, x + Math.cos(a0) * (r + 1), y + Math.sin(a0) * (r + 1), x + Math.cos((a0 + a1) / 2) * (r + 2), y + Math.sin((a0 + a1) / 2) * (r + 2), x + Math.cos(a1) * (r + 1), y + Math.sin(a1) * (r + 1)]).fill(0x8b5a2b);
+    g.poly([
+      x,
+      y,
+      x + Math.cos(a0) * (r + 1),
+      y + Math.sin(a0) * (r + 1),
+      x + Math.cos((a0 + a1) / 2) * (r + 2),
+      y + Math.sin((a0 + a1) / 2) * (r + 2),
+      x + Math.cos(a1) * (r + 1),
+      y + Math.sin(a1) * (r + 1),
+    ]).fill(0x8b5a2b);
   }
 }
 
 function person(g: Graphics, x: number, y: number, shirt: number, skin: number, s = 1): void {
   g.roundRect(x - 14 * s, y, 28 * s, 34 * s, 8 * s).fill(shirt);
   g.circle(x, y - 10 * s, 12 * s).fill(skin);
-  g.circle(x - 4 * s, y - 12 * s, 1.6 * s).fill(0x222222).circle(x + 4 * s, y - 12 * s, 1.6 * s).fill(0x222222);
+  g.circle(x - 4 * s, y - 12 * s, 1.6 * s)
+    .fill(0x222222)
+    .circle(x + 4 * s, y - 12 * s, 1.6 * s)
+    .fill(0x222222);
 }
 
 /** Draws frame `t` (seconds) of an original commercial. Each loops every few seconds. */
@@ -41,8 +53,11 @@ export function drawCommercial(g: Graphics, ad: TvCommercial, t: number): void {
       g.rect(150, 150 + out * 30, 120 * out, 6).fill(0x8b5a2b);
       pizza(g, 160 + out * 70, 140 + out * 30, 26);
       for (let i = 0; i < 3; i++) {
-        const k = ((t * 0.6 + i / 3) % 1);
-        g.circle(200 + i * 14 + Math.sin(t * 2 + i) * 6, 150 - k * 110, 8 + k * 10).fill({ color: 0xffffff, alpha: 0.4 * (1 - k) });
+        const k = (t * 0.6 + i / 3) % 1;
+        g.circle(200 + i * 14 + Math.sin(t * 2 + i) * 6, 150 - k * 110, 8 + k * 10).fill({
+          color: 0xffffff,
+          alpha: 0.4 * (1 - k),
+        });
       }
       break;
     }
@@ -52,14 +67,17 @@ export function drawCommercial(g: Graphics, ad: TvCommercial, t: number): void {
       for (let i = -1; i < 6; i++) {
         const x = i * 80 - scroll;
         g.rect(x, 60 + (i % 2) * 20, 60, 110).fill([0xb5838d, 0xe5989b, 0x9a8c98][(i + 6) % 3]);
-        for (let w = 0; w < 3; w++) g.rect(x + 10, 75 + (i % 2) * 20 + w * 25, 12, 12).fill(0xfff3b0);
+        for (let w = 0; w < 3; w++)
+          g.rect(x + 10, 75 + (i % 2) * 20 + w * 25, 12, 12).fill(0xfff3b0);
       }
       g.rect(0, 170, W, 50).fill(0x4f5359);
       for (let i = 0; i < 6; i++) g.rect(i * 70 - scroll, 192, 36, 4).fill(0xe8e2b0);
       const bob = Math.sin(t * 14) * 2;
       g.circle(120, 182, 14).fill(0x222222).circle(190, 182, 14).fill(0x222222);
       g.roundRect(112, 150 + bob, 90, 22, 8).fill(0xe63946);
-      g.rect(170, 128 + bob, 34, 24).fill(0xf5e6c8).stroke({ width: 2, color: 0x8b5a2b });
+      g.rect(170, 128 + bob, 34, 24)
+        .fill(0xf5e6c8)
+        .stroke({ width: 2, color: 0x8b5a2b });
       person(g, 140, 112 + bob, 0x1d3557, 0xe9b98f);
       g.circle(140, 100 + bob, 13).fill(0xe63946);
       break;
@@ -73,7 +91,9 @@ export function drawCommercial(g: Graphics, ad: TvCommercial, t: number): void {
       const phase = (t % 1.6) / 1.6;
       const height = Math.sin(phase * Math.PI) * 70;
       const spin = Math.cos(t * 10);
-      g.ellipse(160, 60 - height, 38, 10 + Math.abs(spin) * 18).fill(0xf1d39a).stroke({ width: 2, color: 0xd9a55b });
+      g.ellipse(160, 60 - height, 38, 10 + Math.abs(spin) * 18)
+        .fill(0xf1d39a)
+        .stroke({ width: 2, color: 0xd9a55b });
       break;
     }
     case 'family': {
@@ -97,7 +117,10 @@ export function drawCommercial(g: Graphics, ad: TvCommercial, t: number): void {
       const y = 120 + Math.sin(t * 2) * 25;
       g.poly([x + 40, y, x - 30, y - 22, x - 30, y + 22]).fill(0xe2b46c);
       g.poly([x + 34, y, x - 24, y - 17, x - 24, y + 17]).fill(0xc8371f);
-      g.circle(x - 8, y - 4, 4).fill(0xf7e3a1).circle(x + 8, y + 3, 3).fill(0xa3283a);
+      g.circle(x - 8, y - 4, 4)
+        .fill(0xf7e3a1)
+        .circle(x + 8, y + 3, 3)
+        .fill(0xa3283a);
       g.poly([x - 30, y - 10, x - 55 - Math.sin(t * 20) * 8, y, x - 30, y + 10]).fill(0xffba08);
       break;
     }

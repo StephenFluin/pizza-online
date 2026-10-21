@@ -18,7 +18,10 @@ export interface Warehouse {
 
 export type WarehouseSize = 'small' | 'medium' | 'large';
 
-export const WAREHOUSE_SIZES: Record<WarehouseSize, { label: string; capacity: number; rent: number }> = {
+export const WAREHOUSE_SIZES: Record<
+  WarehouseSize,
+  { label: string; capacity: number; rent: number }
+> = {
   small: { label: 'Small cold store', capacity: 2000, rent: 800 },
   medium: { label: 'Medium cold store', capacity: 5000, rent: 1600 },
   large: { label: 'Large distribution centre', capacity: 12000, rent: 3200 },
@@ -71,8 +74,13 @@ export function storeInWarehouse(w: Warehouse, id: string, units: number, qualit
 
 /** Keeps the priority list in step with the owner's restaurants in the city. */
 export function syncPriority(st: GameState, p: Player, w: Warehouse): void {
-  const mine = st.restaurants.filter((r) => r.ownerId === p.id && r.cityId === w.cityId).map((r) => r.id);
-  w.priority = [...w.priority.filter((id) => mine.includes(id)), ...mine.filter((id) => !w.priority.includes(id))];
+  const mine = st.restaurants
+    .filter((r) => r.ownerId === p.id && r.cityId === w.cityId)
+    .map((r) => r.id);
+  w.priority = [
+    ...w.priority.filter((id) => mine.includes(id)),
+    ...mine.filter((id) => !w.priority.includes(id)),
+  ];
 }
 
 /** Morning: cold-store spoilage, arriving shipments, then each restaurant is topped up in priority order. */
@@ -98,8 +106,13 @@ export function warehouseMorning(
     const p = st.players.find((x) => x.id === s.ownerId);
     const w = p ? warehouseIn(p, s.toCityId) : null;
     if (!p || !w) continue;
-    for (const [id, units] of Object.entries(s.items)) storeInWarehouse(w, id, units, s.quality[id] ?? 50);
-    if (p.isHuman) st.messages.push({ day: st.day, text: `A shipment from ${cityDef(s.fromCityId).name} arrived at your ${cityDef(s.toCityId).name} warehouse.` });
+    for (const [id, units] of Object.entries(s.items))
+      storeInWarehouse(w, id, units, s.quality[id] ?? 50);
+    if (p.isHuman)
+      st.messages.push({
+        day: st.day,
+        text: `A shipment from ${cityDef(s.fromCityId).name} arrived at your ${cityDef(s.toCityId).name} warehouse.`,
+      });
   }
   for (const p of st.players) {
     for (const w of Object.values(p.warehouses ?? {})) {
@@ -130,7 +143,14 @@ function needs(r: Restaurant, targets: Record<string, number>): Record<string, n
 }
 
 /** Sends stock to another of the owner's warehouses; it arrives after a couple of days. */
-export function ship(st: GameState, p: Player, from: Warehouse, toCityId: string, id: string, units: number): string | null {
+export function ship(
+  st: GameState,
+  p: Player,
+  from: Warehouse,
+  toCityId: string,
+  id: string,
+  units: number,
+): string | null {
   const to = warehouseIn(p, toCityId);
   if (!to) return `You have no warehouse in ${cityDef(toCityId).name}.`;
   const amount = Math.min(units, Math.floor(from.stock[id] ?? 0));
@@ -141,6 +161,14 @@ export function ship(st: GameState, p: Player, from: Warehouse, toCityId: string
   p.ledger.push({ day: st.day, label: 'Freight', amount: -cost });
   from.stock[id] -= amount;
   if (from.stock[id] < 0.5) delete from.stock[id];
-  (st.shipments ??= []).push({ id: st.nextId++, ownerId: p.id, fromCityId: from.cityId, toCityId, items: { [id]: amount }, quality: { [id]: from.stockQuality[id] ?? 50 }, arriveDay: st.day + SHIPPING_DAYS });
+  (st.shipments ??= []).push({
+    id: st.nextId++,
+    ownerId: p.id,
+    fromCityId: from.cityId,
+    toCityId,
+    items: { [id]: amount },
+    quality: { [id]: from.stockQuality[id] ?? 50 },
+    arriveDay: st.day + SHIPPING_DAYS,
+  });
   return null;
 }

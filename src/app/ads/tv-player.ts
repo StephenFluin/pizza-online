@@ -1,4 +1,13 @@
-import { Component, DestroyRef, ElementRef, afterNextRender, effect, inject, input, viewChild } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  effect,
+  inject,
+  input,
+  viewChild,
+} from '@angular/core';
 import type { Application, Graphics, Text } from 'pixi.js';
 import { TvCommercial } from '../game/advertising';
 import { TV_H, TV_W, drawCommercial } from './tv-art';
@@ -8,15 +17,48 @@ import { TV_H, TV_W, drawCommercial } from './tv-art';
   selector: 'app-tv-player',
   template: `
     <div class="tv">
-      <div class="screen" #screen role="img" [attr.aria-label]="'Commercial: ' + commercial().title"></div>
+      <div
+        class="screen"
+        #screen
+        role="img"
+        [attr.aria-label]="'Commercial: ' + commercial().title"
+      ></div>
       <div class="knobs" aria-hidden="true"><span></span><span></span></div>
     </div>
   `,
   styles: `
-    .tv { display: grid; grid-template-columns: 1fr 44px; gap: 10px; padding: 16px; border-radius: 18px; background: linear-gradient(160deg, #8b5a2b, #5c3a21); box-shadow: inset 0 0 0 4px #3e1f0e, 0 6px 18px #0006; max-width: 440px; }
-    .screen { border-radius: 26px / 18px; overflow: hidden; background: #111; aspect-ratio: ${TV_W} / ${TV_H}; box-shadow: inset 0 0 18px #000; }
-    .knobs { display: grid; align-content: start; gap: 12px; padding-top: 10px; }
-    .knobs span { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ddd, #777); box-shadow: 0 2px 0 #3e1f0e; }
+    .tv {
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(160deg, #8b5a2b, #5c3a21);
+      box-shadow:
+        inset 0 0 0 4px #3e1f0e,
+        0 6px 18px #0006;
+      max-width: 440px;
+    }
+    .screen {
+      border-radius: 26px / 18px;
+      overflow: hidden;
+      background: #111;
+      aspect-ratio: ${TV_W} / ${TV_H};
+      box-shadow: inset 0 0 18px #000;
+    }
+    .knobs {
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding-top: 10px;
+    }
+    .knobs span {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ddd, #777);
+      box-shadow: 0 2px 0 #3e1f0e;
+    }
   `,
 })
 export class TvPlayerComponent {
@@ -53,7 +95,12 @@ export class TvPlayerComponent {
     this.g = new PIXI.Graphics();
     this.caption = new PIXI.Text({
       text: this.commercial().title.toUpperCase(),
-      style: { fontFamily: 'Arial Black, Arial, sans-serif', fontSize: 16, fill: 0xffffff, stroke: { color: 0x000000, width: 4 } },
+      style: {
+        fontFamily: 'Arial Black, Arial, sans-serif',
+        fontSize: 16,
+        fill: 0xffffff,
+        stroke: { color: 0x000000, width: 4 },
+      },
     });
     this.caption.position.set(10, TV_H - 28);
     app.stage.addChild(this.g, this.caption);

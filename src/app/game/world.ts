@@ -17,7 +17,8 @@ export function standings(st: GameState): CityStanding[] {
   return CITIES.map((c) => {
     const guests = new Map<number, number>();
     for (const r of st.restaurants) {
-      if (r.cityId === c.id) guests.set(r.ownerId, (guests.get(r.ownerId) ?? 0) + r.lastDay.customers);
+      if (r.cityId === c.id)
+        guests.set(r.ownerId, (guests.get(r.ownerId) ?? 0) + r.lastDay.customers);
     }
     let leaderId: number | null = null;
     let best = 0;

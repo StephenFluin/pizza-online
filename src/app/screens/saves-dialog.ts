@@ -21,9 +21,24 @@ import { UiService } from '../game/ui.service';
           </span>
           <span class="buttons">
             @if (inGame() && s.slot !== 'auto') {
-              <button type="button" class="small" (click)="save(s.slot)" [attr.aria-label]="'Save to ' + s.label">Save</button>
+              <button
+                type="button"
+                class="small"
+                (click)="save(s.slot)"
+                [attr.aria-label]="'Save to ' + s.label"
+              >
+                Save
+              </button>
             }
-            <button type="button" class="small secondary" (click)="load(s.slot)" [disabled]="!s.savedAt" [attr.aria-label]="'Load ' + s.label">Load</button>
+            <button
+              type="button"
+              class="small secondary"
+              (click)="load(s.slot)"
+              [disabled]="!s.savedAt"
+              [attr.aria-label]="'Load ' + s.label"
+            >
+              Load
+            </button>
           </span>
         </li>
       }
@@ -34,26 +49,74 @@ import { UiService } from '../game/ui.service';
       }
       <label class="import">
         <span class="as-button secondary">Import save file…</span>
-        <input type="file" accept=".json,application/json" class="sr-only" (change)="importSave($event)" />
+        <input
+          type="file"
+          accept=".json,application/json"
+          class="sr-only"
+          (change)="importSave($event)"
+        />
       </label>
     </div>
     <p role="status" class="status">{{ status() }}</p>
     @if (inGame()) {
       <div class="row">
-        <button type="button" class="secondary" (click)="retire()">Retire and record my score</button>
+        <button type="button" class="secondary" (click)="retire()">
+          Retire and record my score
+        </button>
         <button type="button" class="secondary" (click)="quit()">Quit to title</button>
       </div>
     }
   `,
   styles: `
-    .slots { list-style: none; padding: 0; margin: 0 0 12px; min-width: min(460px, 80vw); }
-    .slots li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
-    .buttons, .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .small { padding: 2px 8px; font-size: 0.85rem; }
-    .as-button { display: inline-block; border: 2px solid var(--tomato); color: var(--tomato); border-radius: 6px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
-    .import:focus-within .as-button { outline: 3px solid #f4a261; outline-offset: 2px; }
-    .status { min-height: 1.4em; }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .slots {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      min-width: min(460px, 80vw);
+    }
+    .slots li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+    }
+    .buttons,
+    .row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .small {
+      padding: 2px 8px;
+      font-size: 0.85rem;
+    }
+    .as-button {
+      display: inline-block;
+      border: 2px solid var(--tomato);
+      color: var(--tomato);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .import:focus-within .as-button {
+      outline: 3px solid #f4a261;
+      outline-offset: 2px;
+    }
+    .status {
+      min-height: 1.4em;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   `,
 })
 export class SavesDialogComponent {
@@ -102,11 +165,14 @@ export class SavesDialogComponent {
   }
 
   protected retire(): void {
-    if (confirm('Retire now? Your career ends here and goes on the high-score table.')) this.game.retire();
+    if (confirm('Retire now? Your career ends here and goes on the high-score table.'))
+      this.game.retire();
   }
 
   protected quit(): void {
-    if (confirm('Quit to the title screen? Unsaved progress since the last autosave will be lost.')) {
+    if (
+      confirm('Quit to the title screen? Unsaved progress since the last autosave will be lost.')
+    ) {
       this.ui.close();
       this.game.quit();
     }

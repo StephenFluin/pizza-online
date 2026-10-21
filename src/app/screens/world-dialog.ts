@@ -1,4 +1,13 @@
-import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, viewChild } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import type { Application, Graphics } from 'pixi.js';
 import { CITIES } from '../game/data';
 import { GameService } from '../game/game.service';
@@ -23,10 +32,22 @@ const CONTINENTS: number[][] = [
   selector: 'app-world-dialog',
   template: `
     <div #mapHost class="map" aria-hidden="true"></div>
-    <p class="progress">You lead in <b>{{ ledCount() }}</b> of {{ cities.length }} cities. Lead them all to win.</p>
+    <p class="progress">
+      You lead in <b>{{ ledCount() }}</b> of {{ cities.length }} cities. Lead them all to win.
+    </p>
     <table>
-      <caption class="sr-only">Cities</caption>
-      <thead><tr><th scope="col">City</th><th scope="col">Your shops</th><th scope="col">Rival shops</th><th scope="col">Most popular</th><th scope="col"><span class="sr-only">Travel</span></th></tr></thead>
+      <caption class="sr-only">
+        Cities
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">City</th>
+          <th scope="col">Your shops</th>
+          <th scope="col">Rival shops</th>
+          <th scope="col">Most popular</th>
+          <th scope="col"><span class="sr-only">Travel</span></th>
+        </tr>
+      </thead>
       <tbody>
         @for (row of rows(); track row.id) {
           <tr [class.here]="row.here">
@@ -38,7 +59,9 @@ const CONTINENTS: number[][] = [
               @if (row.here) {
                 <span>You are here</span>
               } @else {
-                <button type="button" class="small" (click)="travel(row.id)">Travel to {{ row.name }}</button>
+                <button type="button" class="small" (click)="travel(row.id)">
+                  Travel to {{ row.name }}
+                </button>
               }
             </td>
           </tr>
@@ -47,13 +70,41 @@ const CONTINENTS: number[][] = [
     </table>
   `,
   styles: `
-    .map { width: 100%; max-width: ${W}px; aspect-ratio: 2 / 1; border-radius: 8px; overflow: hidden; }
-    .progress { margin: 8px 0; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 4px; border-top: 1px solid var(--line); }
-    tr.here { background: var(--cream); }
-    .small { padding: 2px 8px; font-size: 0.85rem; }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .map {
+      width: 100%;
+      max-width: ${W}px;
+      aspect-ratio: 2 / 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .progress {
+      margin: 8px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      text-align: left;
+      padding: 4px;
+      border-top: 1px solid var(--line);
+    }
+    tr.here {
+      background: var(--cream);
+    }
+    .small {
+      padding: 2px 8px;
+      font-size: 0.85rem;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   `,
 })
 export class WorldDialogComponent {
@@ -78,14 +129,24 @@ export class WorldDialogComponent {
         here: st.currentCityId === c.id,
         mine: inCity.filter((r) => r.ownerId === me.id).length,
         rivals: inCity.filter((r) => r.ownerId !== me.id).length,
-        leader: leaderId === null ? '—' : leaderId === me.id ? 'You' : (st.players.find((p) => p.id === leaderId)?.name ?? '—'),
-        leaderColor: leaderId === null ? 0x999999 : (st.players.find((p) => p.id === leaderId)?.color ?? 0x999999),
+        leader:
+          leaderId === null
+            ? '—'
+            : leaderId === me.id
+              ? 'You'
+              : (st.players.find((p) => p.id === leaderId)?.name ?? '—'),
+        leaderColor:
+          leaderId === null
+            ? 0x999999
+            : (st.players.find((p) => p.id === leaderId)?.color ?? 0x999999),
         wx: c.wx,
         wy: c.wy,
       };
     });
   });
-  protected readonly ledCount = computed(() => this.rows().filter((r) => r.leader === 'You').length);
+  protected readonly ledCount = computed(
+    () => this.rows().filter((r) => r.leader === 'You').length,
+  );
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -99,7 +160,14 @@ export class WorldDialogComponent {
   private async init(): Promise<void> {
     const PIXI = await import('pixi.js');
     const app = new PIXI.Application();
-    await app.init({ width: W, height: H, background: 0x1d4e89, antialias: true, autoDensity: true, resolution: window.devicePixelRatio || 1 });
+    await app.init({
+      width: W,
+      height: H,
+      background: 0x1d4e89,
+      antialias: true,
+      autoDensity: true,
+      resolution: window.devicePixelRatio || 1,
+    });
     app.canvas.style.width = '100%';
     app.canvas.style.height = '100%';
     this.mapHost().nativeElement.appendChild(app.canvas);
@@ -114,7 +182,10 @@ export class WorldDialogComponent {
     if (!g) return;
     g.clear();
     for (let y = 0; y < H; y += 20) g.rect(0, y, W, 1).fill({ color: 0xffffff, alpha: 0.06 });
-    for (const poly of CONTINENTS) g.poly(poly.map((v, i) => (i % 2 === 0 ? v * W : v * H))).fill(0x6a994e).stroke({ width: 2, color: 0x386641 });
+    for (const poly of CONTINENTS)
+      g.poly(poly.map((v, i) => (i % 2 === 0 ? v * W : v * H)))
+        .fill(0x6a994e)
+        .stroke({ width: 2, color: 0x386641 });
     for (const r of rows) {
       const x = r.wx * W;
       const y = r.wy * H;

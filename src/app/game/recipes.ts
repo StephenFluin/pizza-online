@@ -11,7 +11,8 @@ const CHEESE_UNITS = 1;
 /** Ingredient id -> stock units one pizza uses: each piece by its weight at its cut, plus sauce (tomato) and cheese (mozzarella). */
 export function recipeUsage(recipe: Recipe): Record<string, number> {
   const usage: Record<string, number> = {};
-  for (const [id, grams] of Object.entries(toppingWeights(recipe))) usage[id] = grams / GRAMS_PER_UNIT;
+  for (const [id, grams] of Object.entries(toppingWeights(recipe)))
+    usage[id] = grams / GRAMS_PER_UNIT;
   if (recipe.sauce) usage['tomato'] = (usage['tomato'] ?? 0) + SAUCE_UNITS;
   if (recipe.cheese) usage['mozzarella'] = (usage['mozzarella'] ?? 0) + CHEESE_UNITS;
   return usage;
@@ -20,7 +21,8 @@ export function recipeUsage(recipe: Recipe): Record<string, number> {
 /** Ingredient cost of one pizza. */
 export function recipeCost(recipe: Recipe): number {
   let cost = BASE_COST.dough;
-  for (const [id, units] of Object.entries(recipeUsage(recipe))) cost += ingredient(id).cost * units;
+  for (const [id, units] of Object.entries(recipeUsage(recipe)))
+    cost += ingredient(id).cost * units;
   return cost;
 }
 
@@ -58,7 +60,13 @@ export function fairPrice(district: District, costOfLiving: number): number {
  * ingredients are in the city, and its price against local incomes (poorer
  * districts are more price sensitive).
  */
-export function itemAppeal(recipe: Recipe, price: number, district: District, costOfLiving: number, cityDistricts?: District[]): number {
+export function itemAppeal(
+  recipe: Recipe,
+  price: number,
+  district: District,
+  costOfLiving: number,
+  cityDistricts?: District[],
+): number {
   const stats = cachedPizzaStats(recipe, cityDistricts);
   const groups = districtGroupScore(stats, district);
   const quality = recipeQuality(recipe);
@@ -73,7 +81,14 @@ export function itemAppeal(recipe: Recipe, price: number, district: District, co
  * Appeal of a menu item to one customer group in a district: how much that
  * group likes it, its craft quality, the city trend and its price.
  */
-export function groupAppeal(recipe: Recipe, price: number, district: District, costOfLiving: number, group: CustomerGroup, cityDistricts?: District[]): number {
+export function groupAppeal(
+  recipe: Recipe,
+  price: number,
+  district: District,
+  costOfLiving: number,
+  group: CustomerGroup,
+  cityDistricts?: District[],
+): number {
   const stats = cachedPizzaStats(recipe, cityDistricts);
   const food = (stats.groups[group] / 100) * 0.6 + recipeQuality(recipe) * 0.4;
   const trend = 1 + stats.trend / 300;
@@ -111,11 +126,21 @@ export function parseRecipe(data: unknown): Omit<Recipe, 'id' | 'ownerId'> | nul
     const { ingredient: ing, x, y, rotation, cut } = t as Record<string, unknown>;
     if (typeof ing !== 'string' || !INGREDIENT_IDS.has(ing)) return null;
     if (typeof x !== 'number' || typeof y !== 'number' || Math.hypot(x, y) > 1) return null;
-    const topping: Topping = { ingredient: ing, x, y, rotation: typeof rotation === 'number' ? rotation : 0 };
+    const topping: Topping = {
+      ingredient: ing,
+      x,
+      y,
+      rotation: typeof rotation === 'number' ? rotation : 0,
+    };
     if (cut === 1 || cut === 2) topping.cut = cut as Cut;
     toppings.push(topping);
   }
-  return { name: d['name'].slice(0, 32), sauce: d['sauce'] !== false, cheese: d['cheese'] !== false, toppings };
+  return {
+    name: d['name'].slice(0, 32),
+    sauce: d['sauce'] !== false,
+    cheese: d['cheese'] !== false,
+    toppings,
+  };
 }
 
 export const MAX_TOPPINGS = 40;

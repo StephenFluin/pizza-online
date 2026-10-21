@@ -61,10 +61,13 @@ export function drawCity(g: Graphics, city: CityMap): void {
       const px = x * TILE;
       const py = y * TILE;
       switch (t.kind) {
-        case 'road': drawRoad(g, city, x, y, px, py); break;
+        case 'road':
+          drawRoad(g, city, x, y, px, py);
+          break;
         case 'water':
           g.rect(px, py, TILE, TILE).fill(C.water);
-          if ((x * 3 + y * 5) % 4 === 0) g.rect(px + 4, py + 9, 9, 2).fill({ color: C.waterLight, alpha: 0.8 });
+          if ((x * 3 + y * 5) % 4 === 0)
+            g.rect(px + 4, py + 9, 9, 2).fill({ color: C.waterLight, alpha: 0.8 });
           break;
         case 'park':
           g.rect(px, py, TILE, TILE).fill(C.park);
@@ -74,7 +77,8 @@ export function drawCity(g: Graphics, city: CityMap): void {
           // Pavement around buildings; the building itself is drawn in the next pass.
           g.rect(px, py, TILE, TILE).fill(C.pavement);
           break;
-        default: break;
+        default:
+          break;
       }
     }
   }
@@ -88,7 +92,14 @@ export function drawCity(g: Graphics, city: CityMap): void {
       const py = y * TILE;
       if (t.kind === 'building') {
         const wealth = city.districts[t.district]?.wealth ?? 0.5;
-        drawBuilding(g, px, py, buildingHeight(t.variant, wealth), FACADES[(t.district * 3 + t.variant + x) % FACADES.length], (x * 7 + y * 13) % 5);
+        drawBuilding(
+          g,
+          px,
+          py,
+          buildingHeight(t.variant, wealth),
+          FACADES[(t.district * 3 + t.variant + x) % FACADES.length],
+          (x * 7 + y * 13) % 5,
+        );
       } else if (t.kind === 'park' && (x * 7 + y * 3) % 3 === 0) {
         drawTree(g, px + TILE / 2, py + TILE - 4, 1 + ((x + y) % 2) * 0.25);
       } else if (t.kind === 'grass' && (x * 5 + y) % 7 === 0) {
@@ -104,7 +115,9 @@ function drawRoad(g: Graphics, city: CityMap, x: number, y: number, px: number, 
   const road = (dx: number, dy: number) => tileAt(city, x + dx, y + dy)?.kind === 'road';
   const horiz = road(-1, 0) || road(1, 0);
   const vert = road(0, -1) || road(0, 1);
-  g.rect(px, py, TILE, TILE).fill(isBridge && tileAt(city, x, y + 1)?.kind !== 'road' && !horiz ? C.bridge : C.road);
+  g.rect(px, py, TILE, TILE).fill(
+    isBridge && tileAt(city, x, y + 1)?.kind !== 'road' && !horiz ? C.bridge : C.road,
+  );
   // Kerbs where the road meets non-road tiles.
   if (!road(0, -1)) g.rect(px, py, TILE, 2).fill(C.kerb);
   if (!road(0, 1)) g.rect(px, py + TILE - 2, TILE, 2).fill(C.kerb);
@@ -114,11 +127,19 @@ function drawRoad(g: Graphics, city: CityMap, x: number, y: number, px: number, 
   else if (vert && !horiz) g.rect(px + TILE / 2 - 1, py + 3, 2, TILE / 2 - 3).fill(C.roadLine);
   else if (horiz && vert) {
     // Zebra crossing hints at junctions.
-    for (let i = 0; i < 4; i++) g.rect(px + 3 + i * 5, py + 1, 3, 3).fill({ color: 0xffffff, alpha: 0.5 });
+    for (let i = 0; i < 4; i++)
+      g.rect(px + 3 + i * 5, py + 1, 3, 3).fill({ color: 0xffffff, alpha: 0.5 });
   }
 }
 
-function drawBuilding(g: Graphics, px: number, py: number, h: number, facade: number, pattern: number): void {
+function drawBuilding(
+  g: Graphics,
+  px: number,
+  py: number,
+  h: number,
+  facade: number,
+  pattern: number,
+): void {
   const x0 = px + 2;
   const w = TILE - 4;
   const roofY = py + 2 - h;
@@ -167,27 +188,57 @@ function drawLotGround(g: Graphics, lot: Lot): void {
  * Draws things that change during play: restaurants on lots, "for sale" signs,
  * and the selection outline.
  */
-export function drawLots(g: Graphics, city: CityMap, state: GameState, selected: number | null, hovered: number | null): void {
+export function drawLots(
+  g: Graphics,
+  city: CityMap,
+  state: GameState,
+  selected: number | null,
+  hovered: number | null,
+): void {
   g.clear();
   for (const lot of city.lots) {
     const px = lot.x * TILE;
     const py = lot.y * TILE;
-    const restaurant = lot.restaurantId === null ? null : state.restaurants.find((r) => r.id === lot.restaurantId);
+    const restaurant =
+      lot.restaurantId === null ? null : state.restaurants.find((r) => r.id === lot.restaurantId);
     if (restaurant) {
       const owner = state.players.find((p) => p.id === restaurant.ownerId);
-      drawRestaurant(g, px, py, lot.w * TILE, lot.h * TILE, owner?.color ?? 0xffffff, owner?.isHuman ?? false);
+      drawRestaurant(
+        g,
+        px,
+        py,
+        lot.w * TILE,
+        lot.h * TILE,
+        owner?.color ?? 0xffffff,
+        owner?.isHuman ?? false,
+      );
       // The mayor's stars hang above the door.
-      for (let i = 0; i < (restaurant.stars ?? 0); i++) g.star(px + 8 + i * 9, py + lot.h * TILE - 4, 5, 4, 2).fill(0xffd166).stroke({ width: 1, color: 0x7a5a00 });
+      for (let i = 0; i < (restaurant.stars ?? 0); i++)
+        g.star(px + 8 + i * 9, py + lot.h * TILE - 4, 5, 4, 2)
+          .fill(0xffd166)
+          .stroke({ width: 1, color: 0x7a5a00 });
     } else {
       drawForSaleSign(g, px + lot.w * TILE - 10, py + lot.h * TILE - 4);
     }
     if (lot.id === selected || lot.id === hovered) {
-      g.rect(px - 1, py - 1, lot.w * TILE + 2, lot.h * TILE + 2).stroke({ width: lot.id === selected ? 3 : 2, color: 0xffffff, alpha: lot.id === selected ? 1 : 0.7 });
+      g.rect(px - 1, py - 1, lot.w * TILE + 2, lot.h * TILE + 2).stroke({
+        width: lot.id === selected ? 3 : 2,
+        color: 0xffffff,
+        alpha: lot.id === selected ? 1 : 0.7,
+      });
     }
   }
 }
 
-function drawRestaurant(g: Graphics, px: number, py: number, w: number, h: number, color: number, mine: boolean): void {
+function drawRestaurant(
+  g: Graphics,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  color: number,
+  mine: boolean,
+): void {
   const height = 16;
   const x0 = px + 2;
   const bw = w - 4;
@@ -196,7 +247,8 @@ function drawRestaurant(g: Graphics, px: number, py: number, w: number, h: numbe
   g.rect(x0 + bw, roofY + 6, 4, depth + height).fill({ color: 0x000000, alpha: 0.2 });
   g.rect(x0, roofY, bw, depth).fill(0xb5524a);
   // Roof tiles.
-  for (let i = 0; i < depth; i += 4) g.rect(x0, roofY + i, bw, 1).fill({ color: 0x000000, alpha: 0.12 });
+  for (let i = 0; i < depth; i += 4)
+    g.rect(x0, roofY + i, bw, 1).fill({ color: 0x000000, alpha: 0.12 });
   // Façade.
   g.rect(x0, roofY + depth, bw, height + 10).fill(0xf5e6c8);
   // Striped awning in the owner's colour.
@@ -213,13 +265,23 @@ function drawRestaurant(g: Graphics, px: number, py: number, w: number, h: numbe
   const sy = roofY + depth / 2;
   g.circle(sx, sy, 8).fill(0xe9b872).stroke({ width: 2, color });
   g.circle(sx, sy, 6).fill(0xd64933);
-  g.circle(sx - 2, sy - 2, 1.4).fill(0xf6f0d8).circle(sx + 2.5, sy + 1, 1.4).fill(0xf6f0d8).circle(sx - 1, sy + 3, 1.2).fill(0x2f8f3c);
-  if (mine) g.star(x0 + 6, roofY + 5, 5, 4, 2).fill(0xffd166).stroke({ width: 1, color: 0x7a5a00 });
+  g.circle(sx - 2, sy - 2, 1.4)
+    .fill(0xf6f0d8)
+    .circle(sx + 2.5, sy + 1, 1.4)
+    .fill(0xf6f0d8)
+    .circle(sx - 1, sy + 3, 1.2)
+    .fill(0x2f8f3c);
+  if (mine)
+    g.star(x0 + 6, roofY + 5, 5, 4, 2)
+      .fill(0xffd166)
+      .stroke({ width: 1, color: 0x7a5a00 });
 }
 
 function drawForSaleSign(g: Graphics, x: number, baseY: number): void {
   g.rect(x, baseY - 14, 2, 14).fill(0x6b4f2a);
-  g.rect(x - 7, baseY - 18, 16, 9).fill(0xffffff).stroke({ width: 1, color: 0x6b4f2a });
+  g.rect(x - 7, baseY - 18, 16, 9)
+    .fill(0xffffff)
+    .stroke({ width: 1, color: 0x6b4f2a });
   g.rect(x - 5, baseY - 16, 12, 2).fill(0xb3261e);
   g.rect(x - 5, baseY - 13, 8, 2).fill(0x1d3557);
 }

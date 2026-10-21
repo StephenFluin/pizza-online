@@ -36,13 +36,35 @@ const CONTINENTS: number[][] = [
       @if (step() === 'cast') {
         <div class="select">
           <section class="column" aria-label="Character">
-            <button type="button" class="arrow bevel" (click)="cycle(-1)" aria-label="Previous character">▲</button>
+            <button
+              type="button"
+              class="arrow bevel"
+              (click)="cycle(-1)"
+              aria-label="Previous character"
+            >
+              ▲
+            </button>
             <div class="statbox lcd-text" aria-live="polite">
               @if (renaming()) {
                 <label class="sr-only" for="rename">Company owner's name</label>
-                <input id="rename" class="rename" maxlength="24" [value]="names()[active()]" (input)="rename($any($event.target).value)" (keydown.enter)="renaming.set(false)" (blur)="renaming.set(false)" />
+                <input
+                  id="rename"
+                  class="rename"
+                  maxlength="24"
+                  [value]="names()[active()]"
+                  (input)="rename($any($event.target).value)"
+                  (keydown.enter)="renaming.set(false)"
+                  (blur)="renaming.set(false)"
+                />
               } @else if (active() === 0) {
-                <button type="button" class="name" (click)="renaming.set(true)" [attr.aria-label]="'Rename ' + displayName(active())">{{ displayName(active()) }}</button>
+                <button
+                  type="button"
+                  class="name"
+                  (click)="renaming.set(true)"
+                  [attr.aria-label]="'Rename ' + displayName(active())"
+                >
+                  {{ displayName(active()) }}
+                </button>
               } @else {
                 <p class="name static">{{ displayName(active()) }}</p>
               }
@@ -55,20 +77,37 @@ const CONTINENTS: number[][] = [
                 }
               </dl>
             </div>
-            <button type="button" class="arrow bevel" (click)="cycle(1)" aria-label="Next character">▼</button>
+            <button
+              type="button"
+              class="arrow bevel"
+              (click)="cycle(1)"
+              aria-label="Next character"
+            >
+              ▼
+            </button>
           </section>
 
           <section class="column photo" aria-label="Photo">
             <div class="frame">
-              <app-portrait [cacheKey]="'char-' + chosen().id" [look]="chosen().look" [background]="chosen().color" [size]="180" [alt]="'Portrait of ' + chosen().name" />
+              <app-portrait
+                [cacheKey]="'char-' + chosen().id"
+                [look]="chosen().look"
+                [background]="chosen().color"
+                [size]="180"
+                [alt]="'Portrait of ' + chosen().name"
+              />
             </div>
             <p class="from">{{ chosen().name }}, from {{ chosen().hometown }}</p>
             <p class="bio">{{ chosen().bio }}</p>
             <button type="button" class="start" (click)="step.set('city')">Start</button>
             @if (hasSaves()) {
-              <button type="button" class="secondary load" (click)="ui.open({ kind: 'saves' })">Load a saved game</button>
+              <button type="button" class="secondary load" (click)="ui.open({ kind: 'saves' })">
+                Load a saved game
+              </button>
             }
-            <button type="button" class="secondary load" (click)="ui.open({ kind: 'highscores' })">High scores</button>
+            <button type="button" class="secondary load" (click)="ui.open({ kind: 'highscores' })">
+              High scores
+            </button>
           </section>
 
           <section class="column" aria-labelledby="companies-title">
@@ -76,17 +115,32 @@ const CONTINENTS: number[][] = [
             <ol class="slots">
               @for (id of slots(); track $index; let i = $index) {
                 <li>
-                  <button type="button" class="slot" [attr.aria-pressed]="active() === i" (click)="active.set(i)">
-                    <app-portrait [cacheKey]="'char-' + id" [look]="look(id)" [background]="color(id)" [size]="44" alt="" />
+                  <button
+                    type="button"
+                    class="slot"
+                    [attr.aria-pressed]="active() === i"
+                    (click)="active.set(i)"
+                  >
+                    <app-portrait
+                      [cacheKey]="'char-' + id"
+                      [look]="look(id)"
+                      [background]="color(id)"
+                      [size]="44"
+                      alt=""
+                    />
                     <span>
-                      <b>{{ displayName(i) }}</b><br />
+                      <b>{{ displayName(i) }}</b
+                      ><br />
                       <small>{{ i === 0 ? 'Human' : 'Computer' }}</small>
                     </span>
                   </button>
                 </li>
               }
             </ol>
-            <p class="hint">Choose a company, then use the arrows to pick who runs it. Click the name to rename your owner.</p>
+            <p class="hint">
+              Choose a company, then use the arrows to pick who runs it. Click the name to rename
+              your owner.
+            </p>
           </section>
         </div>
       } @else {
@@ -98,70 +152,278 @@ const CONTINENTS: number[][] = [
               <polygon [attr.points]="poly" fill="#6a994e" stroke="#386641" stroke-width="2" />
             }
             @for (c of cities; track c.id) {
-              <circle [attr.cx]="c.wx * 600" [attr.cy]="c.wy * 300" [attr.r]="c.id === cityId() ? 9 : 6" [attr.fill]="c.id === cityId() ? '#ffd166' : '#fdf6e3'" stroke="#1d3557" stroke-width="2" />
+              <circle
+                [attr.cx]="c.wx * 600"
+                [attr.cy]="c.wy * 300"
+                [attr.r]="c.id === cityId() ? 9 : 6"
+                [attr.fill]="c.id === cityId() ? '#ffd166' : '#fdf6e3'"
+                stroke="#1d3557"
+                stroke-width="2"
+              />
             }
           </svg>
           <div class="city-list" role="radiogroup" aria-label="Starting city">
             @for (c of cities; track c.id) {
-              <button type="button" role="radio" class="city" [attr.aria-checked]="cityId() === c.id" (click)="cityId.set(c.id)">{{ c.name }}</button>
+              <button
+                type="button"
+                role="radio"
+                class="city"
+                [attr.aria-checked]="cityId() === c.id"
+                (click)="cityId.set(c.id)"
+              >
+                {{ c.name }}
+              </button>
             }
           </div>
           <div class="levels" role="radiogroup" aria-label="Difficulty">
             @for (d of difficulties; track d.id) {
-              <button type="button" role="radio" class="city" [attr.aria-checked]="level() === d.id" (click)="level.set(d.id)" [attr.title]="d.description">{{ d.label }}</button>
+              <button
+                type="button"
+                role="radio"
+                class="city"
+                [attr.aria-checked]="level() === d.id"
+                (click)="level.set(d.id)"
+                [attr.title]="d.description"
+              >
+                {{ d.label }}
+              </button>
             }
           </div>
           <p class="level-note">{{ levelNote() }}</p>
           <div class="go">
             <button type="button" class="secondary" (click)="step.set('cast')">Back</button>
-            <button type="button" class="start" (click)="start()">Open for business in {{ cityName() }}</button>
+            <button type="button" class="start" (click)="start()">
+              Open for business in {{ cityName() }}
+            </button>
           </div>
         </section>
       }
       @if (ui.dialog()) {
         <div class="overlay"><app-dialog-host /></div>
       }
-      <p class="credit">An open-source, browser-only homage to the 1994 classic <i>Pizza Tycoon</i>. All characters are original.</p>
+      <p class="credit">
+        An open-source, browser-only homage to the 1994 classic <i>Pizza Tycoon</i>. All characters
+        are original.
+      </p>
     </main>
   `,
   styles: `
-    .title { min-height: 100dvh; padding: 18px 16px; display: grid; gap: 12px; justify-items: center; align-content: start; }
-    h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0; color: var(--cream); text-shadow: 2px 2px 0 #0008; }
-    h1 span { color: #ffd166; }
-    .select { display: grid; grid-template-columns: minmax(220px, 280px) minmax(220px, 300px) minmax(220px, 280px); gap: 16px; align-items: start; width: min(920px, 100%); }
-    .column { display: grid; gap: 8px; justify-items: stretch; }
-    .arrow { font-size: 1.2rem; padding: 2px; color: #2b3036; font-weight: 700; justify-self: center; width: 70px; border-radius: 4px; }
-    .statbox { background: var(--lcd); padding: 10px 12px; border: 4px solid var(--steel-dark); border-radius: 4px; box-shadow: inset 0 0 0 2px #000; }
-    .name, .rename { font: inherit; color: #ffd166; background: none; border: none; padding: 0; text-transform: uppercase; text-align: left; width: 100%; font-size: 1.5rem; text-decoration: underline dotted; cursor: text; }
-    .name.static { text-decoration: none; margin: 0; cursor: default; }
-    .rename { background: #222; border-bottom: 2px solid #ffd166; text-decoration: none; }
-    dl { margin: 6px 0 0; }
-    .stat { display: flex; justify-content: space-between; }
-    dt, dd { margin: 0; }
-    .photo { justify-items: center; text-align: center; }
-    .frame { padding: 10px; background: linear-gradient(145deg, var(--brass-light), var(--brass) 45%, var(--brass-dark)); border-radius: 4px; box-shadow: 0 4px 12px #0007; }
-    .from { margin: 0; color: var(--cream); font-weight: 700; }
-    .bio { margin: 0; color: var(--cream); font-size: 0.9rem; }
-    .start { font-size: 1.15rem; padding: 10px 26px; }
-    .load { justify-self: center; }
-    button.secondary { background: #fff8ec; border-color: #fff8ec; color: #9b2c1f; }
-    h2.lcd-text { margin: 0; background: var(--lcd); padding: 4px 10px; border: 3px solid var(--steel-dark); }
-    .slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-    .slot { width: 100%; display: flex; gap: 8px; align-items: center; text-align: left; background: #f5ecd9; color: #2b1d0e; border: 3px solid #8a6a3a; font-weight: 400; padding: 4px 8px; }
-    .slot[aria-pressed='true'] { border-color: #ffd166; background: #fff8e1; box-shadow: 0 0 0 2px #7a4a1c; }
-    .hint { color: var(--cream); font-size: 0.85rem; margin: 0; }
-    .cities { display: grid; gap: 10px; width: min(760px, 100%); justify-items: center; }
-    .map { width: 100%; border: 4px solid var(--wood-dark); border-radius: 4px; }
-    .city-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-    .city { background: #f5ecd9; color: #2b1d0e; border: 2px solid #8a6a3a; font-weight: 400; padding: 4px 10px; }
-    .city[aria-checked='true'] { background: #ffd166; border-color: #7a4a1c; font-weight: 700; }
-    .go { display: flex; gap: 10px; }
-    .levels { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-    .level-note { color: var(--cream); margin: 0; }
-    .credit { color: var(--cream); font-size: 0.85rem; margin: 6px 0 0; }
-    .overlay { position: fixed; inset: 0; z-index: 10; padding: 16px; background: #000a; display: grid; }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    @media (max-width: 820px) { .select { grid-template-columns: 1fr; } }
+    .title {
+      min-height: 100dvh;
+      padding: 18px 16px;
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+      align-content: start;
+    }
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      margin: 0;
+      color: var(--cream);
+      text-shadow: 2px 2px 0 #0008;
+    }
+    h1 span {
+      color: #ffd166;
+    }
+    .select {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(220px, 300px) minmax(220px, 280px);
+      gap: 16px;
+      align-items: start;
+      width: min(920px, 100%);
+    }
+    .column {
+      display: grid;
+      gap: 8px;
+      justify-items: stretch;
+    }
+    .arrow {
+      font-size: 1.2rem;
+      padding: 2px;
+      color: #2b3036;
+      font-weight: 700;
+      justify-self: center;
+      width: 70px;
+      border-radius: 4px;
+    }
+    .statbox {
+      background: var(--lcd);
+      padding: 10px 12px;
+      border: 4px solid var(--steel-dark);
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 2px #000;
+    }
+    .name,
+    .rename {
+      font: inherit;
+      color: #ffd166;
+      background: none;
+      border: none;
+      padding: 0;
+      text-transform: uppercase;
+      text-align: left;
+      width: 100%;
+      font-size: 1.5rem;
+      text-decoration: underline dotted;
+      cursor: text;
+    }
+    .name.static {
+      text-decoration: none;
+      margin: 0;
+      cursor: default;
+    }
+    .rename {
+      background: #222;
+      border-bottom: 2px solid #ffd166;
+      text-decoration: none;
+    }
+    dl {
+      margin: 6px 0 0;
+    }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+    }
+    dt,
+    dd {
+      margin: 0;
+    }
+    .photo {
+      justify-items: center;
+      text-align: center;
+    }
+    .frame {
+      padding: 10px;
+      background: linear-gradient(145deg, var(--brass-light), var(--brass) 45%, var(--brass-dark));
+      border-radius: 4px;
+      box-shadow: 0 4px 12px #0007;
+    }
+    .from {
+      margin: 0;
+      color: var(--cream);
+      font-weight: 700;
+    }
+    .bio {
+      margin: 0;
+      color: var(--cream);
+      font-size: 0.9rem;
+    }
+    .start {
+      font-size: 1.15rem;
+      padding: 10px 26px;
+    }
+    .load {
+      justify-self: center;
+    }
+    button.secondary {
+      background: #fff8ec;
+      border-color: #fff8ec;
+      color: #9b2c1f;
+    }
+    h2.lcd-text {
+      margin: 0;
+      background: var(--lcd);
+      padding: 4px 10px;
+      border: 3px solid var(--steel-dark);
+    }
+    .slots {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 6px;
+    }
+    .slot {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+      background: #f5ecd9;
+      color: #2b1d0e;
+      border: 3px solid #8a6a3a;
+      font-weight: 400;
+      padding: 4px 8px;
+    }
+    .slot[aria-pressed='true'] {
+      border-color: #ffd166;
+      background: #fff8e1;
+      box-shadow: 0 0 0 2px #7a4a1c;
+    }
+    .hint {
+      color: var(--cream);
+      font-size: 0.85rem;
+      margin: 0;
+    }
+    .cities {
+      display: grid;
+      gap: 10px;
+      width: min(760px, 100%);
+      justify-items: center;
+    }
+    .map {
+      width: 100%;
+      border: 4px solid var(--wood-dark);
+      border-radius: 4px;
+    }
+    .city-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .city {
+      background: #f5ecd9;
+      color: #2b1d0e;
+      border: 2px solid #8a6a3a;
+      font-weight: 400;
+      padding: 4px 10px;
+    }
+    .city[aria-checked='true'] {
+      background: #ffd166;
+      border-color: #7a4a1c;
+      font-weight: 700;
+    }
+    .go {
+      display: flex;
+      gap: 10px;
+    }
+    .levels {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .level-note {
+      color: var(--cream);
+      margin: 0;
+    }
+    .credit {
+      color: var(--cream);
+      font-size: 0.85rem;
+      margin: 6px 0 0;
+    }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      padding: 16px;
+      background: #000a;
+      display: grid;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    @media (max-width: 820px) {
+      .select {
+        grid-template-columns: 1fr;
+      }
+    }
   `,
 })
 export class NewGameComponent {
@@ -169,7 +431,9 @@ export class NewGameComponent {
   protected readonly ui = inject(UiService);
   protected readonly statLabels = STAT_LABELS;
   protected readonly cities = CITIES;
-  protected readonly continents = CONTINENTS.map((poly) => poly.map((v, i) => (i % 2 === 0 ? v * 600 : v * 300)).join(' '));
+  protected readonly continents = CONTINENTS.map((poly) =>
+    poly.map((v, i) => (i % 2 === 0 ? v * 600 : v * 300)).join(' '),
+  );
 
   protected readonly step = signal<'cast' | 'city'>('cast');
   /** Character id running each company; slot 0 is the player. */
@@ -181,9 +445,13 @@ export class NewGameComponent {
   protected readonly cityId = signal('rome');
   protected readonly difficulties = DIFFICULTIES;
   protected readonly level = signal<DifficultyId>('normal');
-  protected readonly levelNote = computed(() => DIFFICULTIES.find((d) => d.id === this.level())?.description ?? '');
+  protected readonly levelNote = computed(
+    () => DIFFICULTIES.find((d) => d.id === this.level())?.description ?? '',
+  );
   protected readonly chosen = computed(() => character(this.slots()[this.active()]));
-  protected readonly cityName = computed(() => CITIES.find((c) => c.id === this.cityId())?.name ?? '');
+  protected readonly cityName = computed(
+    () => CITIES.find((c) => c.id === this.cityId())?.name ?? '',
+  );
   /** Read after render: saves live in localStorage, which doesn't exist during prerendering. */
   protected readonly hasSaves = signal(false);
 

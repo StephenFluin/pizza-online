@@ -32,8 +32,13 @@ export interface CapacityReport {
 }
 
 /** Pizzas the stock can make for the current menu mix, and the ingredient that runs out first. */
-function stockCapacity(st: GameState, r: Restaurant): { pizzas: number; limiting: string | null; refills: boolean } {
-  const recipes = r.menu.map((m) => st.recipes.find((x) => x.id === m.recipeId)).filter((x): x is NonNullable<typeof x> => !!x);
+function stockCapacity(
+  st: GameState,
+  r: Restaurant,
+): { pizzas: number; limiting: string | null; refills: boolean } {
+  const recipes = r.menu
+    .map((m) => st.recipes.find((x) => x.id === m.recipeId))
+    .filter((x): x is NonNullable<typeof x> => !!x);
   if (recipes.length === 0) return { pizzas: 0, limiting: null, refills: false };
   // Weight each pizza by yesterday's sales, or equally before the first day.
   const sold = recipes.map((x) => r.lastDay.pizzas?.[x.id]?.sold ?? 0);
@@ -41,7 +46,8 @@ function stockCapacity(st: GameState, r: Restaurant): { pizzas: number; limiting
   const weights = recipes.map((_, i) => (totalSold > 0 ? sold[i] / totalSold : 1 / recipes.length));
   const perPizza: Record<string, number> = {};
   recipes.forEach((x, i) => {
-    for (const [id, units] of Object.entries(recipeUsage(x))) perPizza[id] = (perPizza[id] ?? 0) + units * weights[i];
+    for (const [id, units] of Object.entries(recipeUsage(x)))
+      perPizza[id] = (perPizza[id] ?? 0) + units * weights[i];
   });
   // A standing order or a shopping manager tops every ingredient up each morning.
   const refills = r.autoRestock || (!!activeManager(r) && managerSettings(r).shopping);
@@ -70,7 +76,9 @@ export function restaurantCapacity(st: GameState, r: Restaurant): CapacityReport
   const cooks = working.filter((s) => s.role === 'cook').length;
   const waiters = working.filter((s) => s.role === 'waiter').length;
   const stock = stockCapacity(st, r);
-  const stockNote = stock.limiting ? `${ingredient(stock.limiting).name} runs out first` : 'nothing on the menu';
+  const stockNote = stock.limiting
+    ? `${ingredient(stock.limiting).name} runs out first`
+    : 'nothing on the menu';
 
   const constraints: Constraint[] = [
     {
@@ -85,7 +93,9 @@ export function restaurantCapacity(st: GameState, r: Restaurant): CapacityReport
       label: 'Ingredient stock',
       perDay: stock.pizzas,
       detail: `${stockNote}${stock.refills ? `; restocked to ${r.restockDays} day${r.restockDays === 1 ? '' : 's'} of expected use each morning` : '; no standing order'}`,
-      fix: stock.refills ? 'Keep more days of stock in the standing order, add a fridge so perishables last, or order more from a vendor.' : 'Order stock from a vendor or set up a standing order.',
+      fix: stock.refills
+        ? 'Keep more days of stock in the standing order, add a fridge so perishables last, or order more from a vendor.'
+        : 'Order stock from a vendor or set up a standing order.',
     },
     {
       id: 'cooks',
@@ -115,14 +125,25 @@ export function restaurantCapacity(st: GameState, r: Restaurant): CapacityReport
   const limitedBy = demand < tightest.perDay * 0.95 ? 'popularity' : tightest.id;
 
   const district = city.districts[lot.district];
-  const recipes = r.menu.map((m) => st.recipes.find((x) => x.id === m.recipeId)).filter((x): x is NonNullable<typeof x> => !!x);
+  const recipes = r.menu
+    .map((m) => st.recipes.find((x) => x.id === m.recipeId))
+    .filter((x): x is NonNullable<typeof x> => !!x);
   const groups = CUSTOMER_GROUPS.map((g) => ({
     id: g.id,
     label: g.label,
     share: district.groupMix?.[g.id] ?? 1 / 6,
     // The group's favourite pizza on the menu.
-    liking: recipes.reduce((best, x) => Math.max(best, cachedPizzaStats(x, city.districts).groups[g.id]), 0),
+    liking: recipes.reduce(
+      (best, x) => Math.max(best, cachedPizzaStats(x, city.districts).groups[g.id]),
+      0,
+    ),
   }));
 
-  return { demand, constraints, limitedBy, servable: Math.min(...constraints.map((c) => c.perDay)), groups };
+  return {
+    demand,
+    constraints,
+    limitedBy,
+    servable: Math.min(...constraints.map((c) => c.perDay)),
+    groups,
+  };
 }

@@ -1,4 +1,14 @@
-import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import type { Application, Container, Graphics } from 'pixi.js';
 import { GameService } from '../game/game.service';
 import { CityMap, GameState, formatMoney } from '../game/model';
@@ -8,7 +18,9 @@ import { Traffic } from './traffic';
 
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 4;
-const DISTRICT_TINTS = [0xe63946, 0x457b9d, 0x2a9d8f, 0xf4a261, 0x8e5bd6, 0xe9c46a, 0x06d6a0, 0xef476f, 0x118ab2];
+const DISTRICT_TINTS = [
+  0xe63946, 0x457b9d, 0x2a9d8f, 0xf4a261, 0x8e5bd6, 0xe9c46a, 0x06d6a0, 0xef476f, 0x118ab2,
+];
 
 interface Hover {
   text: string;
@@ -34,7 +46,9 @@ interface Hover {
       (pointerleave)="hover.set(null)"
     ></div>
     @if (hover(); as h) {
-      <div class="tooltip" [style.left.px]="h.x + 14" [style.top.px]="h.y + 14" aria-hidden="true">{{ h.text }}</div>
+      <div class="tooltip" [style.left.px]="h.x + 14" [style.top.px]="h.y + 14" aria-hidden="true">
+        {{ h.text }}
+      </div>
     }
     <div class="zoom" role="group" aria-label="Zoom">
       <button type="button" (click)="zoomBy(1.25)" aria-label="Zoom in">+</button>
@@ -43,12 +57,51 @@ interface Hover {
     </div>
   `,
   styles: `
-    :host { display: block; position: relative; width: 100%; height: 100%; overflow: hidden; }
-    .host { position: absolute; inset: 0; touch-action: none; }
-    .host:focus-visible { outline: 3px solid #ffd166; outline-offset: -3px; }
-    .tooltip { position: absolute; pointer-events: none; background: #1d3557ee; color: #fdf6e3; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; white-space: pre-line; max-width: 240px; z-index: 2; }
-    .zoom { position: absolute; left: 12px; top: 12px; display: grid; gap: 4px; z-index: 2; }
-    .zoom button { width: 40px; height: 40px; padding: 0; font-size: 1.2rem; background: #fffaf0; color: #1d3557; border-color: #1d3557; }
+    :host {
+      display: block;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .host {
+      position: absolute;
+      inset: 0;
+      touch-action: none;
+    }
+    .host:focus-visible {
+      outline: 3px solid #ffd166;
+      outline-offset: -3px;
+    }
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: #1d3557ee;
+      color: #fdf6e3;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      white-space: pre-line;
+      max-width: 240px;
+      z-index: 2;
+    }
+    .zoom {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      display: grid;
+      gap: 4px;
+      z-index: 2;
+    }
+    .zoom button {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      font-size: 1.2rem;
+      background: #fffaf0;
+      color: #1d3557;
+      border-color: #1d3557;
+    }
   `,
 })
 export class CityMapComponent {
@@ -73,7 +126,9 @@ export class CityMapComponent {
 
   protected readonly label = computed(() => {
     const c = this.game.city();
-    return c ? `Map of ${c.name}. Arrow keys scroll, plus and minus zoom, Escape clears the selection.` : 'City map';
+    return c
+      ? `Map of ${c.name}. Arrow keys scroll, plus and minus zoom, Escape clears the selection.`
+      : 'City map';
   });
 
   constructor() {
@@ -101,7 +156,13 @@ export class CityMapComponent {
     const PIXI = await import('pixi.js');
     const app = new PIXI.Application();
     const el = this.host().nativeElement;
-    await app.init({ resizeTo: el, background: 0x2d4a3e, antialias: true, autoDensity: true, resolution: window.devicePixelRatio || 1 });
+    await app.init({
+      resizeTo: el,
+      background: 0x2d4a3e,
+      antialias: true,
+      autoDensity: true,
+      resolution: window.devicePixelRatio || 1,
+    });
     el.appendChild(app.canvas);
     app.canvas.setAttribute('aria-hidden', 'true');
     this.app = app;
@@ -130,7 +191,13 @@ export class CityMapComponent {
     if (city && state) this.redraw(city, state, this.game.selectedLotId(), null, this.ui.overlay());
   }
 
-  private redraw(city: CityMap, state: GameState, selected: number | null, hovered: number | null, overlay: MapOverlay): void {
+  private redraw(
+    city: CityMap,
+    state: GameState,
+    selected: number | null,
+    hovered: number | null,
+    overlay: MapOverlay,
+  ): void {
     if (!this.ground || !this.lots || !this.tint) return;
     if (city.id !== this.drawnCityId) {
       this.drawnCityId = city.id;
@@ -153,7 +220,8 @@ export class CityMapComponent {
     const g = this.tint!;
     g.clear();
     const inCity = state.restaurants.filter((x) => x.cityId === city.id);
-    const colorOf = (ownerId: number) => state.players.find((p) => p.id === ownerId)?.color ?? 0xffffff;
+    const colorOf = (ownerId: number) =>
+      state.players.find((p) => p.id === ownerId)?.color ?? 0xffffff;
     const me = state.players.find((p) => p.isHuman)?.id;
     const control = overlay === 'control' ? districtControl(city, inCity) : null;
 
@@ -168,7 +236,10 @@ export class CityMapComponent {
             const leader = control.get(d.id);
             color = leader === undefined ? null : colorOf(leader);
           } else {
-            color = overlay === 'districts' ? DISTRICT_TINTS[d.id % DISTRICT_TINTS.length] : wealthColor(d.wealth);
+            color =
+              overlay === 'districts'
+                ? DISTRICT_TINTS[d.id % DISTRICT_TINTS.length]
+                : wealthColor(d.wealth);
           }
           if (color !== null) g.rect(x * TILE, y * TILE, TILE, TILE).fill({ color, alpha: 0.38 });
         }
@@ -182,9 +253,18 @@ export class CityMapComponent {
       if (stop) {
         const cx = (stop.x + 0.5) * TILE;
         const cy = (stop.y + 0.5) * TILE;
-        g.circle(cx, cy, TILE * 1.4).fill({ color: 0xffd166, alpha: 0.35 }).stroke({ width: 3, color: 0x7a5a00 });
-        if (job.stage === 'pickup') g.rect(cx - 7, cy - 22, 14, 11).fill(0xb08968).stroke({ width: 2, color: 0x5c3a21 });
-        else g.rect(cx - 1, cy - 30, 2, 22).fill(0x222222).poly([cx + 1, cy - 30, cx + 14, cy - 25, cx + 1, cy - 20]).fill(0xe63946);
+        g.circle(cx, cy, TILE * 1.4)
+          .fill({ color: 0xffd166, alpha: 0.35 })
+          .stroke({ width: 3, color: 0x7a5a00 });
+        if (job.stage === 'pickup')
+          g.rect(cx - 7, cy - 22, 14, 11)
+            .fill(0xb08968)
+            .stroke({ width: 2, color: 0x5c3a21 });
+        else
+          g.rect(cx - 1, cy - 30, 2, 22)
+            .fill(0x222222)
+            .poly([cx + 1, cy - 30, cx + 14, cy - 25, cx + 1, cy - 20])
+            .fill(0xe63946);
       }
     }
 
@@ -195,12 +275,20 @@ export class CityMapComponent {
         const cx = (lot.x + lot.w / 2) * TILE;
         const cy = (lot.y + lot.h / 2) * TILE;
         // Catchment area shrinks with distance like the customer model does.
-        for (const [radius, alpha] of [[14, 0.1], [8, 0.15], [4, 0.2]] as const) g.circle(cx, cy, radius * TILE).fill({ color: colorOf(r.ownerId), alpha });
+        for (const [radius, alpha] of [
+          [14, 0.1],
+          [8, 0.15],
+          [4, 0.2],
+        ] as const)
+          g.circle(cx, cy, radius * TILE).fill({ color: colorOf(r.ownerId), alpha });
       }
     }
     if (markers.has('locations')) {
       for (const lot of city.lots.filter((l) => l.restaurantId === null)) {
-        g.rect(lot.x * TILE - 2, lot.y * TILE - 2, lot.w * TILE + 4, lot.h * TILE + 4).stroke({ width: 3, color: 0xffd166 });
+        g.rect(lot.x * TILE - 2, lot.y * TILE - 2, lot.w * TILE + 4, lot.h * TILE + 4).stroke({
+          width: 3,
+          color: 0xffd166,
+        });
       }
     }
     for (const r of inCity) {
@@ -211,7 +299,9 @@ export class CityMapComponent {
       const cy = lot.y * TILE - 26;
       // Diamond marker floating over each restaurant, in the owner's colour.
       const s = mine && markers.has('player') ? 13 : 9;
-      g.poly([cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy]).fill(0xf5e6c8).stroke({ width: 3, color: colorOf(r.ownerId) });
+      g.poly([cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy])
+        .fill(0xf5e6c8)
+        .stroke({ width: 3, color: colorOf(r.ownerId) });
     }
   }
 
@@ -237,7 +327,8 @@ export class CityMapComponent {
       if (pointers.size === 2) {
         pointers.set(e.pointerId, { x: e.global.x, y: e.global.y });
         const len = this.pinchLength(pointers);
-        if (pinchStart > 0) this.zoomAt(e.global.x, e.global.y, this.world.scale.x * (len / pinchStart));
+        if (pinchStart > 0)
+          this.zoomAt(e.global.x, e.global.y, this.world.scale.x * (len / pinchStart));
         pinchStart = len;
         dragDistance += 10;
         return;
@@ -267,7 +358,11 @@ export class CityMapComponent {
         // Continuous zoom: trackpads send small deltas, mouse wheels larger ones.
         const factor = Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0015));
         const current = this.zoomTarget?.scale ?? this.world?.scale.x ?? 1;
-        this.zoomTarget = { scale: clampZoom(current * factor), sx: ev.clientX - rect.left, sy: ev.clientY - rect.top };
+        this.zoomTarget = {
+          scale: clampZoom(current * factor),
+          sx: ev.clientX - rect.left,
+          sy: ev.clientY - rect.top,
+        };
       },
       { passive: false },
     );
@@ -280,8 +375,12 @@ export class CityMapComponent {
     if (!w || !city || !st) return;
     const tx = Math.floor((sx - w.position.x) / w.scale.x / TILE);
     const ty = Math.floor((sy - w.position.y) / w.scale.y / TILE);
-    const tile = tx >= 0 && ty >= 0 && tx < city.width && ty < city.height ? city.tiles[ty * city.width + tx] : null;
-    const lot = city.lots.find((l) => tx >= l.x && tx < l.x + l.w && ty >= l.y && ty < l.y + l.h) ?? null;
+    const tile =
+      tx >= 0 && ty >= 0 && tx < city.width && ty < city.height
+        ? city.tiles[ty * city.width + tx]
+        : null;
+    const lot =
+      city.lots.find((l) => tx >= l.x && tx < l.x + l.w && ty >= l.y && ty < l.y + l.h) ?? null;
     if (this.hoveredLot() !== (lot?.id ?? null)) this.hoveredLot.set(lot?.id ?? null);
     if (!tile) {
       this.hover.set(null);
@@ -291,7 +390,8 @@ export class CityMapComponent {
     this.ui.hoverDistrict.set(district?.name ?? null);
     let text = '';
     if (lot) {
-      const r = lot.restaurantId === null ? null : st.restaurants.find((x) => x.id === lot.restaurantId);
+      const r =
+        lot.restaurantId === null ? null : st.restaurants.find((x) => x.id === lot.restaurantId);
       if (r) {
         const owner = st.players.find((p) => p.id === r.ownerId);
         text = `${r.name}\n${owner?.isHuman ? 'Your restaurant' : `Run by ${owner?.name}`} · ${r.lastDay.customers} guests yesterday`;
@@ -343,16 +443,28 @@ export class CityMapComponent {
   protected zoomBy(factor: number): void {
     if (!this.app || !this.world) return;
     const current = this.zoomTarget?.scale ?? this.world.scale.x;
-    this.zoomTarget = { scale: clampZoom(current * factor), sx: this.app.screen.width / 2, sy: this.app.screen.height / 2 };
+    this.zoomTarget = {
+      scale: clampZoom(current * factor),
+      sx: this.app.screen.width / 2,
+      sy: this.app.screen.height / 2,
+    };
   }
 
   protected fit(): void {
     const city = this.game.city();
     if (!this.app || !this.world || !city) return;
     this.zoomTarget = null;
-    const scale = clampZoom(Math.min(this.app.screen.width / (city.width * TILE), this.app.screen.height / (city.height * TILE)) * 1.6);
+    const scale = clampZoom(
+      Math.min(
+        this.app.screen.width / (city.width * TILE),
+        this.app.screen.height / (city.height * TILE),
+      ) * 1.6,
+    );
     this.world.scale.set(scale);
-    this.world.position.set((this.app.screen.width - city.width * TILE * scale) / 2, (this.app.screen.height - city.height * TILE * scale) / 2);
+    this.world.position.set(
+      (this.app.screen.width - city.width * TILE * scale) / 2,
+      (this.app.screen.height - city.height * TILE * scale) / 2,
+    );
     this.clamp();
   }
 
@@ -366,8 +478,10 @@ export class CityMapComponent {
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
     const margin = 80;
-    w.position.x = cw < sw ? (sw - cw) / 2 : Math.min(margin, Math.max(sw - cw - margin, w.position.x));
-    w.position.y = ch < sh ? (sh - ch) / 2 : Math.min(margin, Math.max(sh - ch - margin, w.position.y));
+    w.position.x =
+      cw < sw ? (sw - cw) / 2 : Math.min(margin, Math.max(sw - cw - margin, w.position.x));
+    w.position.y =
+      ch < sh ? (sh - ch) / 2 : Math.min(margin, Math.max(sh - ch - margin, w.position.y));
   }
 
   protected onKey(ev: KeyboardEvent): void {
@@ -375,15 +489,34 @@ export class CityMapComponent {
     if (!w) return;
     const step = 60;
     switch (ev.key) {
-      case 'ArrowLeft': w.position.x += step; break;
-      case 'ArrowRight': w.position.x -= step; break;
-      case 'ArrowUp': w.position.y += step; break;
-      case 'ArrowDown': w.position.y -= step; break;
-      case '+': case '=': this.zoomBy(1.25); break;
-      case '-': case '_': this.zoomBy(0.8); break;
-      case '0': this.fit(); break;
-      case 'Escape': this.game.selectLot(null); break;
-      default: return;
+      case 'ArrowLeft':
+        w.position.x += step;
+        break;
+      case 'ArrowRight':
+        w.position.x -= step;
+        break;
+      case 'ArrowUp':
+        w.position.y += step;
+        break;
+      case 'ArrowDown':
+        w.position.y -= step;
+        break;
+      case '+':
+      case '=':
+        this.zoomBy(1.25);
+        break;
+      case '-':
+      case '_':
+        this.zoomBy(0.8);
+        break;
+      case '0':
+        this.fit();
+        break;
+      case 'Escape':
+        this.game.selectLot(null);
+        break;
+      default:
+        return;
     }
     this.clamp();
     ev.preventDefault();
@@ -414,7 +547,10 @@ function wealthColor(wealth: number): number {
 }
 
 /** For each district, the owner whose restaurants pull the most guests from it. */
-function districtControl(city: CityMap, restaurants: GameState['restaurants']): Map<number, number> {
+function districtControl(
+  city: CityMap,
+  restaurants: GameState['restaurants'],
+): Map<number, number> {
   const result = new Map<number, number>();
   for (const d of city.districts) {
     const pull = new Map<number, number>();

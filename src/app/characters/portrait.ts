@@ -9,13 +9,28 @@ import { PortraitService } from './portrait.service';
     @if (src(); as s) {
       <img [src]="s" [alt]="alt()" [width]="size()" [height]="size()" />
     } @else {
-      <span class="placeholder" [style.width.px]="size()" [style.height.px]="size()" role="img" [attr.aria-label]="alt()"></span>
+      <span
+        class="placeholder"
+        [style.width.px]="size()"
+        [style.height.px]="size()"
+        role="img"
+        [attr.aria-label]="alt()"
+      ></span>
     }
   `,
   styles: `
-    :host { display: inline-block; line-height: 0; }
-    img, .placeholder { border-radius: 8px; display: block; }
-    .placeholder { background: #0002; }
+    :host {
+      display: inline-block;
+      line-height: 0;
+    }
+    img,
+    .placeholder {
+      border-radius: 8px;
+      display: block;
+    }
+    .placeholder {
+      background: #0002;
+    }
   `,
 })
 export class PortraitComponent {
@@ -25,5 +40,7 @@ export class PortraitComponent {
   readonly background = input(0x457b9d);
   readonly alt = input('');
   readonly size = input(96);
-  protected readonly src = computed(() => this.portraits.get(this.cacheKey(), this.look(), this.background()));
+  protected readonly src = computed(() =>
+    this.portraits.get(this.cacheKey(), this.look(), this.background()),
+  );
 }

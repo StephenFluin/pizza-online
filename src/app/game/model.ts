@@ -19,7 +19,8 @@ export interface Tile {
 }
 
 /** The six customer groups every district is made of. */
-export type CustomerGroup = 'children' | 'young' | 'blueCollar' | 'whiteCollar' | 'business' | 'seniors';
+export type CustomerGroup =
+  'children' | 'young' | 'blueCollar' | 'whiteCollar' | 'business' | 'seniors';
 
 export interface District {
   id: number;
@@ -277,7 +278,17 @@ export interface Ingredient {
   /** Shelf life in days. */
   shelfLife: number;
   color: number;
-  shape: 'circle' | 'slice' | 'leaf' | 'strip' | 'cube' | 'ring' | 'half' | 'crumble' | 'floret' | 'pearl';
+  shape:
+    | 'circle'
+    | 'slice'
+    | 'leaf'
+    | 'strip'
+    | 'cube'
+    | 'ring'
+    | 'half'
+    | 'crumble'
+    | 'floret'
+    | 'pearl';
   /** Grams per piece when whole, chopped and minced; 0 means it can't be cut that finely. */
   grams: [number, number, number];
   /** Calories per 100 g. */
@@ -436,7 +447,20 @@ export const CLOSE_MINUTE = 23 * 60;
 export function formatDate(day: number): string {
   const month = Math.floor(day / DAYS_PER_MONTH);
   const year = START_YEAR + Math.floor(month / 12);
-  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const names = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   return `${(day % DAYS_PER_MONTH) + 1} ${names[month % 12]} ${year}`;
 }
 

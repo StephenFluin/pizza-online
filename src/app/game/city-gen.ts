@@ -11,7 +11,11 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
   const rng = new Rng(seed);
   const W = CITY_WIDTH;
   const H = CITY_HEIGHT;
-  const tiles: Tile[] = Array.from({ length: W * H }, () => ({ kind: 'building', district: -1, variant: 0 }));
+  const tiles: Tile[] = Array.from({ length: W * H }, () => ({
+    kind: 'building',
+    district: -1,
+    variant: 0,
+  }));
   const at = (x: number, y: number) => tiles[y * W + x];
 
   // River meandering across the city.
@@ -31,7 +35,10 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
 
   // Districts as Voronoi cells around random centres.
   const districtCount = rng.int(6, 9);
-  const centres = Array.from({ length: districtCount }, () => ({ x: rng.int(4, W - 5), y: rng.int(4, H - 5) }));
+  const centres = Array.from({ length: districtCount }, () => ({
+    x: rng.int(4, W - 5),
+    y: rng.int(4, H - 5),
+  }));
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const t = at(x, y);
@@ -109,7 +116,9 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
       seniors: rng.range(0.5, 1.5),
     };
     const sum = Object.values(raw).reduce((n, v) => n + v, 0);
-    const groupMix = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, Math.round((v / sum) * 1000) / 1000])) as Record<CustomerGroup, number>;
+    const groupMix = Object.fromEntries(
+      Object.entries(raw).map(([k, v]) => [k, Math.round((v / sum) * 1000) / 1000]),
+    ) as Record<CustomerGroup, number>;
     return {
       id: i,
       name: names[i],
@@ -126,7 +135,8 @@ export function generateCity(def: CityDef, gameSeed: number): CityMap {
     };
   });
   for (const t of tiles) {
-    if (t.kind === 'building') districts[t.district].population += rng.int(60, 140) * (t.variant + 1);
+    if (t.kind === 'building')
+      districts[t.district].population += rng.int(60, 140) * (t.variant + 1);
   }
   for (const lot of lots) {
     const d = districts[lot.district];
@@ -150,16 +160,39 @@ function roadLines(rng: Rng, size: number): number[] {
 
 type TileAt = (x: number, y: number) => Tile;
 
-function blockHas(at: TileAt, x0: number, y0: number, x1: number, y1: number, kind: Tile['kind']): boolean {
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (at(x, y).kind === kind) return true;
+function blockHas(
+  at: TileAt,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  kind: Tile['kind'],
+): boolean {
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) if (at(x, y).kind === kind) return true;
   return false;
 }
 
-function blockAll(at: TileAt, x0: number, y0: number, x1: number, y1: number, kind: Tile['kind']): boolean {
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (at(x, y).kind !== kind) return false;
+function blockAll(
+  at: TileAt,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  kind: Tile['kind'],
+): boolean {
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) if (at(x, y).kind !== kind) return false;
   return true;
 }
 
-function fillBlock(at: TileAt, x0: number, y0: number, x1: number, y1: number, kind: Tile['kind']): void {
+function fillBlock(
+  at: TileAt,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  kind: Tile['kind'],
+): void {
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) at(x, y).kind = kind;
 }

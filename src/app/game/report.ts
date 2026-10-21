@@ -43,7 +43,10 @@ const COOK_RATE = 10;
 /** A day's share of rent and wages, plus the day's running costs. */
 function dailyOverhead(r: Restaurant): number {
   const wages = r.staff.reduce((n, s) => n + s.wagePerMonth, 0);
-  return (wages + (r.owned ? 0 : r.rentPerMonth)) / DAYS_PER_MONTH + runningCost(r.layout, r.seats, cityDef(r.cityId).costOfLiving);
+  return (
+    (wages + (r.owned ? 0 : r.rentPerMonth)) / DAYS_PER_MONTH +
+    runningCost(r.layout, r.seats, cityDef(r.cityId).costOfLiving)
+  );
 }
 
 function dayProfit(d: DayStats, overhead: number): number {
@@ -57,7 +60,9 @@ export function reviewRestaurant(st: GameState, r: Restaurant): RestaurantReview
   const profit = dayProfit(d, overhead);
   const utilisation = d.capacity > 0 ? Math.min(1, d.customers / d.capacity) : 0;
   const history = r.history ?? [];
-  const week = history.slice(-7).map((h) => ({ day: h.day, guests: h.customers, profit: dayProfit(h, overhead) }));
+  const week = history
+    .slice(-7)
+    .map((h) => ({ day: h.day, guests: h.customers, profit: dayProfit(h, overhead) }));
   const recipes = st.recipes;
 
   const pizzas: PizzaRow[] = r.menu.map((m) => {
@@ -80,66 +85,135 @@ export function reviewRestaurant(st: GameState, r: Restaurant): RestaurantReview
   const waiters = r.staff.filter((s) => s.role === 'waiter');
 
   if (cooks.length === 0 || waiters.length === 0) {
-    findings.push({ tone: 'bad', text: `Closed for business: you need at least one cook and one waiter. Call the staff agency.` });
+    findings.push({
+      tone: 'bad',
+      text: `Closed for business: you need at least one cook and one waiter. Call the staff agency.`,
+    });
   } else if (profit >= 0) {
-    findings.push({ tone: 'good', text: `Made ${money(profit)} after ingredients (${money(d.foodCost)}), rent, wages and running costs (${money(overhead)} a day).` });
+    findings.push({
+      tone: 'good',
+      text: `Made ${money(profit)} after ingredients (${money(d.foodCost)}), rent, wages and running costs (${money(overhead)} a day).`,
+    });
   } else {
-    findings.push({ tone: 'bad', text: `Lost ${money(profit)} after ingredients (${money(d.foodCost)}), rent, wages and running costs (${money(overhead)} a day).` });
+    findings.push({
+      tone: 'bad',
+      text: `Lost ${money(profit)} after ingredients (${money(d.foodCost)}), rent, wages and running costs (${money(overhead)} a day).`,
+    });
   }
 
   const pop = r.popularity;
   if (pop && pop.waiting < -5) {
-    findings.push({ tone: 'bad', text: `Guests waited about ${pop.waitMinutes} minutes but locals expect ${pop.expectedMinutes}. More staff, ovens or tables would speed things up.` });
+    findings.push({
+      tone: 'bad',
+      text: `Guests waited about ${pop.waitMinutes} minutes but locals expect ${pop.expectedMinutes}. More staff, ovens or tables would speed things up.`,
+    });
   } else if (pop && pop.waiting > 10) {
-    findings.push({ tone: 'good', text: `Quick service: about ${pop.waitMinutes} minutes against an expected ${pop.expectedMinutes}.` });
+    findings.push({
+      tone: 'good',
+      text: `Quick service: about ${pop.waitMinutes} minutes against an expected ${pop.expectedMinutes}.`,
+    });
   }
   if (pop && pop.supervision < 0) {
-    findings.push({ tone: 'bad', text: 'You have more restaurants than you can supervise yourself, so this one loses popularity. Hire a manager or pick an owner with more energy.' });
+    findings.push({
+      tone: 'bad',
+      text: 'You have more restaurants than you can supervise yourself, so this one loses popularity. Hire a manager or pick an owner with more energy.',
+    });
   }
   if (pop && pop.menu < -5) {
-    findings.push({ tone: 'bad', text: 'Locals want more choice: keep at least three classic pizzas on the menu, plus some house creations.' });
+    findings.push({
+      tone: 'bad',
+      text: 'Locals want more choice: keep at least three classic pizzas on the menu, plus some house creations.',
+    });
   }
   if (d.lostKitchen > 0) {
     const cookRate = cooks.reduce((n, s) => n + COOK_RATE * (0.6 + s.skill * 0.8), 0);
-    const advice = cookRate < r.kitchenCapacity ? 'Hire another cook.' : 'Buy another oven, and a prep counter for every two ovens.';
-    findings.push({ tone: 'bad', text: `${d.lostKitchen} guests left because the kitchen couldn't keep up. ${advice}` });
+    const advice =
+      cookRate < r.kitchenCapacity
+        ? 'Hire another cook.'
+        : 'Buy another oven, and a prep counter for every two ovens.';
+    findings.push({
+      tone: 'bad',
+      text: `${d.lostKitchen} guests left because the kitchen couldn't keep up. ${advice}`,
+    });
   }
-  if (d.lostFloor > 0) findings.push({ tone: 'bad', text: `${d.lostFloor} guests left because nobody could serve them. Hire another waiter, or buy a dishwasher.` });
-  if (d.lostSeats > 0) findings.push({ tone: 'bad', text: `${d.lostSeats} guests found every seat taken. Add tables in the restaurant view.` });
+  if (d.lostFloor > 0)
+    findings.push({
+      tone: 'bad',
+      text: `${d.lostFloor} guests left because nobody could serve them. Hire another waiter, or buy a dishwasher.`,
+    });
+  if (d.lostSeats > 0)
+    findings.push({
+      tone: 'bad',
+      text: `${d.lostSeats} guests found every seat taken. Add tables in the restaurant view.`,
+    });
 
   const missing = Object.entries(d.missing).sort((a, b) => b[1] - a[1]);
   if (missing.length) {
-    const list = missing.slice(0, 3).map(([id, n]) => `${ingredient(id).name.toLowerCase()} (${n} guests)`).join(', ');
-    findings.push({ tone: 'bad', text: `Ran out of ${list}. Order more stock or raise the restock target.` });
+    const list = missing
+      .slice(0, 3)
+      .map(([id, n]) => `${ingredient(id).name.toLowerCase()} (${n} guests)`)
+      .join(', ');
+    findings.push({
+      tone: 'bad',
+      text: `Ran out of ${list}. Order more stock or raise the restock target.`,
+    });
   }
 
   const sellers = pizzas.filter((p) => p.sold > 0).sort((a, b) => b.sold - a.sold);
   if (sellers.length) {
     const top = sellers[0];
-    findings.push({ tone: 'good', text: `${top.name} was the favourite: ${top.sold} sold at ${Math.round(top.margin * 100)}% margin.` });
+    findings.push({
+      tone: 'good',
+      text: `${top.name} was the favourite: ${top.sold} sold at ${Math.round(top.margin * 100)}% margin.`,
+    });
   }
   for (const p of pizzas) {
     if (d.customers > 10 && p.ordered === 0) {
-      findings.push({ tone: 'tip', text: `Nobody wanted ${p.name}. Locals may not like its toppings, or it costs too much compared with the rest of your menu.` });
+      findings.push({
+        tone: 'tip',
+        text: `Nobody wanted ${p.name}. Locals may not like its toppings, or it costs too much compared with the rest of your menu.`,
+      });
     } else if (p.sold > 0 && p.margin < 0.45) {
-      findings.push({ tone: 'tip', text: `${p.name} barely pays: only ${Math.round(p.margin * 100)}% of the price is left after ingredients. Raise the price or use cheaper toppings.` });
+      findings.push({
+        tone: 'tip',
+        text: `${p.name} barely pays: only ${Math.round(p.margin * 100)}% of the price is left after ingredients. Raise the price or use cheaper toppings.`,
+      });
     }
   }
 
   if (d.capacity > 0 && utilisation < 0.35 && d.turnedAway < 5) {
-    findings.push({ tone: 'bad', text: `A quiet day: only ${Math.round(utilisation * 100)}% of your capacity was used. Try advertising, cheaper prices or pizzas the district likes.` });
+    findings.push({
+      tone: 'bad',
+      text: `A quiet day: only ${Math.round(utilisation * 100)}% of your capacity was used. Try advertising, cheaper prices or pizzas the district likes.`,
+    });
   } else if (utilisation > 0.9 && d.turnedAway === 0) {
     findings.push({ tone: 'good', text: 'Running at full capacity without turning anyone away.' });
   }
 
   const weekAgo = history.length >= 8 ? history[history.length - 8] : history[0];
   const trend = weekAgo ? r.reputation - weekAgo.reputation : 0;
-  if (trend > 0.03) findings.push({ tone: 'good', text: `Reputation is up ${Math.round(trend * 100)} points this week.` });
-  else if (trend < -0.03) findings.push({ tone: 'bad', text: `Reputation is down ${Math.round(-trend * 100)} points this week.` });
+  if (trend > 0.03)
+    findings.push({
+      tone: 'good',
+      text: `Reputation is up ${Math.round(trend * 100)} points this week.`,
+    });
+  else if (trend < -0.03)
+    findings.push({
+      tone: 'bad',
+      text: `Reputation is down ${Math.round(-trend * 100)} points this week.`,
+    });
   if (d.customers > 0) {
     const avg = d.satisfaction / d.customers;
-    if (avg > r.reputation + 0.05) findings.push({ tone: 'good', text: `Guests left happier than your reputation suggests (${Math.round(avg * 100)}%), so word of mouth is improving.` });
-    else if (avg < r.reputation - 0.05) findings.push({ tone: 'bad', text: `Guests were less impressed than expected (${Math.round(avg * 100)}%). Better recipes, staff or decoration would help your reputation.` });
+    if (avg > r.reputation + 0.05)
+      findings.push({
+        tone: 'good',
+        text: `Guests left happier than your reputation suggests (${Math.round(avg * 100)}%), so word of mouth is improving.`,
+      });
+    else if (avg < r.reputation - 0.05)
+      findings.push({
+        tone: 'bad',
+        text: `Guests were less impressed than expected (${Math.round(avg * 100)}%). Better recipes, staff or decoration would help your reputation.`,
+      });
   }
 
   // Ingredients that will run out tomorrow at today's pace.
@@ -148,10 +222,15 @@ export function reviewRestaurant(st: GameState, r: Restaurant): RestaurantReview
     for (const p of pizzas) {
       const recipe = recipes.find((x) => x.id === p.recipeId);
       if (!recipe) continue;
-      for (const [id, n] of Object.entries(recipeUsage(recipe))) usage[id] = (usage[id] ?? 0) + n * p.sold;
+      for (const [id, n] of Object.entries(recipeUsage(recipe)))
+        usage[id] = (usage[id] ?? 0) + n * p.sold;
     }
     const low = Object.entries(usage).filter(([id, u]) => u > 0 && (r.stock[id] ?? 0) / u < 1.5);
-    if (low.length) findings.push({ tone: 'bad', text: `Less than two days of ${low.map(([id]) => ingredient(id).name.toLowerCase()).join(', ')} left in stock.` });
+    if (low.length)
+      findings.push({
+        tone: 'bad',
+        text: `Less than two days of ${low.map(([id]) => ingredient(id).name.toLowerCase()).join(', ')} left in stock.`,
+      });
   }
 
   return {

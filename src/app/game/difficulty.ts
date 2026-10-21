@@ -18,10 +18,42 @@ export interface Difficulty {
 }
 
 export const DIFFICULTIES: readonly Difficulty[] = [
-  { id: 'pushover', label: 'Pushover', description: 'More money, customers who warm to you, timid rivals.', cash: 1.5, demand: 1.2, rivals: 0.6, score: 0.5 },
-  { id: 'normal', label: 'Normal', description: 'The game as intended.', cash: 1, demand: 1, rivals: 1, score: 1 },
-  { id: 'difficult', label: 'Difficult', description: 'Less money, customers slower to warm to you, pushy rivals.', cash: 0.8, demand: 0.88, rivals: 1.4, score: 1.5 },
-  { id: 'impossible', label: 'Impossible', description: 'Every dollar counts and the rivals fight dirty.', cash: 0.6, demand: 0.75, rivals: 2, score: 2.2 },
+  {
+    id: 'pushover',
+    label: 'Pushover',
+    description: 'More money, customers who warm to you, timid rivals.',
+    cash: 1.5,
+    demand: 1.2,
+    rivals: 0.6,
+    score: 0.5,
+  },
+  {
+    id: 'normal',
+    label: 'Normal',
+    description: 'The game as intended.',
+    cash: 1,
+    demand: 1,
+    rivals: 1,
+    score: 1,
+  },
+  {
+    id: 'difficult',
+    label: 'Difficult',
+    description: 'Less money, customers slower to warm to you, pushy rivals.',
+    cash: 0.8,
+    demand: 0.88,
+    rivals: 1.4,
+    score: 1.5,
+  },
+  {
+    id: 'impossible',
+    label: 'Impossible',
+    description: 'Every dollar counts and the rivals fight dirty.',
+    cash: 0.6,
+    demand: 0.75,
+    rivals: 2,
+    score: 2.2,
+  },
 ];
 
 export function difficulty(st: Pick<GameState, 'difficulty'> | null | undefined): Difficulty {

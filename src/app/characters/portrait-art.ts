@@ -28,17 +28,29 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
   const faceY = 45 * u;
 
   // Hair that sits behind the head.
-  if (look.hairStyle === 'long') g.roundRect(cx - faceW - 4 * u, faceY - 22 * u, (faceW + 4 * u) * 2, 56 * u, 18 * u).fill(look.hair);
-  if (look.hairStyle === 'bob') g.roundRect(cx - faceW - 3 * u, faceY - 24 * u, (faceW + 3 * u) * 2, 42 * u, 14 * u).fill(look.hair);
-  if (look.hairStyle === 'curly') for (let i = 0; i < 12; i++) {
-    const a = Math.PI + (i / 11) * Math.PI;
-    g.circle(cx + Math.cos(a) * (faceW + 2 * u), faceY - 4 * u + Math.sin(a) * (faceH + 2 * u), 9 * u).fill(look.hair);
-  }
+  if (look.hairStyle === 'long')
+    g.roundRect(cx - faceW - 4 * u, faceY - 22 * u, (faceW + 4 * u) * 2, 56 * u, 18 * u).fill(
+      look.hair,
+    );
+  if (look.hairStyle === 'bob')
+    g.roundRect(cx - faceW - 3 * u, faceY - 24 * u, (faceW + 3 * u) * 2, 42 * u, 14 * u).fill(
+      look.hair,
+    );
+  if (look.hairStyle === 'curly')
+    for (let i = 0; i < 12; i++) {
+      const a = Math.PI + (i / 11) * Math.PI;
+      g.circle(
+        cx + Math.cos(a) * (faceW + 2 * u),
+        faceY - 4 * u + Math.sin(a) * (faceH + 2 * u),
+        9 * u,
+      ).fill(look.hair);
+    }
 
   // Ears and face.
   g.ellipse(cx - faceW, faceY + 2 * u, 5 * u, 7 * u).fill(shade(look.skin, 0.92));
   g.ellipse(cx + faceW, faceY + 2 * u, 5 * u, 7 * u).fill(shade(look.skin, 0.92));
-  if (look.faceShape === 2) g.roundRect(cx - faceW, faceY - faceH, faceW * 2, faceH * 2, 14 * u).fill(look.skin);
+  if (look.faceShape === 2)
+    g.roundRect(cx - faceW, faceY - faceH, faceW * 2, faceH * 2, 14 * u).fill(look.skin);
   else g.ellipse(cx, faceY, faceW, faceH).fill(look.skin);
   if (look.accessory === 'earrings') {
     g.circle(cx - faceW, faceY + 10 * u, 2.5 * u).fill(0xffd166);
@@ -52,7 +64,14 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
       break;
     case 'side':
       g.ellipse(cx, faceY - faceH + 6 * u, faceW + 2 * u, 12 * u).fill(look.hair);
-      g.poly([cx - faceW, faceY - faceH + 8 * u, cx + 4 * u, faceY - faceH + 4 * u, cx - faceW + 2 * u, faceY - 8 * u]).fill(look.hair);
+      g.poly([
+        cx - faceW,
+        faceY - faceH + 8 * u,
+        cx + 4 * u,
+        faceY - faceH + 4 * u,
+        cx - faceW + 2 * u,
+        faceY - 8 * u,
+      ]).fill(look.hair);
       break;
     case 'bun':
       g.ellipse(cx, faceY - faceH + 6 * u, faceW + 1 * u, 11 * u).fill(look.hair);
@@ -66,12 +85,16 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
       g.ellipse(cx, faceY - faceH + 7 * u, faceW + 3 * u, 13 * u).fill(look.hair);
       break;
     case 'curly':
-      for (let i = 0; i < 7; i++) g.circle(cx - faceW + (i * faceW * 2) / 6, faceY - faceH + 4 * u, 8 * u).fill(look.hair);
+      for (let i = 0; i < 7; i++)
+        g.circle(cx - faceW + (i * faceW * 2) / 6, faceY - faceH + 4 * u, 8 * u).fill(look.hair);
       break;
     case 'bald':
       g.ellipse(cx - faceW + 2 * u, faceY - 4 * u, 3 * u, 8 * u).fill(look.hair);
       g.ellipse(cx + faceW - 2 * u, faceY - 4 * u, 3 * u, 8 * u).fill(look.hair);
-      g.ellipse(cx - 6 * u, faceY - faceH + 8 * u, 6 * u, 3 * u).fill({ color: 0xffffff, alpha: 0.35 });
+      g.ellipse(cx - 6 * u, faceY - faceH + 8 * u, 6 * u, 3 * u).fill({
+        color: 0xffffff,
+        alpha: 0.35,
+      });
       break;
   }
 
@@ -85,10 +108,16 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
   g.circle(cx - 9.5 * u, eyeY + 0.5 * u, 2.4 * u).fill(look.eyes);
   g.circle(cx + 10.5 * u, eyeY + 0.5 * u, 2.4 * u).fill(look.eyes);
   if (look.age === 'old') {
-    g.moveTo(cx - 15 * u, eyeY + 5 * u).lineTo(cx - 11 * u, eyeY + 6 * u).stroke({ width: 1 * u, color: shade(look.skin, 0.75) });
-    g.moveTo(cx + 15 * u, eyeY + 5 * u).lineTo(cx + 11 * u, eyeY + 6 * u).stroke({ width: 1 * u, color: shade(look.skin, 0.75) });
+    g.moveTo(cx - 15 * u, eyeY + 5 * u)
+      .lineTo(cx - 11 * u, eyeY + 6 * u)
+      .stroke({ width: 1 * u, color: shade(look.skin, 0.75) });
+    g.moveTo(cx + 15 * u, eyeY + 5 * u)
+      .lineTo(cx + 11 * u, eyeY + 6 * u)
+      .stroke({ width: 1 * u, color: shade(look.skin, 0.75) });
   }
-  g.poly([cx, eyeY + 2 * u, cx - 4 * u, eyeY + 12 * u, cx + 3 * u, eyeY + 12 * u]).fill(shade(look.skin, 0.82));
+  g.poly([cx, eyeY + 2 * u, cx - 4 * u, eyeY + 12 * u, cx + 3 * u, eyeY + 12 * u]).fill(
+    shade(look.skin, 0.82),
+  );
   g.ellipse(cx - 15 * u, eyeY + 12 * u, 4 * u, 2.5 * u).fill({ color: 0xe5737a, alpha: 0.35 });
   g.ellipse(cx + 15 * u, eyeY + 12 * u, 4 * u, 2.5 * u).fill({ color: 0xe5737a, alpha: 0.35 });
 
@@ -97,10 +126,15 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
     g.ellipse(cx, faceY + faceH - 8 * u, faceW - 2 * u, 12 * u).fill(look.hair);
     g.ellipse(cx, eyeY + 19 * u, 7 * u, 3 * u).fill(look.skin);
   } else if (look.facialHair === 'stubble') {
-    g.ellipse(cx, faceY + faceH - 8 * u, faceW - 4 * u, 10 * u).fill({ color: look.hair, alpha: 0.25 });
+    g.ellipse(cx, faceY + faceH - 8 * u, faceW - 4 * u, 10 * u).fill({
+      color: look.hair,
+      alpha: 0.25,
+    });
   }
   // Smile.
-  g.moveTo(cx - 7 * u, eyeY + 18 * u).quadraticCurveTo(cx, eyeY + 24 * u, cx + 7 * u, eyeY + 18 * u).stroke({ width: 2 * u, color: 0x7a2e2e });
+  g.moveTo(cx - 7 * u, eyeY + 18 * u)
+    .quadraticCurveTo(cx, eyeY + 24 * u, cx + 7 * u, eyeY + 18 * u)
+    .stroke({ width: 2 * u, color: 0x7a2e2e });
   if (look.facialHair === 'moustache') {
     g.ellipse(cx - 5 * u, eyeY + 15 * u, 6 * u, 2.6 * u).fill(look.hair);
     g.ellipse(cx + 5 * u, eyeY + 15 * u, 6 * u, 2.6 * u).fill(look.hair);
@@ -111,7 +145,9 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
     case 'glasses':
       g.circle(cx - 10 * u, eyeY, 6 * u).stroke({ width: 1.6 * u, color: 0x222222 });
       g.circle(cx + 10 * u, eyeY, 6 * u).stroke({ width: 1.6 * u, color: 0x222222 });
-      g.moveTo(cx - 4 * u, eyeY).lineTo(cx + 4 * u, eyeY).stroke({ width: 1.6 * u, color: 0x222222 });
+      g.moveTo(cx - 4 * u, eyeY)
+        .lineTo(cx + 4 * u, eyeY)
+        .stroke({ width: 1.6 * u, color: 0x222222 });
       break;
     case 'sunglasses':
       g.roundRect(cx - 17 * u, eyeY - 4 * u, 14 * u, 9 * u, 3 * u).fill(0x111111);
@@ -120,17 +156,38 @@ export function drawPortrait(g: Graphics, look: Look, S: number, background: num
       break;
     case 'hat':
       g.ellipse(cx, faceY - faceH + 4 * u, faceW + 10 * u, 5 * u).fill(0x2b2b2b);
-      g.roundRect(cx - faceW + 2 * u, faceY - faceH - 14 * u, (faceW - 2 * u) * 2, 18 * u, 4 * u).fill(0x2b2b2b);
+      g.roundRect(
+        cx - faceW + 2 * u,
+        faceY - faceH - 14 * u,
+        (faceW - 2 * u) * 2,
+        18 * u,
+        4 * u,
+      ).fill(0x2b2b2b);
       g.rect(cx - faceW + 2 * u, faceY - faceH - 2 * u, (faceW - 2 * u) * 2, 3 * u).fill(0x9d0208);
       break;
     case 'chef-hat':
       g.rect(cx - faceW + 4 * u, faceY - faceH - 4 * u, (faceW - 4 * u) * 2, 10 * u).fill(0xffffff);
-      for (const dx of [-12, 0, 12]) g.circle(cx + dx * u, faceY - faceH - 12 * u, 11 * u).fill(0xffffff);
+      for (const dx of [-12, 0, 12])
+        g.circle(cx + dx * u, faceY - faceH - 12 * u, 11 * u).fill(0xffffff);
       g.rect(cx - faceW + 4 * u, faceY - faceH + 2 * u, (faceW - 4 * u) * 2, 2 * u).fill(0xdddddd);
       break;
     case 'bow':
-      g.poly([cx + 8 * u, faceY - faceH + 2 * u, cx + 20 * u, faceY - faceH - 6 * u, cx + 20 * u, faceY - faceH + 8 * u]).fill(0xe63946);
-      g.poly([cx + 8 * u, faceY - faceH + 2 * u, cx - 4 * u, faceY - faceH - 6 * u, cx - 4 * u, faceY - faceH + 8 * u]).fill(0xe63946);
+      g.poly([
+        cx + 8 * u,
+        faceY - faceH + 2 * u,
+        cx + 20 * u,
+        faceY - faceH - 6 * u,
+        cx + 20 * u,
+        faceY - faceH + 8 * u,
+      ]).fill(0xe63946);
+      g.poly([
+        cx + 8 * u,
+        faceY - faceH + 2 * u,
+        cx - 4 * u,
+        faceY - faceH - 6 * u,
+        cx - 4 * u,
+        faceY - faceH + 8 * u,
+      ]).fill(0xe63946);
       g.circle(cx + 8 * u, faceY - faceH + 2 * u, 3 * u).fill(0xb3261e);
       break;
     case 'headband':

@@ -17,7 +17,12 @@ interface Agent {
 
 const CAR_COLORS = [0xe63946, 0x457b9d, 0xf1faee, 0xffb703, 0x2a9d8f, 0x6d597a, 0x1d3557, 0xe76f51];
 const CLOTHES = [0xd62828, 0x003049, 0xf77f00, 0x6a4c93, 0x2a9d8f, 0x8d99ae, 0xfcbf49];
-const DIRS: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const DIRS: [number, number][] = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
 
 /** Cars driving on the right and people walking along kerbs; purely cosmetic. */
 export class Traffic {
@@ -28,7 +33,8 @@ export class Traffic {
     this.city = city;
     this.agents = [];
     const roads: [number, number][] = [];
-    for (let y = 0; y < city.height; y++) for (let x = 0; x < city.width; x++) if (this.isRoad(x, y)) roads.push([x, y]);
+    for (let y = 0; y < city.height; y++)
+      for (let x = 0; x < city.width; x++) if (this.isRoad(x, y)) roads.push([x, y]);
     // Busier cities get more traffic.
     const pop = city.districts.reduce((n, d) => n + d.population, 0);
     const cars = Math.min(180, Math.round(roads.length / 8 + pop / 8000));
@@ -36,7 +42,9 @@ export class Traffic {
     for (let i = 0; i < cars + people; i++) {
       const [x, y] = roads[Math.floor(Math.random() * roads.length)];
       const options = DIRS.filter(([dx, dy]) => this.isRoad(x + dx, y + dy));
-      const [dx, dy] = options.length ? options[Math.floor(Math.random() * options.length)] : [1, 0];
+      const [dx, dy] = options.length
+        ? options[Math.floor(Math.random() * options.length)]
+        : [1, 0];
       const car = i < cars;
       this.agents.push({
         x: x + 0.5,
@@ -68,9 +76,13 @@ export class Traffic {
 
   private steer(a: Agent, cx: number, cy: number): void {
     const forward = this.isRoad(cx + a.dx, cy + a.dy);
-    const turns = DIRS.filter(([dx, dy]) => !(dx === -a.dx && dy === -a.dy) && this.isRoad(cx + dx, cy + dy));
+    const turns = DIRS.filter(
+      ([dx, dy]) => !(dx === -a.dx && dy === -a.dy) && this.isRoad(cx + dx, cy + dy),
+    );
     if (forward && (turns.length <= 1 || Math.random() < 0.65)) return;
-    const choice = turns.length ? turns[Math.floor(Math.random() * turns.length)] : ([-a.dx, -a.dy] as [number, number]);
+    const choice = turns.length
+      ? turns[Math.floor(Math.random() * turns.length)]
+      : ([-a.dx, -a.dy] as [number, number]);
     a.x = cx + 0.5;
     a.y = cy + 0.5;
     [a.dx, a.dy] = choice;
@@ -90,7 +102,12 @@ export class Traffic {
         g.rect(px - w / 2 + 1, py - h / 2 + 1, w, h).fill({ color: 0x000000, alpha: 0.25 });
         g.roundRect(px - w / 2, py - h / 2, w, h, 2).fill(a.color);
         // Windscreen towards the direction of travel.
-        g.rect(px + a.dx * 2 - (horiz ? 1 : 2), py + a.dy * 2 - (horiz ? 2 : 1), horiz ? 2 : 4, horiz ? 4 : 2).fill(0x9ec9e2);
+        g.rect(
+          px + a.dx * 2 - (horiz ? 1 : 2),
+          py + a.dy * 2 - (horiz ? 2 : 1),
+          horiz ? 2 : 4,
+          horiz ? 4 : 2,
+        ).fill(0x9ec9e2);
       } else {
         g.rect(px - 1, py - 3, 3, 4).fill(a.color);
         g.circle(px + 0.5, py - 4.5, 1.5).fill(0xf1c27d);

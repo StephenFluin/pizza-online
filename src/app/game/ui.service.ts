@@ -55,7 +55,8 @@ export class UiService {
 
   open(dialog: Dialog): void {
     // Opening a screen for a particular pizzeria makes it the current one everywhere.
-    if ('restaurantId' in dialog && dialog.restaurantId != null) this.shopId.set(dialog.restaurantId);
+    if ('restaurantId' in dialog && dialog.restaurantId != null)
+      this.shopId.set(dialog.restaurantId);
     this.dialog.set(dialog);
   }
 

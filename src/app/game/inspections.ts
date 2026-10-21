@@ -10,7 +10,8 @@ import { recipeQuality } from './recipes';
  * Numbers and texts are our own.
  */
 
-export type IncomingTopic = 'inspection' | 'donation' | 'complaint' | 'award' | 'shark' | 'police' | 'protection' | 'job';
+export type IncomingTopic =
+  'inspection' | 'donation' | 'complaint' | 'award' | 'shark' | 'police' | 'protection' | 'job';
 
 /** A call waiting for the player to answer; the clock pauses while one is ringing. */
 export interface IncomingCall {
@@ -34,8 +35,12 @@ export function qualityRating(st: GameState, r: Restaurant): number {
   const days = (r.history ?? []).slice(-7);
   const served = days.reduce((n, d) => n + d.customers, 0);
   const satisfaction = served ? days.reduce((n, d) => n + d.satisfaction, 0) / served : 0;
-  const recipes = r.menu.map((m) => st.recipes.find((x) => x.id === m.recipeId)).filter((x): x is NonNullable<typeof x> => !!x);
-  const craft = recipes.length ? recipes.reduce((n, x) => n + recipeQuality(x), 0) / recipes.length : 0;
+  const recipes = r.menu
+    .map((m) => st.recipes.find((x) => x.id === m.recipeId))
+    .filter((x): x is NonNullable<typeof x> => !!x);
+  const craft = recipes.length
+    ? recipes.reduce((n, x) => n + recipeQuality(x), 0) / recipes.length
+    : 0;
   const lot = st.cities.find((c) => c.id === r.cityId)?.lots[r.lotId];
   const decor = lot ? roomStats(r.layout, lot, r.floorId).decor / 3 : 0;
   return Math.round(satisfaction * 55 + craft * 30 + decor * 15);
@@ -55,7 +60,15 @@ function mayorId(cityId: string): string {
 export function queueCall(st: GameState, call: Omit<IncomingCall, 'id'>): void {
   st.phoneQueue ??= [];
   // One call per topic and restaurant at a time.
-  if (st.phoneQueue.some((c) => c.topic === call.topic && c.restaurantId === call.restaurantId && c.contactId === call.contactId)) return;
+  if (
+    st.phoneQueue.some(
+      (c) =>
+        c.topic === call.topic &&
+        c.restaurantId === call.restaurantId &&
+        c.contactId === call.contactId,
+    )
+  )
+    return;
   st.phoneQueue.push({ id: st.nextId++, ...call });
 }
 
@@ -70,24 +83,60 @@ export function mayorMorning(st: GameState): void {
       const rating = qualityRating(st, r);
       r.qualityRating = rating;
       r.stars = inspect(before, rating);
-      r.nextInspection = st.day + INSPECTION_EVERY[0] + Math.floor(Math.random() * (INSPECTION_EVERY[1] - INSPECTION_EVERY[0]));
-      if (owner.isHuman) queueCall(st, { contactId: mayorId(r.cityId), topic: 'inspection', restaurantId: r.id, before, after: r.stars });
+      r.nextInspection =
+        st.day +
+        INSPECTION_EVERY[0] +
+        Math.floor(Math.random() * (INSPECTION_EVERY[1] - INSPECTION_EVERY[0]));
+      if (owner.isHuman)
+        queueCall(st, {
+          contactId: mayorId(r.cityId),
+          topic: 'inspection',
+          restaurantId: r.id,
+          before,
+          after: r.stars,
+        });
     }
   }
 
   const me = st.players.find((p) => p.isHuman);
   if (!me) return;
-  const myCities = [...new Set(st.restaurants.filter((r) => r.ownerId === me.id).map((r) => r.cityId))];
+  const myCities = [
+    ...new Set(st.restaurants.filter((r) => r.ownerId === me.id).map((r) => r.cityId)),
+  ];
   for (const cityId of myCities) {
     const col = cityDef(cityId).costOfLiving;
     // Roughly every two months each mayor asks for help with a project.
-    if (Math.random() < 1 / 60) queueCall(st, { contactId: mayorId(cityId), topic: 'donation', amount: Math.round(((2 + Math.floor(Math.random() * 4)) * 1000 * col) / 500) * 500 });
+    if (Math.random() < 1 / 60)
+      queueCall(st, {
+        contactId: mayorId(cityId),
+        topic: 'donation',
+        amount: Math.round(((2 + Math.floor(Math.random() * 4)) * 1000 * col) / 500) * 500,
+      });
     // Residents sometimes complain, more often about badly run restaurants.
     for (const r of st.restaurants.filter((x) => x.ownerId === me.id && x.cityId === cityId)) {
-      if (Math.random() < 0.004 * (1.5 - r.reputation)) queueCall(st, { contactId: mayorId(cityId), topic: 'complaint', restaurantId: r.id, amount: Math.round((800 * col) / 100) * 100 });
+      if (Math.random() < 0.004 * (1.5 - r.reputation))
+        queueCall(st, {
+          contactId: mayorId(cityId),
+          topic: 'complaint',
+          restaurantId: r.id,
+          amount: Math.round((800 * col) / 100) * 100,
+        });
     }
   }
 }
 
-export const PROJECTS = ['a new playground in the park', 'repairs to the old town hall clock', 'the summer street festival', 'a fountain on the market square', 'new benches along the river', 'the children’s hospital appeal'];
-export const COMPLAINTS = ['the noise from your kitchen extractor late at night', 'pizza boxes blowing down the street', 'delivery scooters parked on the pavement', 'the smell of burnt cheese drifting into their flats', 'queues blocking the entrance to the bakery next door'];
+export const PROJECTS = [
+  'a new playground in the park',
+  'repairs to the old town hall clock',
+  'the summer street festival',
+  'a fountain on the market square',
+  'new benches along the river',
+  'the children’s hospital appeal',
+];
+export const COMPLAINTS = [
+  'the noise from your kitchen extractor late at night',
+  'pizza boxes blowing down the street',
+  'delivery scooters parked on the pavement',
+  'the smell of burnt cheese drifting into their flats',
+  'queues blocking the entrance to the bakery next door',
+];

@@ -18,10 +18,17 @@ export interface Loan {
 
 export type InsuranceType = 'theft' | 'fire' | 'liability';
 
-export const POLICIES: Record<InsuranceType, { label: string; covers: string; premiumPerRestaurant: number }> = {
+export const POLICIES: Record<
+  InsuranceType,
+  { label: string; covers: string; premiumPerRestaurant: number }
+> = {
   theft: { label: 'Theft cover', covers: 'burglaries and staff theft', premiumPerRestaurant: 150 },
   fire: { label: 'Fire cover', covers: 'kitchen fire damage', premiumPerRestaurant: 250 },
-  liability: { label: 'Liability cover', covers: 'food-poisoning claims', premiumPerRestaurant: 200 },
+  liability: {
+    label: 'Liability cover',
+    covers: 'food-poisoning claims',
+    premiumPerRestaurant: 200,
+  },
 };
 
 export const LOAN_TERMS = [12, 24, 36];
@@ -32,7 +39,13 @@ export function totalDebt(p: Player): number {
 }
 
 export function takeLoan(st: GameState, p: Player, amount: number, termMonths: number): void {
-  (p.loans ??= []).push({ id: st.nextId++, principal: amount, remaining: amount, termMonths, monthsLeft: termMonths });
+  (p.loans ??= []).push({
+    id: st.nextId++,
+    principal: amount,
+    remaining: amount,
+    termMonths,
+    monthsLeft: termMonths,
+  });
   p.loan = totalDebt(p);
 }
 
@@ -49,15 +62,23 @@ export function repayLoan(p: Player, loanId: number): number {
 }
 
 /** Month end: interest and the scheduled slice of principal on every loan. */
-export function monthlyLoanPayments(st: GameState, p: Player, ledger: (label: string, amount: number) => void): void {
+export function monthlyLoanPayments(
+  st: GameState,
+  p: Player,
+  ledger: (label: string, amount: number) => void,
+): void {
   for (const loan of [...(p.loans ?? [])]) {
     const interest = Math.round(loan.remaining * MONTHLY_INTEREST);
-    const principal = Math.min(loan.remaining, Math.round(loan.remaining / Math.max(1, loan.monthsLeft)));
+    const principal = Math.min(
+      loan.remaining,
+      Math.round(loan.remaining / Math.max(1, loan.monthsLeft)),
+    );
     if (interest > 0) ledger('Loan interest', -interest);
     if (principal > 0) ledger('Loan repayment', -principal);
     loan.remaining -= principal;
     loan.monthsLeft--;
-    if (loan.remaining <= 0.5 || loan.monthsLeft <= 0) p.loans = p.loans!.filter((l) => l.id !== loan.id);
+    if (loan.remaining <= 0.5 || loan.monthsLeft <= 0)
+      p.loans = p.loans!.filter((l) => l.id !== loan.id);
   }
   p.loan = totalDebt(p);
 }
@@ -65,7 +86,9 @@ export function monthlyLoanPayments(st: GameState, p: Player, ledger: (label: st
 /** Monthly premium for a policy for this player's chain. */
 export function premium(st: GameState, p: Player, type: InsuranceType): number {
   const shops = st.restaurants.filter((r) => r.ownerId === p.id);
-  const col = shops.length ? shops.reduce((n, r) => n + cityDef(r.cityId).costOfLiving, 0) / shops.length : 1;
+  const col = shops.length
+    ? shops.reduce((n, r) => n + cityDef(r.cityId).costOfLiving, 0) / shops.length
+    : 1;
   return Math.round(POLICIES[type].premiumPerRestaurant * Math.max(1, shops.length) * col);
 }
 
@@ -93,7 +116,9 @@ export function morningRisks(st: GameState): void {
     if (Math.random() < 0.003) {
       const amount = Math.round((500 + Math.random() * 1500) * col);
       charge('Burglary', amount, insured(owner, 'theft'));
-      say(`Burglars broke into ${r.name} overnight and took $${amount}.${insured(owner, 'theft') ? ' Your theft cover pays it back.' : ' You weren’t insured.'}`);
+      say(
+        `Burglars broke into ${r.name} overnight and took $${amount}.${insured(owner, 'theft') ? ' Your theft cover pays it back.' : ' You weren’t insured.'}`,
+      );
     }
 
     // Wood-fired ovens burn hotter; fires close the restaurant for repairs.
@@ -103,7 +128,9 @@ export function morningRisks(st: GameState): void {
       const amount = Math.round((3000 + Math.random() * 5000) * col);
       r.closedDays = 2;
       charge('Fire damage', amount, insured(owner, 'fire'));
-      say(`A kitchen fire at ${r.name}! It's closed for two days of repairs costing $${amount}.${insured(owner, 'fire') ? ' Your fire cover pays for the damage.' : ' You weren’t insured.'}`);
+      say(
+        `A kitchen fire at ${r.name}! It's closed for two days of repairs costing $${amount}.${insured(owner, 'fire') ? ' Your fire cover pays for the damage.' : ' You weren’t insured.'}`,
+      );
     }
 
     // Cheap or old stock makes food poisoning more likely.
@@ -112,7 +139,9 @@ export function morningRisks(st: GameState): void {
       const amount = Math.round((2000 + Math.random() * 8000) * col);
       r.reputation = Math.max(0, r.reputation - 0.1);
       charge('Compensation claim', amount, insured(owner, 'liability'));
-      say(`A guest fell ill after eating at ${r.name} and is suing for $${amount}. The story is in the papers.${insured(owner, 'liability') ? ' Your liability cover pays the claim.' : ' You weren’t insured.'}`);
+      say(
+        `A guest fell ill after eating at ${r.name} and is suing for $${amount}. The story is in the papers.${insured(owner, 'liability') ? ' Your liability cover pays the claim.' : ' You weren’t insured.'}`,
+      );
     }
   }
 }

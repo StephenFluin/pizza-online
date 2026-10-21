@@ -29,9 +29,30 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
   selector: 'app-stats-screen',
   template: `
     <div class="tabs" role="tablist" aria-label="Statistics">
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'restaurant'" (click)="tab.set('restaurant')">Restaurant</button>
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'chain'" (click)="tab.set('chain')">Your chain</button>
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'rivals'" (click)="tab.set('rivals')">All chains</button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'restaurant'"
+        (click)="tab.set('restaurant')"
+      >
+        Restaurant
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'chain'"
+        (click)="tab.set('chain')"
+      >
+        Your chain
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'rivals'"
+        (click)="tab.set('rivals')"
+      >
+        All chains
+      </button>
     </div>
 
     @switch (tab()) {
@@ -40,31 +61,69 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
           <div class="bar">
             <div class="metrics" role="radiogroup" aria-label="Show on the curve">
               @for (m of metrics; track m.id) {
-                <button type="button" role="radio" class="small" [class.secondary]="metric() !== m.id" [attr.aria-checked]="metric() === m.id" (click)="metric.set(m.id)">{{ m.label }}</button>
+                <button
+                  type="button"
+                  role="radio"
+                  class="small"
+                  [class.secondary]="metric() !== m.id"
+                  [attr.aria-checked]="metric() === m.id"
+                  (click)="metric.set(m.id)"
+                >
+                  {{ m.label }}
+                </button>
               }
             </div>
           </div>
 
           <figure class="chart">
-            <svg [attr.viewBox]="'0 0 ' + chartW + ' ' + chartH" role="img" [attr.aria-label]="chartLabel()">
+            <svg
+              [attr.viewBox]="'0 0 ' + chartW + ' ' + chartH"
+              role="img"
+              [attr.aria-label]="chartLabel()"
+            >
               @for (g of curve().grid; track g.y) {
-                <line [attr.x1]="pad" [attr.x2]="chartW - 8" [attr.y1]="g.y" [attr.y2]="g.y" class="grid" />
+                <line
+                  [attr.x1]="pad"
+                  [attr.x2]="chartW - 8"
+                  [attr.y1]="g.y"
+                  [attr.y2]="g.y"
+                  class="grid"
+                />
                 <text [attr.x]="pad - 4" [attr.y]="g.y + 4" text-anchor="end">{{ g.label }}</text>
               }
               @for (b of curve().bars; track b.x) {
-                <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" [class.week]="b.week" />
+                <rect
+                  [attr.x]="b.x"
+                  [attr.y]="b.y"
+                  [attr.width]="b.w"
+                  [attr.height]="b.h"
+                  [class.week]="b.week"
+                />
               }
               <polyline [attr.points]="curve().line" class="line" />
               <text [attr.x]="pad" [attr.y]="chartH - 4">{{ curve().first }}</text>
-              <text [attr.x]="chartW - 8" [attr.y]="chartH - 4" text-anchor="end">{{ curve().last }}</text>
+              <text [attr.x]="chartW - 8" [attr.y]="chartH - 4" text-anchor="end">
+                {{ curve().last }}
+              </text>
             </svg>
             <figcaption>{{ chartLabel() }}. The last seven days are highlighted.</figcaption>
           </figure>
 
           <div class="cols">
             <table>
-              <caption>The week’s takings</caption>
-              <thead><tr><th scope="col">Day</th><th scope="col">Guests</th><th scope="col">Lost</th><th scope="col">Takings</th><th scope="col">Food</th><th scope="col">Margin</th></tr></thead>
+              <caption>
+                The week’s takings
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Day</th>
+                  <th scope="col">Guests</th>
+                  <th scope="col">Lost</th>
+                  <th scope="col">Takings</th>
+                  <th scope="col">Food</th>
+                  <th scope="col">Margin</th>
+                </tr>
+              </thead>
               <tbody>
                 @for (d of week(); track d.day) {
                   <tr>
@@ -73,10 +132,14 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
                     <td>{{ d.turnedAway }}</td>
                     <td>{{ money(d.revenue) }}</td>
                     <td>{{ money(d.foodCost) }}</td>
-                    <td [class.neg]="d.revenue - d.foodCost < 0">{{ money(d.revenue - d.foodCost) }}</td>
+                    <td [class.neg]="d.revenue - d.foodCost < 0">
+                      {{ money(d.revenue - d.foodCost) }}
+                    </td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="6">No finished days yet.</td></tr>
+                  <tr>
+                    <td colspan="6">No finished days yet.</td>
+                  </tr>
                 }
               </tbody>
               @if (week().length) {
@@ -94,17 +157,35 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
             </table>
 
             <table>
-              <caption>Pizzas sold this week</caption>
-              <thead><tr><th scope="col">Pizza</th><th scope="col">Sold</th><th scope="col">Share</th></tr></thead>
+              <caption>
+                Pizzas sold this week
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Pizza</th>
+                  <th scope="col">Sold</th>
+                  <th scope="col">Share</th>
+                </tr>
+              </thead>
               <tbody>
                 @for (p of pizzas(); track p.name) {
                   <tr>
                     <th scope="row">{{ p.name }}</th>
                     <td>{{ p.sold }}</td>
-                    <td><meter min="0" max="1" [value]="p.share" [attr.aria-label]="p.name + ' share of sales'"></meter> {{ pct(p.share) }}</td>
+                    <td>
+                      <meter
+                        min="0"
+                        max="1"
+                        [value]="p.share"
+                        [attr.aria-label]="p.name + ' share of sales'"
+                      ></meter>
+                      {{ pct(p.share) }}
+                    </td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="3">Nothing sold yet this week.</td></tr>
+                  <tr>
+                    <td colspan="3">Nothing sold yet this week.</td>
+                  </tr>
                 }
               </tbody>
             </table>
@@ -116,14 +197,29 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
 
       @case ('chain') {
         <table class="wide">
-          <caption>Your restaurants over the last seven days</caption>
+          <caption>
+            Your restaurants over the last seven days
+          </caption>
           <thead>
-            <tr><th scope="col">Restaurant</th><th scope="col">Guests</th><th scope="col">Lost</th><th scope="col">Takings</th><th scope="col">Margin</th><th scope="col">Per guest</th><th scope="col">Reputation</th><th scope="col">Popularity</th><th scope="col">Stars</th><th scope="col">Seats / staff</th></tr>
+            <tr>
+              <th scope="col">Restaurant</th>
+              <th scope="col">Guests</th>
+              <th scope="col">Lost</th>
+              <th scope="col">Takings</th>
+              <th scope="col">Margin</th>
+              <th scope="col">Per guest</th>
+              <th scope="col">Reputation</th>
+              <th scope="col">Popularity</th>
+              <th scope="col">Stars</th>
+              <th scope="col">Seats / staff</th>
+            </tr>
           </thead>
           <tbody>
             @for (row of chain(); track row.id) {
               <tr [class.best]="row.best" [class.worst]="row.worst">
-                <th scope="row">{{ row.name }}<br /><small>{{ row.city }}</small></th>
+                <th scope="row">
+                  {{ row.name }}<br /><small>{{ row.city }}</small>
+                </th>
                 <td>{{ row.customers }}</td>
                 <td>{{ row.lost }}</td>
                 <td>{{ money(row.revenue) }}</td>
@@ -135,19 +231,36 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
                 <td>{{ row.seats }} / {{ row.staff }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="10">You don’t own a restaurant yet.</td></tr>
+              <tr>
+                <td colspan="10">You don’t own a restaurant yet.</td>
+              </tr>
             }
           </tbody>
         </table>
         @if (chain().length > 1) {
-          <p class="hint">Your best earner this week is highlighted in green, the weakest in red.</p>
+          <p class="hint">
+            Your best earner this week is highlighted in green, the weakest in red.
+          </p>
         }
       }
 
       @case ('rivals') {
         <table class="wide">
-          <caption>Every chain, yesterday</caption>
-          <thead><tr><th scope="col">Owner</th><th scope="col">Restaurants</th><th scope="col">Cities</th><th scope="col">Guests</th><th scope="col">Takings</th><th scope="col">Avg reputation</th><th scope="col">Net worth</th><th scope="col">Rank</th></tr></thead>
+          <caption>
+            Every chain, yesterday
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Owner</th>
+              <th scope="col">Restaurants</th>
+              <th scope="col">Cities</th>
+              <th scope="col">Guests</th>
+              <th scope="col">Takings</th>
+              <th scope="col">Avg reputation</th>
+              <th scope="col">Net worth</th>
+              <th scope="col">Rank</th>
+            </tr>
+          </thead>
           <tbody>
             @for (row of chains(); track row.id) {
               <tr [class.me]="row.me">
@@ -167,38 +280,154 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
     }
   `,
   styles: `
-    .tabs { display: flex; gap: 4px; margin-bottom: 10px; }
-    .tabs button { background: #ddd2bb; color: var(--ink); border: 2px solid var(--wood); }
-    .tabs button[aria-selected='true'] { background: var(--wood); color: var(--cream); }
-    .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
-    .metrics { display: flex; gap: 4px; }
-    .small { padding: 2px 8px; font-size: 0.85rem; }
-    .chart { margin: 10px 0; background: var(--lcd); border-radius: 6px; padding: 6px; }
-    .chart svg { width: 100%; height: auto; display: block; }
-    .chart text { fill: var(--lcd-dim); font: 11px var(--font-lcd); }
-    .chart .grid { stroke: #ffffff22; }
-    .chart rect { fill: #8a6a2a; }
-    .chart rect.week { fill: var(--lcd-text); }
-    .chart .line { fill: none; stroke: #f4a261; stroke-width: 2; }
-    figcaption { color: var(--lcd-dim); font-size: 0.8rem; padding: 0 4px; }
-    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start; }
-    td, th { white-space: nowrap; }
-    thead th, td.wrap { white-space: normal; }
-    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    caption { text-align: left; font-weight: 700; font-family: Georgia, serif; font-size: 1.05rem; padding-bottom: 4px; }
-    th, td { padding: 3px 6px; border-top: 1px solid var(--line); text-align: right; }
-    th[scope='row'], thead th:first-child { text-align: left; font-weight: 400; }
-    thead th { font-size: 0.8rem; text-transform: uppercase; color: #555; }
-    tfoot th, tfoot td { font-weight: 700; }
-    .wide { overflow-x: auto; display: block; font-size: 0.92rem; }
-    .wide th, .wide td { padding: 3px 4px; }
-    tr.best { background: #dcefd5; }
-    tr.worst { background: #f6d9d2; }
-    tr.me { background: var(--cream); font-weight: 700; }
-    .neg { color: var(--tomato); }
-    meter { width: 70px; vertical-align: middle; }
-    .hint { font-size: 0.85rem; color: #555; }
-    .link { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; font: inherit; }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .tabs button {
+      background: #ddd2bb;
+      color: var(--ink);
+      border: 2px solid var(--wood);
+    }
+    .tabs button[aria-selected='true'] {
+      background: var(--wood);
+      color: var(--cream);
+    }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metrics {
+      display: flex;
+      gap: 4px;
+    }
+    .small {
+      padding: 2px 8px;
+      font-size: 0.85rem;
+    }
+    .chart {
+      margin: 10px 0;
+      background: var(--lcd);
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .chart svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .chart text {
+      fill: var(--lcd-dim);
+      font: 11px var(--font-lcd);
+    }
+    .chart .grid {
+      stroke: #ffffff22;
+    }
+    .chart rect {
+      fill: #8a6a2a;
+    }
+    .chart rect.week {
+      fill: var(--lcd-text);
+    }
+    .chart .line {
+      fill: none;
+      stroke: #f4a261;
+      stroke-width: 2;
+    }
+    figcaption {
+      color: var(--lcd-dim);
+      font-size: 0.8rem;
+      padding: 0 4px;
+    }
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    td,
+    th {
+      white-space: nowrap;
+    }
+    thead th,
+    td.wrap {
+      white-space: normal;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    caption {
+      text-align: left;
+      font-weight: 700;
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+      padding-bottom: 4px;
+    }
+    th,
+    td {
+      padding: 3px 6px;
+      border-top: 1px solid var(--line);
+      text-align: right;
+    }
+    th[scope='row'],
+    thead th:first-child {
+      text-align: left;
+      font-weight: 400;
+    }
+    thead th {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: #555;
+    }
+    tfoot th,
+    tfoot td {
+      font-weight: 700;
+    }
+    .wide {
+      overflow-x: auto;
+      display: block;
+      font-size: 0.92rem;
+    }
+    .wide th,
+    .wide td {
+      padding: 3px 4px;
+    }
+    tr.best {
+      background: #dcefd5;
+    }
+    tr.worst {
+      background: #f6d9d2;
+    }
+    tr.me {
+      background: var(--cream);
+      font-weight: 700;
+    }
+    .neg {
+      color: var(--tomato);
+    }
+    meter {
+      width: 70px;
+      vertical-align: middle;
+    }
+    .hint {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    .link {
+      background: none;
+      border: 0;
+      padding: 0;
+      color: var(--ink);
+      text-decoration: underline;
+      cursor: pointer;
+      font: inherit;
+    }
   `,
 })
 export class StatsScreenComponent {
@@ -226,7 +455,12 @@ export class StatsScreenComponent {
   protected readonly week = computed(() => this.history().slice(-7).reverse());
   protected readonly weekTotals = computed(() => {
     const w = this.week();
-    return { customers: sum(w, (d) => d.customers), turnedAway: sum(w, (d) => d.turnedAway), revenue: sum(w, (d) => d.revenue), foodCost: sum(w, (d) => d.foodCost) };
+    return {
+      customers: sum(w, (d) => d.customers),
+      turnedAway: sum(w, (d) => d.turnedAway),
+      revenue: sum(w, (d) => d.revenue),
+      foodCost: sum(w, (d) => d.foodCost),
+    };
   });
 
   protected readonly pizzas = computed(() => {
@@ -238,12 +472,18 @@ export class StatsScreenComponent {
     const days = [...this.history().slice(-7), r.today];
     for (const d of days) {
       for (const [id, n] of Object.entries(d.sold ?? {})) totals.set(id, (totals.get(id) ?? 0) + n);
-      if (d === r.today) for (const [id, s] of Object.entries(d.pizzas ?? {})) totals.set(id, (totals.get(id) ?? 0) + s.sold);
+      if (d === r.today)
+        for (const [id, s] of Object.entries(d.pizzas ?? {}))
+          totals.set(id, (totals.get(id) ?? 0) + s.sold);
     }
     const all = [...totals.values()].reduce((a, b) => a + b, 0);
     return [...totals]
       .filter(([, n]) => n > 0)
-      .map(([id, n]) => ({ name: st.recipes.find((x) => x.id === id)?.name ?? 'Old recipe', sold: n, share: all ? n / all : 0 }))
+      .map(([id, n]) => ({
+        name: st.recipes.find((x) => x.id === id)?.name ?? 'Old recipe',
+        sold: n,
+        share: all ? n / all : 0,
+      }))
       .sort((a, b) => b.sold - a.sold);
   });
 
@@ -263,11 +503,28 @@ export class StatsScreenComponent {
     const plotH = CHART_H - 28;
     const step = plotW / n;
     const y = (v: number) => 8 + plotH - (v / top) * plotH;
-    const fmt = (v: number) => (metric === 'revenue' ? formatMoney(v) : metric === 'reputation' ? `${Math.round(v)}%` : String(Math.round(v)));
-    const bars = values.map((v, i) => ({ x: PAD + i * step + step * 0.15, y: y(v), w: step * 0.7, h: Math.max(0, 8 + plotH - y(v)), week: i >= values.length - 7 }));
+    const fmt = (v: number) =>
+      metric === 'revenue'
+        ? formatMoney(v)
+        : metric === 'reputation'
+          ? `${Math.round(v)}%`
+          : String(Math.round(v));
+    const bars = values.map((v, i) => ({
+      x: PAD + i * step + step * 0.15,
+      y: y(v),
+      w: step * 0.7,
+      h: Math.max(0, 8 + plotH - y(v)),
+      week: i >= values.length - 7,
+    }));
     const line = values.map((v, i) => `${PAD + i * step + step / 2},${y(v)}`).join(' ');
     const grid = [0, 0.5, 1].map((f) => ({ y: y(top * f), label: fmt(top * f) }));
-    return { bars, line, grid, first: days.length ? formatDate(days[0].day) : '', last: days.length ? formatDate(days[days.length - 1].day) : '' };
+    return {
+      bars,
+      line,
+      grid,
+      first: days.length ? formatDate(days[0].day) : '',
+      last: days.length ? formatDate(days[days.length - 1].day) : '',
+    };
   });
 
   protected readonly chain = computed(() => {
@@ -316,8 +573,14 @@ export class StatsScreenComponent {
           me: p.isHuman,
           shops: shops.length,
           cities: new Set(shops.map((r) => r.cityId)).size,
-          customers: sum(shops.map((r) => r.lastDay), (d) => d.customers),
-          revenue: sum(shops.map((r) => r.lastDay), (d) => d.revenue),
+          customers: sum(
+            shops.map((r) => r.lastDay),
+            (d) => d.customers,
+          ),
+          revenue: sum(
+            shops.map((r) => r.lastDay),
+            (d) => d.revenue,
+          ),
           reputation: shops.length ? shops.reduce((n, r) => n + r.reputation, 0) / shops.length : 0,
           worth,
           rank: rankOf(worth).title,
@@ -329,16 +592,33 @@ export class StatsScreenComponent {
   private readonly lines = computed<LcdLine[]>(() => {
     const r = this.restaurant();
     const w = this.weekTotals();
-    return [{ label: 'Statistics' }, { label: r?.name ?? '' }, { label: 'Week guests', value: String(w.customers) }, { label: 'Week takings', value: formatMoney(w.revenue) }];
+    return [
+      { label: 'Statistics' },
+      { label: r?.name ?? '' },
+      { label: 'Week guests', value: String(w.customers) },
+      { label: 'Week takings', value: formatMoney(w.revenue) },
+    ];
   });
   private readonly tools = computed<Tool[]>(() => [
     ...reportTools(this.ui, 'stats'),
-    ...shopCycleTools(this.mine().map((r) => r.id), this.restaurant()?.id, (id) => this.open(id)),
-    { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
+    ...shopCycleTools(
+      this.mine().map((r) => r.id),
+      this.restaurant()?.id,
+      (id) => this.open(id),
+    ),
+    {
+      id: 'back',
+      label: 'Back',
+      icon: ICONS.back,
+      action: () =>
+        this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close(),
+    },
   ]);
 
   constructor() {
-    inject(DestroyRef).onDestroy(inject(ShellService).register(this, { lines: this.lines, tools: this.tools }));
+    inject(DestroyRef).onDestroy(
+      inject(ShellService).register(this, { lines: this.lines, tools: this.tools }),
+    );
   }
 
   protected open(id: number): void {

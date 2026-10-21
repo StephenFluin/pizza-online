@@ -25,7 +25,10 @@ export function careerSummary(st: GameState): HighScore {
   return {
     name: me.name,
     // Net worth weighted by difficulty; a win adds a bonus.
-    score: Math.max(0, Math.round(worth * d.score + (st.outcome === 'won' ? 1_000_000 * d.score : 0))),
+    score: Math.max(
+      0,
+      Math.round(worth * d.score + (st.outcome === 'won' ? 1_000_000 * d.score : 0)),
+    ),
     netWorth: worth,
     rank: rankOf(worth).title,
     outcome: st.outcome === 'won' ? 'Won' : st.outcome === 'lost' ? 'Bankrupt' : 'Retired',

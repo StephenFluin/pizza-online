@@ -74,7 +74,14 @@ export interface FloorType {
   colors: [number, number];
 }
 
-const R = (children: number, young: number, blueCollar: number, whiteCollar: number, business: number, seniors: number): Record<CustomerGroup, number> => ({
+const R = (
+  children: number,
+  young: number,
+  blueCollar: number,
+  whiteCollar: number,
+  business: number,
+  seniors: number,
+): Record<CustomerGroup, number> => ({
   children,
   young,
   blueCollar,
@@ -84,27 +91,154 @@ const R = (children: number, young: number, blueCollar: number, whiteCollar: num
 });
 
 export const STORES: readonly Store[] = [
-  { id: 'timber', kind: 'furniture', name: 'Timber & Twine', quality: 45, ratings: R(5, 4, 8, 3, 2, 6), style: 'rustic', colors: [0x8b5a2b, 0xd9b26f, 0x5c3a21] },
-  { id: 'bistro', kind: 'furniture', name: 'Bistro Classics', quality: 62, ratings: R(4, 4, 5, 6, 5, 8), style: 'bistro', colors: [0x2f3e46, 0xf1faee, 0xa3283a] },
-  { id: 'nordlicht', kind: 'furniture', name: 'Nordlicht Design', quality: 76, ratings: R(4, 9, 3, 7, 6, 2), style: 'modern', colors: [0xf2efe9, 0x48cae4, 0x6c757d] },
-  { id: 'palazzo', kind: 'furniture', name: 'Palazzo Interiors', quality: 92, ratings: R(2, 3, 2, 7, 9, 6), style: 'luxury', colors: [0x5c1a1b, 0xe9c46a, 0x2b2d42] },
-  { id: 'used-tiles', kind: 'flooring', name: 'Second-hand Tiles', quality: 20, ratings: R(2, 1, 3, 0, 0, 1), style: 'rustic', colors: [0xbfb8a5, 0x9c9480, 0x000000] },
-  { id: 'checker', kind: 'flooring', name: 'Checkerboard Co.', quality: 45, ratings: R(7, 6, 5, 3, 2, 5), style: 'bistro', colors: [0xf1faee, 0x1d1d1d, 0x000000] },
-  { id: 'oakpine', kind: 'flooring', name: 'Oak & Pine Floors', quality: 65, ratings: R(5, 5, 6, 6, 5, 8), style: 'rustic', colors: [0xc89b6d, 0xb5835a, 0x000000] },
-  { id: 'terrazzo', kind: 'flooring', name: 'Terrazzo Masters', quality: 85, ratings: R(3, 6, 2, 8, 9, 5), style: 'luxury', colors: [0xe9e4dc, 0xb7aea2, 0x000000] },
-  { id: 'plush', kind: 'flooring', name: 'Plush Carpets', quality: 72, ratings: R(6, 3, 4, 6, 6, 9), style: 'bistro', colors: [0x7b2d26, 0x9d4b44, 0x000000] },
-  { id: 'greenthumb', kind: 'extras', name: 'Green Thumb Plants', quality: 60, ratings: R(5, 6, 4, 7, 7, 8), style: 'modern', colors: [0x2f8f3c, 0x8b5a2b, 0x5a9a4c] },
-  { id: 'gallery', kind: 'extras', name: 'Gallery Row', quality: 80, ratings: R(3, 5, 2, 8, 9, 7), style: 'luxury', colors: [0x457b9d, 0xc9a227, 0xdedede] },
-  { id: 'arcade', kind: 'extras', name: 'Jukebox Junction', quality: 55, ratings: R(9, 9, 6, 3, 1, 2), style: 'modern', colors: [0xe63946, 0xffd166, 0x3a0ca3] },
-  { id: 'chefline', kind: 'kitchen', name: 'ChefLine Equipment', quality: 50, ratings: R(0, 0, 0, 0, 0, 0), style: 'modern', colors: [0xadb5bd, 0x343a40, 0xff6b35] },
-  { id: 'forno', kind: 'kitchen', name: 'Forno Artigiano', quality: 85, ratings: R(0, 0, 0, 0, 0, 0), style: 'rustic', colors: [0xb5651d, 0x6b3b2a, 0xff6b35] },
-  { id: 'cooltech', kind: 'kitchen', name: 'CoolTech Appliances', quality: 70, ratings: R(0, 0, 0, 0, 0, 0), style: 'modern', colors: [0xf1faee, 0x868e96, 0x48cae4] },
+  {
+    id: 'timber',
+    kind: 'furniture',
+    name: 'Timber & Twine',
+    quality: 45,
+    ratings: R(5, 4, 8, 3, 2, 6),
+    style: 'rustic',
+    colors: [0x8b5a2b, 0xd9b26f, 0x5c3a21],
+  },
+  {
+    id: 'bistro',
+    kind: 'furniture',
+    name: 'Bistro Classics',
+    quality: 62,
+    ratings: R(4, 4, 5, 6, 5, 8),
+    style: 'bistro',
+    colors: [0x2f3e46, 0xf1faee, 0xa3283a],
+  },
+  {
+    id: 'nordlicht',
+    kind: 'furniture',
+    name: 'Nordlicht Design',
+    quality: 76,
+    ratings: R(4, 9, 3, 7, 6, 2),
+    style: 'modern',
+    colors: [0xf2efe9, 0x48cae4, 0x6c757d],
+  },
+  {
+    id: 'palazzo',
+    kind: 'furniture',
+    name: 'Palazzo Interiors',
+    quality: 92,
+    ratings: R(2, 3, 2, 7, 9, 6),
+    style: 'luxury',
+    colors: [0x5c1a1b, 0xe9c46a, 0x2b2d42],
+  },
+  {
+    id: 'used-tiles',
+    kind: 'flooring',
+    name: 'Second-hand Tiles',
+    quality: 20,
+    ratings: R(2, 1, 3, 0, 0, 1),
+    style: 'rustic',
+    colors: [0xbfb8a5, 0x9c9480, 0x000000],
+  },
+  {
+    id: 'checker',
+    kind: 'flooring',
+    name: 'Checkerboard Co.',
+    quality: 45,
+    ratings: R(7, 6, 5, 3, 2, 5),
+    style: 'bistro',
+    colors: [0xf1faee, 0x1d1d1d, 0x000000],
+  },
+  {
+    id: 'oakpine',
+    kind: 'flooring',
+    name: 'Oak & Pine Floors',
+    quality: 65,
+    ratings: R(5, 5, 6, 6, 5, 8),
+    style: 'rustic',
+    colors: [0xc89b6d, 0xb5835a, 0x000000],
+  },
+  {
+    id: 'terrazzo',
+    kind: 'flooring',
+    name: 'Terrazzo Masters',
+    quality: 85,
+    ratings: R(3, 6, 2, 8, 9, 5),
+    style: 'luxury',
+    colors: [0xe9e4dc, 0xb7aea2, 0x000000],
+  },
+  {
+    id: 'plush',
+    kind: 'flooring',
+    name: 'Plush Carpets',
+    quality: 72,
+    ratings: R(6, 3, 4, 6, 6, 9),
+    style: 'bistro',
+    colors: [0x7b2d26, 0x9d4b44, 0x000000],
+  },
+  {
+    id: 'greenthumb',
+    kind: 'extras',
+    name: 'Green Thumb Plants',
+    quality: 60,
+    ratings: R(5, 6, 4, 7, 7, 8),
+    style: 'modern',
+    colors: [0x2f8f3c, 0x8b5a2b, 0x5a9a4c],
+  },
+  {
+    id: 'gallery',
+    kind: 'extras',
+    name: 'Gallery Row',
+    quality: 80,
+    ratings: R(3, 5, 2, 8, 9, 7),
+    style: 'luxury',
+    colors: [0x457b9d, 0xc9a227, 0xdedede],
+  },
+  {
+    id: 'arcade',
+    kind: 'extras',
+    name: 'Jukebox Junction',
+    quality: 55,
+    ratings: R(9, 9, 6, 3, 1, 2),
+    style: 'modern',
+    colors: [0xe63946, 0xffd166, 0x3a0ca3],
+  },
+  {
+    id: 'chefline',
+    kind: 'kitchen',
+    name: 'ChefLine Equipment',
+    quality: 50,
+    ratings: R(0, 0, 0, 0, 0, 0),
+    style: 'modern',
+    colors: [0xadb5bd, 0x343a40, 0xff6b35],
+  },
+  {
+    id: 'forno',
+    kind: 'kitchen',
+    name: 'Forno Artigiano',
+    quality: 85,
+    ratings: R(0, 0, 0, 0, 0, 0),
+    style: 'rustic',
+    colors: [0xb5651d, 0x6b3b2a, 0xff6b35],
+  },
+  {
+    id: 'cooltech',
+    kind: 'kitchen',
+    name: 'CoolTech Appliances',
+    quality: 70,
+    ratings: R(0, 0, 0, 0, 0, 0),
+    style: 'modern',
+    colors: [0xf1faee, 0x868e96, 0x48cae4],
+  },
 ];
 
 /** Every furniture store sells the same pieces in its own style and price band. */
 function furnitureLine(s: Store): CatalogItem[] {
   const k = 0.5 + s.quality / 60;
-  const item = (kind: ItemKind, name: string, w: number, h: number, base: number, extra: Partial<CatalogItem> = {}): CatalogItem => ({
+  const item = (
+    kind: ItemKind,
+    name: string,
+    w: number,
+    h: number,
+    base: number,
+    extra: Partial<CatalogItem> = {},
+  ): CatalogItem => ({
     id: `${s.id}:${kind}`,
     storeId: s.id,
     kind,
@@ -126,28 +260,210 @@ function furnitureLine(s: Store): CatalogItem[] {
 
 export const CATALOG: readonly CatalogItem[] = [
   ...STORES.filter((s) => s.kind === 'furniture').flatMap(furnitureLine),
-  { id: 'greenthumb:plant', storeId: 'greenthumb', kind: 'plant', name: 'Potted palm', w: 2, h: 2, price: 150, quality: 60, ambience: 1 },
-  { id: 'greenthumb:lamp', storeId: 'greenthumb', kind: 'lamp', name: 'Standing lamp', w: 2, h: 2, price: 180, quality: 60, ambience: 1 },
-  { id: 'gallery:painting', storeId: 'gallery', kind: 'painting', name: 'Framed painting', w: 3, h: 2, price: 600, quality: 80, ambience: 2 },
-  { id: 'gallery:statue', storeId: 'gallery', kind: 'statue', name: 'Marble statue', w: 2, h: 2, price: 1500, quality: 90, ambience: 4 },
-  { id: 'gallery:aquarium', storeId: 'gallery', kind: 'aquarium', name: 'Aquarium', w: 5, h: 2, price: 2400, quality: 85, ambience: 5 },
-  { id: 'arcade:jukebox', storeId: 'arcade', kind: 'jukebox', name: 'Jukebox', w: 2, h: 2, price: 1700, quality: 60, ambience: 3 },
-  { id: 'arcade:arcade', storeId: 'arcade', kind: 'arcade', name: 'Arcade cabinet', w: 2, h: 2, price: 2200, quality: 55, ambience: 3 },
-  { id: 'chefline:oven', storeId: 'chefline', kind: 'oven', name: 'Electric oven', w: 4, h: 3, price: 1500, quality: 50, ovenCapacity: 14 },
-  { id: 'chefline:counter', storeId: 'chefline', kind: 'counter', name: 'Prep counter', w: 3, h: 3, price: 400, quality: 50, counter: true },
-  { id: 'chefline:dishwasher', storeId: 'chefline', kind: 'dishwasher', name: 'Dishwasher', w: 3, h: 3, price: 1100, quality: 50, dishwasher: true },
-  { id: 'forno:stone-oven', storeId: 'forno', kind: 'stone-oven', name: 'Wood-fired stone oven', w: 5, h: 4, price: 4500, quality: 85, ovenCapacity: 24, ambience: 1 },
-  { id: 'forno:counter', storeId: 'forno', kind: 'counter', name: 'Marble prep counter', w: 3, h: 3, price: 900, quality: 85, counter: true, ambience: 0.5 },
-  { id: 'cooltech:fridge', storeId: 'cooltech', kind: 'fridge', name: 'Refrigerator', w: 3, h: 3, price: 900, quality: 70, fridge: true },
-  { id: 'cooltech:oven', storeId: 'cooltech', kind: 'oven', name: 'Convection oven', w: 4, h: 3, price: 2600, quality: 70, ovenCapacity: 18 },
+  {
+    id: 'greenthumb:plant',
+    storeId: 'greenthumb',
+    kind: 'plant',
+    name: 'Potted palm',
+    w: 2,
+    h: 2,
+    price: 150,
+    quality: 60,
+    ambience: 1,
+  },
+  {
+    id: 'greenthumb:lamp',
+    storeId: 'greenthumb',
+    kind: 'lamp',
+    name: 'Standing lamp',
+    w: 2,
+    h: 2,
+    price: 180,
+    quality: 60,
+    ambience: 1,
+  },
+  {
+    id: 'gallery:painting',
+    storeId: 'gallery',
+    kind: 'painting',
+    name: 'Framed painting',
+    w: 3,
+    h: 2,
+    price: 600,
+    quality: 80,
+    ambience: 2,
+  },
+  {
+    id: 'gallery:statue',
+    storeId: 'gallery',
+    kind: 'statue',
+    name: 'Marble statue',
+    w: 2,
+    h: 2,
+    price: 1500,
+    quality: 90,
+    ambience: 4,
+  },
+  {
+    id: 'gallery:aquarium',
+    storeId: 'gallery',
+    kind: 'aquarium',
+    name: 'Aquarium',
+    w: 5,
+    h: 2,
+    price: 2400,
+    quality: 85,
+    ambience: 5,
+  },
+  {
+    id: 'arcade:jukebox',
+    storeId: 'arcade',
+    kind: 'jukebox',
+    name: 'Jukebox',
+    w: 2,
+    h: 2,
+    price: 1700,
+    quality: 60,
+    ambience: 3,
+  },
+  {
+    id: 'arcade:arcade',
+    storeId: 'arcade',
+    kind: 'arcade',
+    name: 'Arcade cabinet',
+    w: 2,
+    h: 2,
+    price: 2200,
+    quality: 55,
+    ambience: 3,
+  },
+  {
+    id: 'chefline:oven',
+    storeId: 'chefline',
+    kind: 'oven',
+    name: 'Electric oven',
+    w: 4,
+    h: 3,
+    price: 1500,
+    quality: 50,
+    ovenCapacity: 14,
+  },
+  {
+    id: 'chefline:counter',
+    storeId: 'chefline',
+    kind: 'counter',
+    name: 'Prep counter',
+    w: 3,
+    h: 3,
+    price: 400,
+    quality: 50,
+    counter: true,
+  },
+  {
+    id: 'chefline:dishwasher',
+    storeId: 'chefline',
+    kind: 'dishwasher',
+    name: 'Dishwasher',
+    w: 3,
+    h: 3,
+    price: 1100,
+    quality: 50,
+    dishwasher: true,
+  },
+  {
+    id: 'forno:stone-oven',
+    storeId: 'forno',
+    kind: 'stone-oven',
+    name: 'Wood-fired stone oven',
+    w: 5,
+    h: 4,
+    price: 4500,
+    quality: 85,
+    ovenCapacity: 24,
+    ambience: 1,
+  },
+  {
+    id: 'forno:counter',
+    storeId: 'forno',
+    kind: 'counter',
+    name: 'Marble prep counter',
+    w: 3,
+    h: 3,
+    price: 900,
+    quality: 85,
+    counter: true,
+    ambience: 0.5,
+  },
+  {
+    id: 'cooltech:fridge',
+    storeId: 'cooltech',
+    kind: 'fridge',
+    name: 'Refrigerator',
+    w: 3,
+    h: 3,
+    price: 900,
+    quality: 70,
+    fridge: true,
+  },
+  {
+    id: 'cooltech:oven',
+    storeId: 'cooltech',
+    kind: 'oven',
+    name: 'Convection oven',
+    w: 4,
+    h: 3,
+    price: 2600,
+    quality: 70,
+    ovenCapacity: 18,
+  },
 ];
 
 export const FLOORS: readonly FloorType[] = [
-  { id: 'used-tiles:tiles', storeId: 'used-tiles', name: 'Worn tiles', pricePerCell: 1, quality: 20, pattern: 'tiles', colors: [0xbfb8a5, 0x9c9480] },
-  { id: 'checker:checker', storeId: 'checker', name: 'Black and white checks', pricePerCell: 4, quality: 45, pattern: 'checker', colors: [0xf1faee, 0x2b2b2b] },
-  { id: 'oakpine:planks', storeId: 'oakpine', name: 'Oak planks', pricePerCell: 7, quality: 65, pattern: 'planks', colors: [0xc89b6d, 0xb5835a] },
-  { id: 'terrazzo:terrazzo', storeId: 'terrazzo', name: 'Polished terrazzo', pricePerCell: 14, quality: 85, pattern: 'terrazzo', colors: [0xe9e4dc, 0xb7aea2] },
-  { id: 'plush:carpet', storeId: 'plush', name: 'Burgundy carpet', pricePerCell: 9, quality: 72, pattern: 'carpet', colors: [0x7b2d26, 0x9d4b44] },
+  {
+    id: 'used-tiles:tiles',
+    storeId: 'used-tiles',
+    name: 'Worn tiles',
+    pricePerCell: 1,
+    quality: 20,
+    pattern: 'tiles',
+    colors: [0xbfb8a5, 0x9c9480],
+  },
+  {
+    id: 'checker:checker',
+    storeId: 'checker',
+    name: 'Black and white checks',
+    pricePerCell: 4,
+    quality: 45,
+    pattern: 'checker',
+    colors: [0xf1faee, 0x2b2b2b],
+  },
+  {
+    id: 'oakpine:planks',
+    storeId: 'oakpine',
+    name: 'Oak planks',
+    pricePerCell: 7,
+    quality: 65,
+    pattern: 'planks',
+    colors: [0xc89b6d, 0xb5835a],
+  },
+  {
+    id: 'terrazzo:terrazzo',
+    storeId: 'terrazzo',
+    name: 'Polished terrazzo',
+    pricePerCell: 14,
+    quality: 85,
+    pattern: 'terrazzo',
+    colors: [0xe9e4dc, 0xb7aea2],
+  },
+  {
+    id: 'plush:carpet',
+    storeId: 'plush',
+    name: 'Burgundy carpet',
+    pricePerCell: 9,
+    quality: 72,
+    pattern: 'carpet',
+    colors: [0x7b2d26, 0x9d4b44],
+  },
 ];
 
 export const DEFAULT_FLOOR = 'used-tiles:tiles';
@@ -194,17 +510,28 @@ function isDoorway(cols: number, rows: number, x: number, y: number): boolean {
   return y >= rows - 2 && x >= mid - 2 && x < mid + 2;
 }
 
-function overlaps(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): boolean {
+function overlaps(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
-export function canPlace(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, itemId: string, x: number, y: number, ignoreIndex = -1): boolean {
+export function canPlace(
+  layout: PlacedItem[],
+  lot: Pick<Lot, 'w' | 'h'>,
+  itemId: string,
+  x: number,
+  y: number,
+  ignoreIndex = -1,
+): boolean {
   const item = catalogItem(itemId);
   const { cols, rows } = roomSize(lot);
   if (x < 0 || y < 0 || x + item.w > cols || y + item.h > rows) return false;
   // Kitchen equipment stays behind the counter line, everything else in the dining room.
   if (isKitchenItem(item) ? y + item.h > KITCHEN_ROWS : y < KITCHEN_ROWS) return false;
-  for (let cy = y; cy < y + item.h; cy++) for (let cx = x; cx < x + item.w; cx++) if (isDoorway(cols, rows, cx, cy)) return false;
+  for (let cy = y; cy < y + item.h; cy++)
+    for (let cx = x; cx < x + item.w; cx++) if (isDoorway(cols, rows, cx, cy)) return false;
   const rect = { x, y, w: item.w, h: item.h };
   return !layout.some((p, i) => {
     if (i === ignoreIndex) return false;
@@ -225,7 +552,7 @@ export function itemAt(layout: PlacedItem[], x: number, y: number): number {
 export function seatingPlan(layout: PlacedItem[]): { seats: number; seatedChairs: Set<number> } {
   const seatedChairs = new Set<number>();
   let seats = 0;
-  layout.forEach((p, i) => {
+  layout.forEach((p) => {
     const it = catalogItem(p.itemId);
     if (it.seats) seats += it.seats;
     if (!it.maxChairs) return;
@@ -284,7 +611,11 @@ export function runningCost(layout: PlacedItem[], seats: number, costOfLiving: n
   return Math.round((RUNNING_BASE + seats * RUNNING_PER_SEAT + equipment) * costOfLiving);
 }
 
-export function roomStats(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, floorId?: string): RoomStats {
+export function roomStats(
+  layout: PlacedItem[],
+  lot: Pick<Lot, 'w' | 'h'>,
+  floorId?: string,
+): RoomStats {
   let oven = 0;
   let ovens = 0;
   let counters = 0;
@@ -321,8 +652,20 @@ export function roomStats(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, floor
   const usable = Math.min(ovens, counters * OVENS_PER_COUNTER);
   const kitchenCapacity = ovens === 0 ? 0 : (oven * usable) / ovens;
   const decor = Math.min(3, (ambience / cells) * 60);
-  for (const g of Object.keys(appeal) as CustomerGroup[]) appeal[g] = appealWeight ? Math.round((appeal[g] / appealWeight) * 10) / 10 : 0;
-  return { seats: seatingPlan(layout).seats, kitchenCapacity, ovenCapacity: oven, counters, ambience, decor, fridge, dishwashers, value, groupAppeal: appeal };
+  for (const g of Object.keys(appeal) as CustomerGroup[])
+    appeal[g] = appealWeight ? Math.round((appeal[g] / appealWeight) * 10) / 10 : 0;
+  return {
+    seats: seatingPlan(layout).seats,
+    kitchenCapacity,
+    ovenCapacity: oven,
+    counters,
+    ambience,
+    decor,
+    fridge,
+    dishwashers,
+    value,
+    groupAppeal: appeal,
+  };
 }
 
 /** Recomputes the cached capacity fields on a restaurant after its layout changes. */
@@ -334,7 +677,13 @@ export function applyRoom(r: Restaurant, lot: Pick<Lot, 'w' | 'h'>): void {
 }
 
 /** Places a table with chairs around it at the first free spot; returns the pieces placed. */
-export function placeDiningSet(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, tableId: string, chairId: string, chairs: number): PlacedItem[] {
+export function placeDiningSet(
+  layout: PlacedItem[],
+  lot: Pick<Lot, 'w' | 'h'>,
+  tableId: string,
+  chairId: string,
+  chairs: number,
+): PlacedItem[] {
   const table = catalogItem(tableId);
   const chair = catalogItem(chairId);
   const { cols, rows } = roomSize(lot);
@@ -365,7 +714,12 @@ export function placeDiningSet(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, 
 }
 
 /** Places single items (decor, kitchen kit) at the first free spots; returns what was placed. */
-export function autoPlace(layout: PlacedItem[], lot: Pick<Lot, 'w' | 'h'>, itemId: string, count: number): PlacedItem[] {
+export function autoPlace(
+  layout: PlacedItem[],
+  lot: Pick<Lot, 'w' | 'h'>,
+  itemId: string,
+  count: number,
+): PlacedItem[] {
   const it = catalogItem(itemId);
   const { cols, rows } = roomSize(lot);
   const placed: PlacedItem[] = [];

@@ -21,8 +21,10 @@ import { shopCycleTools } from './shop-nav';
         <ol class="list" aria-label="All your pizzerias">
           @for (x of mine(); track x.id) {
             <li [attr.aria-current]="x.id === r.id ? 'true' : null">
-              <b>{{ x.name }}</b><br />
-              {{ city(x.cityId) }} · {{ x.lastDay.customers }} guests · {{ money(x.lastDay.revenue) }}
+              <b>{{ x.name }}</b
+              ><br />
+              {{ city(x.cityId) }} · {{ x.lastDay.customers }} guests ·
+              {{ money(x.lastDay.revenue) }}
             </li>
           }
         </ol>
@@ -35,12 +37,36 @@ import { shopCycleTools } from './shop-nav';
     }
   `,
   styles: `
-    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; }
-    .list { list-style: none; padding: 0; margin: 0; max-height: 70dvh; overflow: auto; }
-    .list li { padding: 6px 8px; border-top: 1px solid var(--line); }
-    .list li[aria-current='true'] { background: #fff3d6; box-shadow: inset 4px 0 0 var(--wood); }
-    .detail { display: grid; gap: 8px; align-content: start; }
-    @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 16px;
+    }
+    .list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 70dvh;
+      overflow: auto;
+    }
+    .list li {
+      padding: 6px 8px;
+      border-top: 1px solid var(--line);
+    }
+    .list li[aria-current='true'] {
+      background: #fff3d6;
+      box-shadow: inset 4px 0 0 var(--wood);
+    }
+    .detail {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    @media (max-width: 700px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
   `,
 })
 export class RestaurantsDialogComponent {
@@ -57,19 +83,40 @@ export class RestaurantsDialogComponent {
 
   private readonly lines = computed<LcdLine[]>(() => {
     const r = this.selected();
-    return [{ label: 'Your pizzerias', value: String(this.mine().length) }, ...(r ? [{ label: r.name }, { label: city(r.cityId) }] : [])];
+    return [
+      { label: 'Your pizzerias', value: String(this.mine().length) },
+      ...(r ? [{ label: r.name }, { label: city(r.cityId) }] : []),
+    ];
   });
   private readonly tools = computed<Tool[]>(() => {
     const r = this.selected();
     return [
-      { id: 'map', label: 'Show on map', icon: ICONS.zoom, disabled: !r, action: () => r && this.showOnMap(r.cityId, r.lotId) },
-      ...shopCycleTools(this.mine().map((x) => x.id), r?.id, (id) => this.ui.shopId.set(id)),
-      { id: 'back', label: 'Back', icon: ICONS.back, action: () => (this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close()) },
+      {
+        id: 'map',
+        label: 'Show on map',
+        icon: ICONS.zoom,
+        disabled: !r,
+        action: () => r && this.showOnMap(r.cityId, r.lotId),
+      },
+      ...shopCycleTools(
+        this.mine().map((x) => x.id),
+        r?.id,
+        (id) => this.ui.shopId.set(id),
+      ),
+      {
+        id: 'back',
+        label: 'Back',
+        icon: ICONS.back,
+        action: () =>
+          this.game.dayReport() !== null ? this.ui.open({ kind: 'report' }) : this.ui.close(),
+      },
     ];
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(inject(ShellService).register(this, { lines: this.lines, tools: this.tools }));
+    inject(DestroyRef).onDestroy(
+      inject(ShellService).register(this, { lines: this.lines, tools: this.tools }),
+    );
   }
 
   protected city(id: string): string {

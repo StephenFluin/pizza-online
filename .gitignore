@@ -42,3 +42,12 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local env, OS, editor-agent and emulator files
+.env
+.env.*
+.claude/settings.local.json
+*-debug.log
+.firebase/
+firebase-export-*/
+!.env.example

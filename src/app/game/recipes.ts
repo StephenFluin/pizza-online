@@ -143,5 +143,5 @@ export function parseRecipe(data: unknown): Omit<Recipe, 'id' | 'ownerId'> | nul
   };
 }
 
-export const MAX_TOPPINGS = 40;
+export const MAX_TOPPINGS = 200;
 const INGREDIENT_IDS = new Set(INGREDIENTS.map((i) => i.id));

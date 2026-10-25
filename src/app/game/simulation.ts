@@ -1,4 +1,4 @@
-import { firstName } from './characters';
+import { chainName } from './characters';
 import {
   adBonus,
   cookingBonus,
@@ -895,7 +895,7 @@ export function openRestaurantAt(
     ownerId,
     cityId: city.id,
     lotId,
-    name: `${firstName(owner.name)}'s Pizzeria${count ? ` #${count + 1}` : ''}`,
+    name: `${chainName(owner)}${count ? ` #${count + 1}` : ''}`,
     owned: buy,
     decor: 0,
     layout: starterLayout(lot),

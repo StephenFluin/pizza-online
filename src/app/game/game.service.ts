@@ -36,7 +36,7 @@ import {
   warehouseRent,
 } from './warehouse';
 import { SELL_BACK, applyRoom, canPlace, catalogItem, diningCells, floorType } from './furniture';
-import { character } from './characters';
+import { chainName, character } from './characters';
 import {
   AdCampaign,
   CLOSE_MINUTE,
@@ -585,6 +585,22 @@ export class GameService {
     this.mutate((st) => {
       st.recipes = st.recipes.filter((r) => r.id !== recipeId || r.ownerId === null);
       for (const r of st.restaurants) r.menu = r.menu.filter((m) => m.recipeId !== recipeId);
+    });
+  }
+
+  /** Renames the player's chain, and with it every restaurant still named after the old one. */
+  renameChain(name: string): void {
+    this.mutate((st) => {
+      const p = st.players.find((x) => x.isHuman);
+      if (!p) return;
+      const old = chainName(p);
+      p.chainName = name.trim().slice(0, 32) || undefined;
+      const next = chainName(p);
+      for (const r of st.restaurants) {
+        if (r.ownerId !== p.id) continue;
+        if (r.name === old || r.name.startsWith(`${old} #`))
+          r.name = next + r.name.slice(old.length);
+      }
     });
   }
 

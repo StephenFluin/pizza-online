@@ -4,6 +4,7 @@ import { ICONS, LcdLine, ShellService, Tool } from '../shell/shell.service';
 import { reportTools } from './reports';
 import { shopCycleTools } from './shop-nav';
 import { netWorth, rankOf } from '../game/awards';
+import { chainName } from '../game/characters';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
 import { DayStats, Restaurant, formatDate, formatMoney } from '../game/model';
@@ -196,6 +197,17 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
       }
 
       @case ('chain') {
+        <p class="chain-name">
+          <label for="chain-name">Chain name</label>
+          <input
+            id="chain-name"
+            maxlength="32"
+            [value]="myChainName()"
+            [placeholder]="myChainName()"
+            (change)="renameChain($any($event.target))"
+            (keydown.enter)="$any($event.target).blur()"
+          />
+        </p>
         <table class="wide">
           <caption>
             Your restaurants over the last seven days
@@ -251,7 +263,7 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
           </caption>
           <thead>
             <tr>
-              <th scope="col">Owner</th>
+              <th scope="col">Chain</th>
               <th scope="col">Restaurants</th>
               <th scope="col">Cities</th>
               <th scope="col">Guests</th>
@@ -264,7 +276,9 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
           <tbody>
             @for (row of chains(); track row.id) {
               <tr [class.me]="row.me">
-                <th scope="row">{{ row.name }}</th>
+                <th scope="row">
+                  {{ row.name }}<br /><small>{{ row.owner }}</small>
+                </th>
                 <td>{{ row.shops }}</td>
                 <td>{{ row.cities }}</td>
                 <td>{{ row.customers }}</td>
@@ -415,6 +429,19 @@ const sum = (days: DayStats[], f: (d: DayStats) => number) => days.reduce((n, d)
       width: 70px;
       vertical-align: middle;
     }
+    .chain-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 10px;
+    }
+    .chain-name label {
+      font-weight: 700;
+    }
+    .chain-name input {
+      flex: 0 1 260px;
+      min-width: 0;
+    }
     .hint {
       font-size: 0.85rem;
       color: #555;
@@ -560,6 +587,16 @@ export class StatsScreenComponent {
     return rows;
   });
 
+  protected readonly myChainName = computed(() => {
+    const me = this.game.state()?.players.find((p) => p.isHuman);
+    return me ? chainName(me) : '';
+  });
+
+  protected renameChain(input: HTMLInputElement): void {
+    this.game.renameChain(input.value);
+    input.value = this.myChainName();
+  }
+
   protected readonly chains = computed(() => {
     const st = this.game.state();
     if (!st) return [];
@@ -569,7 +606,8 @@ export class StatsScreenComponent {
         const worth = netWorth(st, p);
         return {
           id: p.id,
-          name: p.name,
+          name: chainName(p),
+          owner: p.name,
           me: p.isHuman,
           shops: shops.length,
           cities: new Set(shops.map((r) => r.cityId)).size,

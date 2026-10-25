@@ -1,6 +1,7 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { PortraitComponent } from '../characters/portrait';
 import { JUDGES } from '../game/awards';
+import { chainName } from '../game/characters';
 import { cityDef } from '../game/data';
 import { GameService } from '../game/game.service';
 import { Recipe } from '../game/model';
@@ -252,7 +253,8 @@ export class ContestScreenComponent {
   }
 
   protected owner(id: number): string {
-    return this.game.state()?.players.find((p) => p.id === id)?.name ?? '';
+    const p = this.game.state()?.players.find((x) => x.id === id);
+    return p ? chainName(p) : '';
   }
 
   protected done(): void {

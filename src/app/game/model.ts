@@ -312,6 +312,8 @@ export interface LedgerEntry {
 export interface Player {
   id: number;
   name: string;
+  /** The chain's trading name; when unset it is the owner's first name + "'s Pizzeria". */
+  chainName?: string;
   /** Id from the character cast; decides portrait and stats. */
   characterId: string;
   color: number;

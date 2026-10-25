@@ -704,3 +704,8 @@ export function character(id: string | undefined): Character {
 export function firstName(name: string): string {
   return name.split(' ')[0];
 }
+
+/** The name a player's chain trades under, which its new restaurants are named after. */
+export function chainName(player: { name: string; chainName?: string }): string {
+  return player.chainName?.trim() || `${firstName(player.name)}'s Pizzeria`;
+}

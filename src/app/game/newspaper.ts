@@ -1,3 +1,4 @@
+import { chainName } from './characters';
 import { CITIES, INGREDIENTS, cityDef, ingredient } from './data';
 import { GameState } from './model';
 import { invalidatePizzaStats } from './pizza-stats';
@@ -257,7 +258,8 @@ export function updateCharts(st: GameState): void {
   for (const city of CITIES) {
     const totals = new Map<string, ChartEntry>();
     for (const r of st.restaurants.filter((x) => x.cityId === city.id)) {
-      const owner = st.players.find((p) => p.id === r.ownerId)?.name ?? '';
+      const p = st.players.find((x) => x.id === r.ownerId);
+      const owner = p ? chainName(p) : '';
       for (const [recipeId, sales] of Object.entries(r.lastDay.pizzas ?? {})) {
         const recipe = st.recipes.find((x) => x.id === recipeId);
         if (!recipe || sales.sold === 0) continue;

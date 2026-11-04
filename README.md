@@ -1,5 +1,7 @@
 # Pizza Online
 
+Live at https://pizza.fluin.io
+
 A browser-only, open-source pizza restaurant tycoon game built with **Angular** and **PixiJS**.
 It is a homage to the 1994 DOS classic _Pizza Tycoon_ and the
 [Pizza Legacy](https://codeberg.org/cowomaly/pizzalegacy) reimplementation, written from
